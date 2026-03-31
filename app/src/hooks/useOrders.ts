@@ -39,7 +39,7 @@ export function useOrders(date?: string) {
     fetchOrders()
 
     const channel = supabase
-      .channel('orders-changes')
+      .channel(`orders-changes-${date ?? 'today'}`)
       .on('postgres_changes', { event: '*', schema: 'public', table: 'orders' }, () => {
         if (debounceRef.current) clearTimeout(debounceRef.current)
         debounceRef.current = setTimeout(() => fetchOrders(), 400)

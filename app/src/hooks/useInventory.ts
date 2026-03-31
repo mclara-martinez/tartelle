@@ -28,7 +28,7 @@ export function useInventory() {
     fetchInventory()
 
     const channel = supabase
-      .channel('inventory-changes')
+      .channel(`inventory-changes-${Math.random().toString(36).slice(2)}`)
       .on('postgres_changes', { event: '*', schema: 'public', table: 'inventory_finished' }, () => {
         if (debounceRef.current) clearTimeout(debounceRef.current)
         debounceRef.current = setTimeout(() => fetchInventory(), 400)
