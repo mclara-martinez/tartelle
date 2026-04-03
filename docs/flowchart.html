@@ -1,0 +1,714 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Tartelle Ops — Process Flowchart</title>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap');
+
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+
+  body {
+    font-family: 'Inter', sans-serif;
+    background: #0f0f13;
+    color: #e4e4e7;
+    min-height: 100vh;
+    overflow-x: hidden;
+  }
+
+  .header {
+    text-align: center;
+    padding: 48px 24px 24px;
+  }
+
+  .header h1 {
+    font-size: 2rem;
+    font-weight: 800;
+    background: linear-gradient(135deg, #f59e0b, #f97316);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    margin-bottom: 8px;
+  }
+
+  .header p {
+    color: #71717a;
+    font-size: 0.95rem;
+  }
+
+  .legend {
+    display: flex;
+    justify-content: center;
+    gap: 24px;
+    padding: 16px 24px 32px;
+    flex-wrap: wrap;
+  }
+
+  .legend-item {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    font-size: 0.8rem;
+    color: #a1a1aa;
+  }
+
+  .legend-dot {
+    width: 12px;
+    height: 12px;
+    border-radius: 3px;
+  }
+
+  .legend-dot.built { background: #22c55e; }
+  .legend-dot.manual { background: #f59e0b; }
+  .legend-dot.planned { background: #8b5cf6; border: 2px dashed #8b5cf6; background: transparent; }
+  .legend-dot.pain { background: #ef4444; }
+
+  /* FLOW CONTAINER */
+  .flow {
+    max-width: 1300px;
+    margin: 0 auto;
+    padding: 0 24px 48px;
+    display: grid;
+    grid-template-columns: 260px 1fr 260px;
+    gap: 32px;
+    align-items: start;
+  }
+
+  /* COLUMNS */
+  .column {
+    display: flex;
+    flex-direction: column;
+    gap: 16px;
+  }
+
+  .column-label {
+    font-size: 0.7rem;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.1em;
+    padding: 8px 16px;
+    border-radius: 8px;
+    text-align: center;
+    margin-bottom: 8px;
+  }
+
+  .column-label.inbound { background: rgba(59,130,246,0.15); color: #60a5fa; }
+  .column-label.system { background: rgba(34,197,94,0.15); color: #4ade80; }
+  .column-label.outbound { background: rgba(249,115,22,0.15); color: #fb923c; }
+
+  /* CARDS */
+  .card {
+    background: #1a1a23;
+    border: 1px solid #27272a;
+    border-radius: 12px;
+    padding: 16px;
+    transition: all 0.2s ease;
+    position: relative;
+  }
+
+  .card:hover {
+    border-color: #3f3f46;
+    transform: translateY(-2px);
+    box-shadow: 0 8px 24px rgba(0,0,0,0.3);
+  }
+
+  .card.planned {
+    border-style: dashed;
+    border-color: #8b5cf6;
+    opacity: 0.7;
+  }
+
+  .card.planned:hover { opacity: 1; }
+
+  .card.pain {
+    border-color: #ef4444;
+    background: rgba(239,68,68,0.05);
+  }
+
+  .card-icon {
+    font-size: 1.5rem;
+    margin-bottom: 8px;
+  }
+
+  .card-title {
+    font-weight: 700;
+    font-size: 0.9rem;
+    margin-bottom: 4px;
+  }
+
+  .card-desc {
+    font-size: 0.78rem;
+    color: #71717a;
+    line-height: 1.5;
+  }
+
+  .card-badge {
+    position: absolute;
+    top: 12px;
+    right: 12px;
+    font-size: 0.6rem;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    padding: 2px 8px;
+    border-radius: 4px;
+  }
+
+  .badge-built { background: rgba(34,197,94,0.2); color: #4ade80; }
+  .badge-manual { background: rgba(249,115,22,0.2); color: #fb923c; }
+  .badge-planned { background: rgba(139,92,246,0.2); color: #a78bfa; }
+  .badge-pain { background: rgba(239,68,68,0.2); color: #f87171; }
+
+  /* CENTER SYSTEM */
+  .system-core {
+    background: #1a1a23;
+    border: 2px solid #22c55e;
+    border-radius: 16px;
+    padding: 24px;
+  }
+
+  .system-core h3 {
+    font-size: 1.1rem;
+    font-weight: 800;
+    color: #4ade80;
+    margin-bottom: 16px;
+    text-align: center;
+  }
+
+  .status-flow {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 4px;
+    flex-wrap: wrap;
+    margin: 16px 0;
+    padding: 12px;
+    background: #0f0f13;
+    border-radius: 8px;
+  }
+
+  .status-pill {
+    font-size: 0.65rem;
+    font-weight: 600;
+    padding: 4px 10px;
+    border-radius: 20px;
+    white-space: nowrap;
+  }
+
+  .status-pending { background: #422006; color: #fbbf24; }
+  .status-confirmed { background: #042f2e; color: #2dd4bf; }
+  .status-production { background: #1e1b4b; color: #818cf8; }
+  .status-ready { background: #052e16; color: #4ade80; }
+  .status-dispatched { background: #172554; color: #60a5fa; }
+  .status-delivered { background: #14532d; color: #86efac; }
+
+  .arrow-right {
+    color: #3f3f46;
+    font-size: 0.7rem;
+  }
+
+  .views-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 10px;
+    margin-top: 12px;
+  }
+
+  .view-card {
+    background: #0f0f13;
+    border: 1px solid #27272a;
+    border-radius: 8px;
+    padding: 12px;
+    text-align: center;
+  }
+
+  .view-card .view-icon { font-size: 1.3rem; margin-bottom: 4px; }
+  .view-card .view-name { font-size: 0.75rem; font-weight: 700; }
+  .view-card .view-desc { font-size: 0.65rem; color: #71717a; margin-top: 2px; }
+
+  .supabase-tag {
+    text-align: center;
+    margin-top: 16px;
+    font-size: 0.7rem;
+    color: #3ecf8e;
+    font-weight: 600;
+  }
+
+  /* CONNECTOR ARROWS */
+  .connector {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 4px 0;
+  }
+
+  .connector svg { width: 100%; max-width: 80px; height: 24px; }
+
+  .arrow-down {
+    text-align: center;
+    color: #3f3f46;
+    font-size: 1.2rem;
+    padding: 4px 0;
+  }
+
+  /* MANUAL BRIDGE */
+  .bridge {
+    background: rgba(249,115,22,0.08);
+    border: 1px dashed #f59e0b;
+    border-radius: 12px;
+    padding: 16px;
+    text-align: center;
+    margin: 8px 0;
+  }
+
+  .bridge-icon { font-size: 2rem; margin-bottom: 8px; }
+  .bridge-title { font-weight: 700; font-size: 0.85rem; color: #fbbf24; }
+  .bridge-desc { font-size: 0.72rem; color: #a1a1aa; margin-top: 4px; }
+
+  /* PAIN POINTS */
+  .pain-section {
+    max-width: 1300px;
+    margin: 0 auto;
+    padding: 0 24px 48px;
+  }
+
+  .pain-title {
+    font-size: 0.7rem;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.1em;
+    color: #ef4444;
+    margin-bottom: 16px;
+    text-align: center;
+  }
+
+  .pain-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+    gap: 12px;
+  }
+
+  .pain-card {
+    background: rgba(239,68,68,0.05);
+    border: 1px solid rgba(239,68,68,0.2);
+    border-radius: 10px;
+    padding: 14px;
+    display: flex;
+    gap: 12px;
+    align-items: flex-start;
+  }
+
+  .pain-card .pain-icon { font-size: 1.2rem; flex-shrink: 0; }
+  .pain-card .pain-name { font-size: 0.8rem; font-weight: 700; color: #f87171; }
+  .pain-card .pain-detail { font-size: 0.72rem; color: #71717a; margin-top: 2px; }
+
+  /* TIMELINE */
+  .timeline-section {
+    max-width: 1300px;
+    margin: 0 auto;
+    padding: 0 24px 64px;
+  }
+
+  .timeline-label {
+    font-size: 0.7rem;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.1em;
+    color: #60a5fa;
+    margin-bottom: 16px;
+    text-align: center;
+  }
+
+  .timeline {
+    display: flex;
+    align-items: flex-start;
+    justify-content: space-between;
+    position: relative;
+    padding: 0 16px;
+  }
+
+  .timeline::before {
+    content: '';
+    position: absolute;
+    top: 20px;
+    left: 40px;
+    right: 40px;
+    height: 2px;
+    background: linear-gradient(90deg, #3b82f6, #22c55e, #f59e0b, #8b5cf6);
+    border-radius: 2px;
+  }
+
+  .timeline-item {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    text-align: center;
+    position: relative;
+    z-index: 1;
+    flex: 1;
+  }
+
+  .timeline-dot {
+    width: 40px;
+    height: 40px;
+    border-radius: 50%;
+    background: #1a1a23;
+    border: 2px solid #3f3f46;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 1rem;
+    margin-bottom: 10px;
+  }
+
+  .timeline-time {
+    font-size: 0.75rem;
+    font-weight: 700;
+    color: #e4e4e7;
+  }
+
+  .timeline-desc {
+    font-size: 0.65rem;
+    color: #71717a;
+    max-width: 120px;
+    margin-top: 4px;
+  }
+
+  /* RESPONSIVE */
+  @media (max-width: 900px) {
+    .flow {
+      grid-template-columns: 1fr;
+    }
+    .timeline {
+      flex-direction: column;
+      align-items: flex-start;
+      gap: 16px;
+    }
+    .timeline::before { display: none; }
+    .timeline-item { flex-direction: row; gap: 12px; text-align: left; }
+  }
+</style>
+</head>
+<body>
+
+<div class="header">
+  <h1>Tartelle Ops</h1>
+  <p>Communications & Information Flow</p>
+</div>
+
+<div class="legend">
+  <div class="legend-item"><div class="legend-dot built"></div> Built (Phase 1)</div>
+  <div class="legend-item"><div class="legend-dot manual"></div> Manual Process</div>
+  <div class="legend-item"><div class="legend-dot planned"></div> Planned (Phases 2-5)</div>
+  <div class="legend-item"><div class="legend-dot pain"></div> Pain Point</div>
+</div>
+
+<!-- MAIN 3-COLUMN FLOW -->
+<div class="flow">
+
+  <!-- LEFT: INBOUND -->
+  <div class="column">
+    <div class="column-label inbound">Inbound Channels</div>
+
+    <div class="card">
+      <div class="card-badge badge-manual">Manual</div>
+      <div class="card-icon">💬</div>
+      <div class="card-title">WhatsApp DMs</div>
+      <div class="card-desc">~40-50 messages/day. Customers text orders directly. Admin reads and enters into system.</div>
+    </div>
+
+    <div class="card">
+      <div class="card-badge badge-manual">Manual</div>
+      <div class="card-icon">🛵</div>
+      <div class="card-title">Rappi Orders</div>
+      <div class="card-desc">Kitchen staff accept directly in Rappi app. Admin transfers to ops system.</div>
+    </div>
+
+    <div class="card">
+      <div class="card-badge badge-manual">Manual</div>
+      <div class="card-icon">📸</div>
+      <div class="card-title">Instagram DMs</div>
+      <div class="card-desc">Occasional social media orders. Admin manually processes.</div>
+    </div>
+
+    <div class="card">
+      <div class="card-badge badge-manual">Manual</div>
+      <div class="card-icon">🏪</div>
+      <div class="card-title">Walk-in / POS</div>
+      <div class="card-desc">Direct purchases at retail point of sale location.</div>
+    </div>
+
+    <div class="card">
+      <div class="card-badge badge-manual">Manual</div>
+      <div class="card-icon">🏢</div>
+      <div class="card-title">B2B Restaurants</div>
+      <div class="card-desc">Bulk orders from restaurant/cafe clients via WhatsApp. Special pricing.</div>
+    </div>
+
+    <!-- MANUAL BRIDGE -->
+    <div class="bridge">
+      <div class="bridge-icon">👩‍💻</div>
+      <div class="bridge-title">Admin (Andrea)</div>
+      <div class="bridge-desc">Manually reads all channels and types each order into the system. This is the current bottleneck.</div>
+    </div>
+
+    <!-- FUTURE: AUTOMATED INBOUND -->
+    <div class="card planned">
+      <div class="card-badge badge-planned">Phase 2</div>
+      <div class="card-icon">🤖</div>
+      <div class="card-title">WhatsApp Chatbot</div>
+      <div class="card-desc">Auto-qualify orders, collect delivery details, confirm pricing. Feed directly into system.</div>
+    </div>
+
+    <div class="card planned">
+      <div class="card-badge badge-planned">Phase 3</div>
+      <div class="card-icon">🔗</div>
+      <div class="card-title">Rappi API Sync</div>
+      <div class="card-desc">Auto-import Rappi orders. Sync inventory to prevent overselling.</div>
+    </div>
+
+    <div class="card planned">
+      <div class="card-badge badge-planned">Phase 4</div>
+      <div class="card-icon">🔄</div>
+      <div class="card-title">B2B Auto-Reorders</div>
+      <div class="card-desc">Pattern-based recurring orders for restaurant clients.</div>
+    </div>
+  </div>
+
+  <!-- CENTER: OPS SYSTEM -->
+  <div class="column">
+    <div class="column-label system">Tartelle Ops System (Supabase + React)</div>
+
+    <div class="system-core">
+      <h3>Order Lifecycle</h3>
+      <div class="status-flow">
+        <span class="status-pill status-pending">Pending</span>
+        <span class="arrow-right">&#9654;</span>
+        <span class="status-pill status-confirmed">Confirmed</span>
+        <span class="arrow-right">&#9654;</span>
+        <span class="status-pill status-production">In Production</span>
+        <span class="arrow-right">&#9654;</span>
+        <span class="status-pill status-ready">Ready</span>
+        <span class="arrow-right">&#9654;</span>
+        <span class="status-pill status-dispatched">Dispatched</span>
+        <span class="arrow-right">&#9654;</span>
+        <span class="status-pill status-delivered">Delivered</span>
+      </div>
+
+      <div class="views-grid">
+        <div class="view-card">
+          <div class="view-icon">📊</div>
+          <div class="view-name">Dashboard</div>
+          <div class="view-desc">Today's stats, revenue, pending orders, tomorrow forecast</div>
+        </div>
+        <div class="view-card">
+          <div class="view-icon">📋</div>
+          <div class="view-name">Orders View</div>
+          <div class="view-desc">Create, manage, filter orders. Status transitions.</div>
+        </div>
+        <div class="view-card">
+          <div class="view-icon">👨‍🍳</div>
+          <div class="view-name">Kitchen View</div>
+          <div class="view-desc">Real-time iPad display. Active orders + dispatch buttons.</div>
+        </div>
+        <div class="view-card">
+          <div class="view-icon">📦</div>
+          <div class="view-name">Inventory View</div>
+          <div class="view-desc">Finished product stock, production intake, low-stock alerts.</div>
+        </div>
+      </div>
+
+      <div class="supabase-tag">Real-time Supabase subscriptions (400ms debounce)</div>
+    </div>
+
+    <!-- DATA LAYER -->
+    <div class="card" style="border-color: #3ecf8e;">
+      <div class="card-icon">🗄️</div>
+      <div class="card-title" style="color: #3ecf8e;">Supabase Database</div>
+      <div class="card-desc">
+        <strong>Orders</strong> + OrderItems (channel, status, delivery date, customer)<br>
+        <strong>Customers</strong> (B2C, B2B, POS — with discount tiers)<br>
+        <strong>Products</strong> (name, flavor, size, price, advance-order flag)<br>
+        <strong>Inventory</strong> (real-time quantity + audit log with reason codes)<br>
+        <strong>ProductionPlan</strong> (daily batch list with completion tracking)
+      </div>
+    </div>
+
+    <!-- PRODUCTION PLAN -->
+    <div class="card" style="border-color: #8b5cf6;">
+      <div class="card-badge badge-built">Built</div>
+      <div class="card-icon">📝</div>
+      <div class="card-title" style="color: #a78bfa;">6pm Production Plan</div>
+      <div class="card-desc">
+        Orders close at 6pm. System generates next-day production list:<br>
+        - Confirmed orders from all channels<br>
+        - Estimated immediate delivery units<br>
+        - Sent to kitchen via WhatsApp group (manual now)
+      </div>
+    </div>
+
+    <!-- WHATSAPP GROUPS -->
+    <div class="card" style="border-color: #f59e0b;">
+      <div class="card-badge badge-manual">Manual</div>
+      <div class="card-icon">📱</div>
+      <div class="card-title" style="color: #fbbf24;">4 WhatsApp Groups</div>
+      <div class="card-desc">
+        <strong>Sales:</strong> Customer orders come in<br>
+        <strong>Rappi:</strong> Photos + last 4 digits of order<br>
+        <strong>Production:</strong> 6pm daily batch list<br>
+        <strong>Inventory:</strong> Evening stock report from kitchen
+      </div>
+    </div>
+  </div>
+
+  <!-- RIGHT: OUTBOUND -->
+  <div class="column">
+    <div class="column-label outbound">Outbound / Actions</div>
+
+    <div class="card">
+      <div class="card-badge badge-manual">Manual</div>
+      <div class="card-icon">📤</div>
+      <div class="card-title">WhatsApp Notifications</div>
+      <div class="card-desc">Admin manually sends "on the way" and "delivered" messages to each customer.</div>
+    </div>
+
+    <div class="card">
+      <div class="card-badge badge-manual">Manual</div>
+      <div class="card-icon">🧾</div>
+      <div class="card-title">Siigo Invoicing</div>
+      <div class="card-desc">Admin creates invoices one-by-one in Siigo POS. 50+ invoices/week. No auto-decrement.</div>
+    </div>
+
+    <div class="card">
+      <div class="card-badge badge-manual">Manual</div>
+      <div class="card-icon">🚫</div>
+      <div class="card-title">Rappi Stock Disable</div>
+      <div class="card-desc">Kitchen manually disables out-of-stock items on Rappi platform. Often too late.</div>
+    </div>
+
+    <div class="card">
+      <div class="card-badge badge-manual">Manual</div>
+      <div class="card-icon">🚗</div>
+      <div class="card-title">Delivery Dispatch</div>
+      <div class="card-desc">Delivery person or inDrive for overflow. Coordinated via WhatsApp.</div>
+    </div>
+
+    <div class="arrow-down" style="margin: 16px 0;">- - - Future Automations - - -</div>
+
+    <div class="card planned">
+      <div class="card-badge badge-planned">Phase 2</div>
+      <div class="card-icon">✉️</div>
+      <div class="card-title">Auto WhatsApp Alerts</div>
+      <div class="card-desc">On status change to "dispatched" / "delivered", auto-send WhatsApp message via Business API.</div>
+    </div>
+
+    <div class="card planned">
+      <div class="card-badge badge-planned">Phase 3</div>
+      <div class="card-icon">⚡</div>
+      <div class="card-title">Siigo API Integration</div>
+      <div class="card-desc">Auto-generate invoice when order status = delivered. Eliminate manual invoicing.</div>
+    </div>
+
+    <div class="card planned">
+      <div class="card-badge badge-planned">Phase 3</div>
+      <div class="card-icon">📡</div>
+      <div class="card-title">Rappi Inventory Sync</div>
+      <div class="card-desc">Real-time inventory push to Rappi. Auto-disable when stock hits 0.</div>
+    </div>
+
+    <div class="card planned">
+      <div class="card-badge badge-planned">Phase 4</div>
+      <div class="card-icon">❤️</div>
+      <div class="card-title">CRM & Follow-ups</div>
+      <div class="card-desc">Purchase history, birthday reminders, re-engagement. Automated customer lifecycle.</div>
+    </div>
+
+    <div class="card planned">
+      <div class="card-badge badge-planned">Phase 5</div>
+      <div class="card-icon">🥚</div>
+      <div class="card-title">Raw Materials Auto-Order</div>
+      <div class="card-desc">Track ingredients. Auto-generate supplier orders when stock runs low.</div>
+    </div>
+  </div>
+
+</div>
+
+<!-- PAIN POINTS -->
+<div class="pain-section">
+  <div class="pain-title">Key Pain Points</div>
+  <div class="pain-grid">
+    <div class="pain-card">
+      <div class="pain-icon">🔥</div>
+      <div>
+        <div class="pain-name">Overselling</div>
+        <div class="pain-detail">Same product sold on WhatsApp AND Rappi before anyone realizes it's out of stock.</div>
+      </div>
+    </div>
+    <div class="pain-card">
+      <div class="pain-icon">⏳</div>
+      <div>
+        <div class="pain-name">Manual Invoicing</div>
+        <div class="pain-detail">50+ invoices/week created one-by-one in Siigo. Admin spends hours on data entry.</div>
+      </div>
+    </div>
+    <div class="pain-card">
+      <div class="pain-icon">👻</div>
+      <div>
+        <div class="pain-name">Inventory Blindness</div>
+        <div class="pain-detail">Siigo doesn't auto-decrement. Kitchen reports stock via WhatsApp at end of day.</div>
+      </div>
+    </div>
+    <div class="pain-card">
+      <div class="pain-icon">📍</div>
+      <div>
+        <div class="pain-name">No Delivery Tracking</div>
+        <div class="pain-detail">Customers don't know delivery status. Admin manually WhatsApps each update.</div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- DAILY TIMELINE -->
+<div class="timeline-section">
+  <div class="timeline-label">Daily Operations Timeline</div>
+  <div class="timeline">
+    <div class="timeline-item">
+      <div class="timeline-dot">📋</div>
+      <div>
+        <div class="timeline-time">6:00 PM</div>
+        <div class="timeline-desc">Orders close. Production plan sent to kitchen.</div>
+      </div>
+    </div>
+    <div class="timeline-item">
+      <div class="timeline-dot">🌅</div>
+      <div>
+        <div class="timeline-time">6:00 AM</div>
+        <div class="timeline-desc">First kitchen staff arrives. Production starts.</div>
+      </div>
+    </div>
+    <div class="timeline-item">
+      <div class="timeline-dot">🚚</div>
+      <div>
+        <div class="timeline-time">All Day</div>
+        <div class="timeline-desc">Orders dispatched. Delivery + pickup coordinated.</div>
+      </div>
+    </div>
+    <div class="timeline-item">
+      <div class="timeline-dot">📦</div>
+      <div>
+        <div class="timeline-time">Evening</div>
+        <div class="timeline-desc">Inventory count reported via WhatsApp.</div>
+      </div>
+    </div>
+    <div class="timeline-item">
+      <div class="timeline-dot">💰</div>
+      <div>
+        <div class="timeline-time">Saturday</div>
+        <div class="timeline-desc">Cash reconciliation, AR review, raw materials count.</div>
+      </div>
+    </div>
+  </div>
+</div>
+
+</body>
+</html>

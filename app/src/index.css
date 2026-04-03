@@ -1,21 +1,42 @@
-@import url('https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@300;400;500;600&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=DM+Sans:ital,opsz,wght@0,9..40,300;0,9..40,400;0,9..40,500;0,9..40,600;0,9..40,700&display=swap');
 @import "tailwindcss";
 
 @theme {
-  --color-bg: #FAF8F5;
+  /* Tartelle Brand — Deep Teal + Warm Gold */
+  --color-bg: #F7F4F0;
   --color-surface: #FFFFFF;
-  --color-border: #E8E3DC;
-  --color-text-primary: #2C2A26;
-  --color-text-secondary: #7A7168;
-  --color-accent: #9C6B2E;
-  --color-accent-light: #FDF3DC;
-  --color-success: #4A7C59;
-  --color-success-light: #EAF3EC;
-  --color-warning: #C17A2E;
-  --color-warning-light: #FDF0E0;
+  --color-surface-warm: #FAF7F3;
+  --color-border: #E6E0D8;
+  --color-text-primary: #1E2A2A;
+  --color-text-secondary: #6B7575;
+  --color-text-muted: #9CA8A8;
+
+  /* Primary: Tartelle Teal */
+  --color-teal: #1A6B5A;
+  --color-teal-dark: #145649;
+  --color-teal-light: #E8F5F0;
+  --color-teal-50: #F0FAF6;
+
+  /* Accent: Warm Gold */
+  --color-gold: #B8923A;
+  --color-gold-dark: #9A7A2E;
+  --color-gold-light: #FBF5E8;
+
+  /* Keep accent pointing to teal (primary actions) */
+  --color-accent: #1A6B5A;
+  --color-accent-light: #E8F5F0;
+
+  /* Semantic */
+  --color-success: #1A6B5A;
+  --color-success-light: #E8F5F0;
+  --color-warning: #B8923A;
+  --color-warning-light: #FBF5E8;
   --color-danger: #B54848;
   --color-danger-light: #FCEAEA;
-  --font-family-sans: 'IBM Plex Sans', system-ui, sans-serif;
+  --color-info: #3B7CB8;
+  --color-info-light: #EBF3FB;
+
+  --font-family-sans: 'DM Sans', system-ui, sans-serif;
 }
 
 * { box-sizing: border-box; margin: 0; padding: 0; }

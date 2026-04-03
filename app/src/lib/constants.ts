@@ -22,11 +22,11 @@ export const STATUS_LABELS: Record<OrderStatus, string> = {
 
 export const STATUS_COLORS: Record<OrderStatus, string> = {
   pending: 'bg-[var(--color-warning-light)] text-[var(--color-warning)]',
-  confirmed: 'bg-[var(--color-accent-light)] text-[var(--color-accent)]',
-  in_production: 'bg-blue-50 text-blue-700',
-  ready: 'bg-[var(--color-success-light)] text-[var(--color-success)]',
-  dispatched: 'bg-purple-50 text-purple-700',
-  delivered: 'bg-gray-100 text-gray-500',
+  confirmed: 'bg-[var(--color-teal-light)] text-[var(--color-teal)]',
+  in_production: 'bg-[var(--color-info-light)] text-[var(--color-info)]',
+  ready: 'bg-[var(--color-teal-light)] text-[var(--color-teal-dark)]',
+  dispatched: 'bg-[var(--color-gold-light)] text-[var(--color-gold-dark)]',
+  delivered: 'bg-[var(--color-bg)] text-[var(--color-text-muted)]',
   cancelled: 'bg-[var(--color-danger-light)] text-[var(--color-danger)]',
 }
 
