@@ -1,0 +1,1357 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Tartelle Ops — Phase 1 Process Flowchart</title>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&display=swap');
+
+  :root {
+    --bg: #0c0c10;
+    --surface: #16161e;
+    --surface2: #1e1e2a;
+    --border: #2a2a3a;
+    --text: #e4e4ed;
+    --muted: #71718a;
+    --amber: #f59e0b;
+    --amber-dim: rgba(245,158,11,0.12);
+    --teal: #14b8a6;
+    --teal-dim: rgba(20,184,166,0.12);
+    --purple: #8b5cf6;
+    --purple-dim: rgba(139,92,246,0.12);
+    --green: #22c55e;
+    --green-dim: rgba(34,197,94,0.12);
+    --blue: #3b82f6;
+    --blue-dim: rgba(59,130,246,0.12);
+    --red: #ef4444;
+    --red-dim: rgba(239,68,68,0.12);
+    --green-dark: #15803d;
+    --green-dark-dim: rgba(21,128,61,0.12);
+    --orange: #f97316;
+  }
+
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+
+  body {
+    font-family: 'Inter', -apple-system, sans-serif;
+    background: var(--bg);
+    color: var(--text);
+    min-height: 100vh;
+    line-height: 1.5;
+  }
+
+  /* HEADER */
+  .page-header {
+    text-align: center;
+    padding: 48px 24px 16px;
+  }
+
+  .page-header h1 {
+    font-size: 2.2rem;
+    font-weight: 900;
+    background: linear-gradient(135deg, #f59e0b, #f97316, #ef4444);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    letter-spacing: -0.03em;
+  }
+
+  .page-header .subtitle {
+    color: var(--muted);
+    font-size: 0.95rem;
+    margin-top: 6px;
+  }
+
+  /* LEGEND */
+  .legend-bar {
+    display: flex;
+    justify-content: center;
+    gap: 28px;
+    padding: 20px 24px 36px;
+    flex-wrap: wrap;
+  }
+
+  .leg {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    font-size: 0.75rem;
+    color: var(--muted);
+    font-weight: 500;
+  }
+
+  .leg-shape {
+    width: 28px;
+    height: 18px;
+    border-radius: 4px;
+    border: 2px solid;
+    flex-shrink: 0;
+  }
+
+  .leg-shape.process { background: var(--surface2); border-color: var(--border); border-radius: 8px; }
+  .leg-shape.decision { background: var(--surface2); border-color: var(--amber); transform: rotate(45deg); width: 16px; height: 16px; border-radius: 2px; }
+  .leg-shape.status { background: var(--teal-dim); border-color: var(--teal); border-radius: 20px; }
+  .leg-shape.auto { background: var(--green-dim); border-color: var(--green); border-radius: 8px; }
+  .leg-shape.manual { background: var(--amber-dim); border-color: var(--amber); border-radius: 8px; border-style: dashed; }
+
+  /* SECTION CONTAINERS */
+  .section {
+    max-width: 1200px;
+    margin: 0 auto 48px;
+    padding: 0 24px;
+  }
+
+  .section-header {
+    display: flex;
+    align-items: center;
+    gap: 14px;
+    margin-bottom: 24px;
+    padding-bottom: 12px;
+    border-bottom: 1px solid var(--border);
+  }
+
+  .section-num {
+    width: 40px;
+    height: 40px;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-weight: 800;
+    font-size: 1rem;
+    flex-shrink: 0;
+  }
+
+  .section-title {
+    font-size: 1.15rem;
+    font-weight: 700;
+  }
+
+  .section-sub {
+    font-size: 0.8rem;
+    color: var(--muted);
+    margin-top: 2px;
+  }
+
+  /* SWIM LANES */
+  .swimlane-container {
+    display: grid;
+    grid-template-columns: 100px 1fr;
+    gap: 0;
+    position: relative;
+  }
+
+  .swimlane-labels {
+    display: flex;
+    flex-direction: column;
+    gap: 0;
+  }
+
+  .lane-label {
+    writing-mode: vertical-lr;
+    text-orientation: mixed;
+    transform: rotate(180deg);
+    font-size: 0.65rem;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.12em;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 16px 8px;
+    border-right: 2px solid;
+    min-height: 80px;
+  }
+
+  .lane-label.admin { border-color: var(--blue); color: var(--blue); background: var(--blue-dim); }
+  .lane-label.kitchen { border-color: var(--orange); color: var(--orange); background: rgba(249,115,22,0.08); }
+  .lane-label.system { border-color: var(--green); color: var(--green); background: var(--green-dim); }
+  .lane-label.customer { border-color: var(--purple); color: var(--purple); background: var(--purple-dim); }
+
+  /* FLOW CANVAS */
+  .flow-canvas {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 16px;
+    padding: 32px;
+    position: relative;
+    overflow: visible;
+  }
+
+  /* FLOW ROW */
+  .flow-row {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    flex-wrap: wrap;
+    margin-bottom: 16px;
+  }
+
+  .flow-row:last-child { margin-bottom: 0; }
+
+  /* NODE TYPES */
+  .node {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    padding: 10px 16px;
+    border-radius: 10px;
+    font-size: 0.78rem;
+    font-weight: 500;
+    position: relative;
+    transition: transform 0.15s, box-shadow 0.15s;
+    max-width: 100%;
+  }
+
+  .node:hover {
+    transform: translateY(-1px);
+    box-shadow: 0 4px 16px rgba(0,0,0,0.3);
+  }
+
+  .node-icon {
+    font-size: 1.1rem;
+    flex-shrink: 0;
+  }
+
+  /* Process Node */
+  .node.process {
+    background: var(--surface2);
+    border: 1px solid var(--border);
+  }
+
+  /* Decision Node */
+  .node.decision {
+    background: var(--amber-dim);
+    border: 1.5px solid var(--amber);
+    border-radius: 6px;
+    padding: 8px 14px;
+  }
+
+  .node.decision::before {
+    content: '?';
+    position: absolute;
+    top: -6px;
+    right: -6px;
+    width: 18px;
+    height: 18px;
+    background: var(--amber);
+    color: #000;
+    font-size: 0.6rem;
+    font-weight: 800;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+  }
+
+  /* Status Node */
+  .node.status {
+    border-radius: 20px;
+    font-weight: 700;
+    font-size: 0.72rem;
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
+    padding: 7px 14px;
+  }
+
+  .node.status.pending { background: var(--amber-dim); border: 1.5px solid var(--amber); color: var(--amber); }
+  .node.status.confirmed { background: var(--teal-dim); border: 1.5px solid var(--teal); color: var(--teal); }
+  .node.status.production { background: var(--purple-dim); border: 1.5px solid var(--purple); color: var(--purple); }
+  .node.status.ready { background: var(--green-dim); border: 1.5px solid var(--green); color: var(--green); }
+  .node.status.dispatched { background: var(--blue-dim); border: 1.5px solid var(--blue); color: var(--blue); }
+  .node.status.delivered { background: var(--green-dark-dim); border: 1.5px solid var(--green-dark); color: #4ade80; }
+  .node.status.cancelled { background: var(--red-dim); border: 1.5px solid var(--red); color: var(--red); }
+
+  /* Auto Node */
+  .node.auto {
+    background: var(--green-dim);
+    border: 1px solid var(--green);
+    border-style: none none none solid;
+    border-width: 0 0 0 3px;
+  }
+
+  /* Manual Node */
+  .node.manual {
+    background: var(--amber-dim);
+    border: 1px dashed rgba(245,158,11,0.4);
+  }
+
+  /* Alert Node */
+  .node.alert {
+    background: var(--red-dim);
+    border: 1px solid rgba(239,68,68,0.3);
+  }
+
+  /* Arrow */
+  .arrow {
+    color: var(--muted);
+    font-size: 1rem;
+    flex-shrink: 0;
+    opacity: 0.6;
+  }
+
+  .arrow-down-block {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: var(--muted);
+    font-size: 1.2rem;
+    padding: 6px 0;
+    opacity: 0.5;
+  }
+
+  /* Annotation / note */
+  .note {
+    font-size: 0.68rem;
+    color: var(--muted);
+    font-style: italic;
+    padding: 4px 10px;
+    border-left: 2px solid var(--border);
+    margin: 4px 0 4px 16px;
+    max-width: 400px;
+  }
+
+  /* Divider */
+  .flow-divider {
+    width: 100%;
+    height: 1px;
+    background: var(--border);
+    margin: 20px 0;
+    position: relative;
+  }
+
+  .flow-divider::after {
+    content: attr(data-label);
+    position: absolute;
+    top: -8px;
+    left: 16px;
+    background: var(--surface);
+    padding: 0 10px;
+    font-size: 0.62rem;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+    color: var(--muted);
+  }
+
+  /* Branch labels */
+  .branch-label {
+    font-size: 0.65rem;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.06em;
+    padding: 3px 10px;
+    border-radius: 4px;
+    flex-shrink: 0;
+  }
+
+  .branch-label.yes { background: rgba(34,197,94,0.15); color: #4ade80; }
+  .branch-label.no { background: rgba(239,68,68,0.15); color: #f87171; }
+  .branch-label.if { background: rgba(139,92,246,0.15); color: #a78bfa; }
+
+  /* FULL ORDER LIFECYCLE STRIP */
+  .lifecycle-strip {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    flex-wrap: wrap;
+    padding: 20px;
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 14px;
+    margin-bottom: 32px;
+    justify-content: center;
+  }
+
+  .lifecycle-strip .node.status {
+    font-size: 0.7rem;
+    padding: 6px 12px;
+  }
+
+  .lc-arrow {
+    color: var(--muted);
+    font-size: 0.8rem;
+    opacity: 0.5;
+  }
+
+  .lc-branch {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 4px;
+  }
+
+  .lc-branch-label {
+    font-size: 0.55rem;
+    color: var(--red);
+    font-weight: 600;
+  }
+
+  /* ROLE TAGS */
+  .role-tag {
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+    font-size: 0.6rem;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.06em;
+    padding: 2px 8px;
+    border-radius: 4px;
+    flex-shrink: 0;
+  }
+
+  .role-tag.admin { background: var(--blue-dim); color: #60a5fa; }
+  .role-tag.kitchen { background: rgba(249,115,22,0.12); color: #fb923c; }
+  .role-tag.system { background: var(--green-dim); color: #4ade80; }
+
+  /* CHANNELS GRID */
+  .channels-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
+    gap: 10px;
+    margin: 12px 0;
+  }
+
+  .channel-card {
+    background: var(--surface2);
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    padding: 14px;
+    text-align: center;
+    transition: border-color 0.2s;
+  }
+
+  .channel-card:hover { border-color: var(--amber); }
+  .channel-card .ch-icon { font-size: 1.5rem; margin-bottom: 6px; }
+  .channel-card .ch-name { font-size: 0.78rem; font-weight: 700; }
+  .channel-card .ch-desc { font-size: 0.65rem; color: var(--muted); margin-top: 4px; }
+
+  /* FORM FIELDS TABLE */
+  .fields-table {
+    width: 100%;
+    border-collapse: collapse;
+    margin: 12px 0;
+    font-size: 0.75rem;
+  }
+
+  .fields-table th {
+    text-align: left;
+    font-weight: 700;
+    font-size: 0.65rem;
+    text-transform: uppercase;
+    letter-spacing: 0.06em;
+    color: var(--muted);
+    padding: 8px 12px;
+    border-bottom: 1px solid var(--border);
+  }
+
+  .fields-table td {
+    padding: 8px 12px;
+    border-bottom: 1px solid rgba(42,42,58,0.5);
+    vertical-align: top;
+  }
+
+  .fields-table tr:last-child td { border-bottom: none; }
+
+  .field-name {
+    font-weight: 600;
+    color: var(--text);
+    white-space: nowrap;
+  }
+
+  .field-detail {
+    color: var(--muted);
+  }
+
+  /* VALIDATION RULES */
+  .rules-list {
+    list-style: none;
+    margin: 12px 0;
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+  }
+
+  .rules-list li {
+    display: flex;
+    align-items: flex-start;
+    gap: 8px;
+    font-size: 0.75rem;
+    color: #a1a1b5;
+    padding: 8px 12px;
+    background: var(--surface2);
+    border-radius: 8px;
+    border-left: 3px solid;
+  }
+
+  .rules-list li.block { border-color: var(--red); }
+  .rules-list li.warn { border-color: var(--amber); }
+  .rules-list li.auto { border-color: var(--green); }
+  .rules-list li .rule-icon { flex-shrink: 0; }
+
+  /* STATUS TRANSITION TABLE */
+  .transition-table {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 0.75rem;
+    margin: 16px 0;
+  }
+
+  .transition-table th {
+    text-align: left;
+    font-weight: 700;
+    font-size: 0.65rem;
+    text-transform: uppercase;
+    letter-spacing: 0.06em;
+    color: var(--muted);
+    padding: 10px 14px;
+    border-bottom: 2px solid var(--border);
+    background: var(--surface2);
+  }
+
+  .transition-table th:first-child { border-radius: 8px 0 0 0; }
+  .transition-table th:last-child { border-radius: 0 8px 0 0; }
+
+  .transition-table td {
+    padding: 10px 14px;
+    border-bottom: 1px solid rgba(42,42,58,0.5);
+    vertical-align: middle;
+  }
+
+  .transition-table tr:last-child td { border-bottom: none; }
+
+  .status-dot {
+    width: 10px;
+    height: 10px;
+    border-radius: 50%;
+    display: inline-block;
+    margin-right: 6px;
+  }
+
+  .dot-pending { background: var(--amber); }
+  .dot-confirmed { background: var(--teal); }
+  .dot-production { background: var(--purple); }
+  .dot-ready { background: var(--green); }
+  .dot-dispatched { background: var(--blue); }
+  .dot-delivered { background: #15803d; }
+  .dot-cancelled { background: var(--red); }
+
+  /* INVENTORY ACTIONS */
+  .inv-actions {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+    gap: 10px;
+    margin: 12px 0;
+  }
+
+  .inv-card {
+    background: var(--surface2);
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    padding: 14px;
+    border-left: 3px solid;
+  }
+
+  .inv-card.prod { border-left-color: var(--green); }
+  .inv-card.waste { border-left-color: var(--red); }
+  .inv-card.adjust { border-left-color: var(--amber); }
+  .inv-card.sale { border-left-color: var(--blue); }
+
+  .inv-card .inv-title { font-weight: 700; font-size: 0.82rem; margin-bottom: 4px; }
+  .inv-card .inv-desc { font-size: 0.7rem; color: var(--muted); }
+
+  /* DASHBOARD CARDS */
+  .dash-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+    gap: 10px;
+    margin: 12px 0;
+  }
+
+  .dash-card {
+    background: var(--surface2);
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    padding: 16px;
+    text-align: center;
+  }
+
+  .dash-card .d-icon { font-size: 1.5rem; margin-bottom: 6px; }
+  .dash-card .d-name { font-size: 0.78rem; font-weight: 700; }
+  .dash-card .d-desc { font-size: 0.65rem; color: var(--muted); margin-top: 4px; }
+
+  /* TIMELINE */
+  .daily-timeline {
+    display: flex;
+    flex-direction: column;
+    gap: 0;
+    margin: 16px 0;
+    position: relative;
+  }
+
+  .daily-timeline::before {
+    content: '';
+    position: absolute;
+    left: 19px;
+    top: 20px;
+    bottom: 20px;
+    width: 2px;
+    background: linear-gradient(180deg, var(--blue), var(--green), var(--orange), var(--purple), var(--amber));
+    border-radius: 2px;
+  }
+
+  .tl-item {
+    display: flex;
+    align-items: flex-start;
+    gap: 16px;
+    padding: 12px 0;
+    position: relative;
+  }
+
+  .tl-dot {
+    width: 40px;
+    height: 40px;
+    border-radius: 50%;
+    background: var(--surface2);
+    border: 2px solid var(--border);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 1rem;
+    flex-shrink: 0;
+    z-index: 1;
+  }
+
+  .tl-content {
+    padding-top: 6px;
+  }
+
+  .tl-time {
+    font-size: 0.78rem;
+    font-weight: 700;
+    color: var(--text);
+  }
+
+  .tl-desc {
+    font-size: 0.72rem;
+    color: var(--muted);
+    margin-top: 2px;
+  }
+
+  .tl-who {
+    margin-top: 4px;
+  }
+
+  /* RESPONSIVE */
+  @media (max-width: 700px) {
+    .page-header h1 { font-size: 1.6rem; }
+    .channels-grid { grid-template-columns: 1fr 1fr; }
+    .flow-row { gap: 8px; }
+    .node { font-size: 0.72rem; padding: 8px 12px; }
+    .section { padding: 0 16px; }
+    .flow-canvas { padding: 20px; }
+    .lifecycle-strip { gap: 4px; padding: 14px; }
+    .inv-actions, .dash-grid { grid-template-columns: 1fr; }
+  }
+</style>
+</head>
+<body>
+
+<!-- HEADER -->
+<div class="page-header">
+  <h1>Tartelle Ops — Phase 1</h1>
+  <p class="subtitle">Complete Process Flowchart &mdash; Order Lifecycle, Production, Inventory & Dispatch</p>
+</div>
+
+<!-- LEGEND -->
+<div class="legend-bar">
+  <div class="leg"><div class="leg-shape process"></div> Process Step</div>
+  <div class="leg"><div class="leg-shape decision"></div> Decision Point</div>
+  <div class="leg"><div class="leg-shape status"></div> Status Change</div>
+  <div class="leg"><div class="leg-shape auto"></div> System (Auto)</div>
+  <div class="leg"><div class="leg-shape manual"></div> Manual Step</div>
+</div>
+
+<!-- ORDER LIFECYCLE STRIP -->
+<div class="section">
+  <div class="lifecycle-strip">
+    <span class="node status pending">Pendiente</span>
+    <span class="lc-arrow">&#10140;</span>
+    <span class="node status confirmed">Confirmado</span>
+    <span class="lc-arrow">&#10140;</span>
+    <span class="node status production">En Produccion</span>
+    <span class="lc-arrow">&#10140;</span>
+    <span class="node status ready">Listo</span>
+    <span class="lc-arrow">&#10140;</span>
+    <span class="node status dispatched">Despachado</span>
+    <span class="lc-arrow">&#10140;</span>
+    <span class="node status delivered">Entregado</span>
+    <span style="margin-left: 20px"></span>
+    <div class="lc-branch">
+      <span class="node status cancelled">Cancelado</span>
+      <span class="lc-branch-label">from Pendiente, Confirmado, or En Produccion</span>
+    </div>
+  </div>
+</div>
+
+<!-- =========================================== -->
+<!-- SECTION 1: INTAKE -->
+<!-- =========================================== -->
+<div class="section">
+  <div class="section-header">
+    <div class="section-num" style="background: var(--blue-dim); color: #60a5fa;">1</div>
+    <div>
+      <div class="section-title">Intake &mdash; Order Arrives</div>
+      <div class="section-sub">Who: Admin (Andrea) &nbsp;|&nbsp; When: All day &nbsp;|&nbsp; Where: Orders View</div>
+    </div>
+  </div>
+
+  <div class="flow-canvas">
+    <!-- Step 1.1 Channels -->
+    <div style="font-size:0.7rem; font-weight:700; text-transform:uppercase; letter-spacing:0.08em; color:var(--muted); margin-bottom:12px;">Step 1.1 &mdash; Order arrives via one of 5 channels</div>
+
+    <div class="channels-grid">
+      <div class="channel-card">
+        <div class="ch-icon">💬</div>
+        <div class="ch-name">WhatsApp</div>
+        <div class="ch-desc">Customer messages, admin reads & transcribes</div>
+      </div>
+      <div class="channel-card">
+        <div class="ch-icon">🛵</div>
+        <div class="ch-name">Rappi</div>
+        <div class="ch-desc">Kitchen accepts, sends photo + 4 digits to group</div>
+      </div>
+      <div class="channel-card">
+        <div class="ch-icon">📸</div>
+        <div class="ch-name">Instagram</div>
+        <div class="ch-desc">DM orders, admin transcribes</div>
+      </div>
+      <div class="channel-card">
+        <div class="ch-icon">🏪</div>
+        <div class="ch-name">Walk-in / POS</div>
+        <div class="ch-desc">Direct purchase at retail location</div>
+      </div>
+      <div class="channel-card">
+        <div class="ch-icon">🏢</div>
+        <div class="ch-name">B2B Restaurants</div>
+        <div class="ch-desc">Bulk orders via WhatsApp, 2x/week</div>
+      </div>
+    </div>
+
+    <div class="arrow-down-block">&#8595;</div>
+
+    <!-- Step 1.2 Create Order -->
+    <div style="font-size:0.7rem; font-weight:700; text-transform:uppercase; letter-spacing:0.08em; color:var(--muted); margin-bottom:12px;">Step 1.2 &mdash; Admin creates order in system</div>
+
+    <div class="flow-row">
+      <span class="role-tag admin">Admin</span>
+      <span class="node process"><span class="node-icon">📝</span> Open "Nuevo Pedido" form</span>
+      <span class="arrow">&#10140;</span>
+      <span class="node process"><span class="node-icon">👤</span> Enter client info (name + phone)</span>
+      <span class="arrow">&#10140;</span>
+      <span class="node process"><span class="node-icon">📦</span> Select products from catalog</span>
+    </div>
+
+    <table class="fields-table">
+      <thead>
+        <tr><th>Field</th><th>Detail</th></tr>
+      </thead>
+      <tbody>
+        <tr><td class="field-name">Cliente</td><td class="field-detail">Name + phone (required)</td></tr>
+        <tr><td class="field-name">Canal</td><td class="field-detail">WhatsApp / Rappi / Instagram / Presencial / B2B</td></tr>
+        <tr><td class="field-name">Fecha de entrega</td><td class="field-detail">Today (immediate) or future date (scheduled)</td></tr>
+        <tr><td class="field-name">Tipo de entrega</td><td class="field-detail">Domicilio (+$8,000 COP) or Pickup</td></tr>
+        <tr><td class="field-name">Direccion</td><td class="field-detail">Only if delivery</td></tr>
+        <tr><td class="field-name">Productos</td><td class="field-detail">Name + flavor + size + quantity from catalog</td></tr>
+        <tr><td class="field-name">Notas</td><td class="field-detail">Special instructions, candles, dedication, etc.</td></tr>
+      </tbody>
+    </table>
+
+    <div class="flow-divider" data-label="Pricing Logic"></div>
+
+    <div class="flow-row">
+      <span class="role-tag system">System</span>
+      <span class="node auto"><span class="node-icon">💰</span> Base price by product (flavor + size)</span>
+      <span class="arrow">&#10140;</span>
+      <span class="node decision"><span class="node-icon">🏢</span> B2B client?</span>
+    </div>
+    <div class="flow-row" style="margin-left: 112px;">
+      <span class="branch-label yes">Yes</span>
+      <span class="node auto">Apply auto-discount (%)</span>
+      <span class="arrow">&nbsp;&nbsp;</span>
+      <span class="branch-label no">No</span>
+      <span class="node process">Standard price</span>
+    </div>
+    <div class="flow-row">
+      <span class="role-tag system">System</span>
+      <span class="node decision">Delivery?</span>
+      <span class="branch-label yes">Yes</span>
+      <span class="node auto">+ $8,000 COP delivery fee</span>
+    </div>
+    <div class="flow-row">
+      <span class="role-tag system">System</span>
+      <span class="node auto" style="font-weight:700;">Total = Subtotal - Discount + Delivery</span>
+    </div>
+
+    <div class="flow-divider" data-label="Validations"></div>
+
+    <ul class="rules-list">
+      <li class="block"><span class="rule-icon">🚫</span> Cannot create order with past delivery date</li>
+      <li class="block"><span class="rule-icon">🚫</span> Must have at least 1 product</li>
+      <li class="block"><span class="rule-icon">🚫</span> If product <code>requires_advance_order = true</code>, delivery date must be tomorrow or later</li>
+      <li class="warn"><span class="rule-icon">⚠️</span> Warning (non-blocking) if available inventory &lt; ordered quantity</li>
+    </ul>
+
+    <div class="flow-divider" data-label="Result"></div>
+
+    <!-- Step 1.3 Status -->
+    <div class="flow-row">
+      <span class="role-tag system">System</span>
+      <span class="node process">Order saved</span>
+      <span class="arrow">&#10140;</span>
+      <span class="node status pending">Pendiente</span>
+      <span class="arrow">&#10140;</span>
+      <span class="node auto"><span class="node-icon">⚡</span> Real-time broadcast to all views</span>
+    </div>
+    <div class="note">Appears instantly on: Dashboard (count + list), Orders View (filtered by date), Kitchen View (if delivery is today)</div>
+  </div>
+</div>
+
+<!-- =========================================== -->
+<!-- SECTION 2: CONFIRMATION -->
+<!-- =========================================== -->
+<div class="section">
+  <div class="section-header">
+    <div class="section-num" style="background: var(--teal-dim); color: var(--teal);">2</div>
+    <div>
+      <div class="section-title">Confirmation &mdash; Admin Validates Payment</div>
+      <div class="section-sub">Who: Admin &nbsp;|&nbsp; When: After payment confirmed &nbsp;|&nbsp; Where: Orders View</div>
+    </div>
+  </div>
+
+  <div class="flow-canvas">
+    <div class="flow-row">
+      <span class="role-tag admin">Admin</span>
+      <span class="node process"><span class="node-icon">🔍</span> Review order details</span>
+      <span class="arrow">&#10140;</span>
+      <span class="node decision">Payment confirmed or has credit?</span>
+    </div>
+
+    <div class="flow-row" style="margin-left: 48px;">
+      <span class="branch-label yes">Yes</span>
+      <span class="arrow">&#10140;</span>
+      <span class="node process">Click "Confirmar"</span>
+      <span class="arrow">&#10140;</span>
+      <span class="node status confirmed">Confirmado</span>
+    </div>
+
+    <div class="flow-row" style="margin-left: 48px;">
+      <span class="branch-label no">No</span>
+      <span class="arrow">&#10140;</span>
+      <span class="node manual"><span class="node-icon">💬</span> Follow up with client via WhatsApp</span>
+    </div>
+
+    <div class="flow-divider" data-label="What happens next"></div>
+
+    <div class="flow-row">
+      <span class="node decision">Delivery date?</span>
+    </div>
+    <div class="flow-row" style="margin-left: 48px;">
+      <span class="branch-label if">Tomorrow+</span>
+      <span class="node auto">Enters production queue for that date</span>
+    </div>
+    <div class="flow-row" style="margin-left: 48px;">
+      <span class="branch-label if">Today</span>
+      <span class="node decision">Stock available?</span>
+      <span class="branch-label yes">Yes</span>
+      <span class="node auto">Jumps to dispatch queue</span>
+    </div>
+  </div>
+</div>
+
+<!-- =========================================== -->
+<!-- SECTION 3: PRODUCTION -->
+<!-- =========================================== -->
+<div class="section">
+  <div class="section-header">
+    <div class="section-num" style="background: var(--purple-dim); color: var(--purple);">3</div>
+    <div>
+      <div class="section-title">Production &mdash; 6 PM Cutoff & Next-Day Plan</div>
+      <div class="section-sub">Who: Admin generates, Kitchen executes &nbsp;|&nbsp; When: 6 PM daily + next morning &nbsp;|&nbsp; Where: Production View + Kitchen Display</div>
+    </div>
+  </div>
+
+  <div class="flow-canvas">
+    <!-- 6pm cutoff -->
+    <div style="font-size:0.7rem; font-weight:700; text-transform:uppercase; letter-spacing:0.08em; color:var(--muted); margin-bottom:12px;">Step 3.1 &mdash; 6 PM Order Cutoff</div>
+
+    <div class="flow-row">
+      <span class="role-tag admin">Admin</span>
+      <span class="node process"><span class="node-icon">📋</span> Review confirmed orders for tomorrow</span>
+    </div>
+
+    <div class="flow-row">
+      <span class="role-tag system">System</span>
+      <span class="node auto"><span class="node-icon">🤖</span> Auto-generate production list</span>
+    </div>
+
+    <div class="flow-row" style="margin-left: 48px; flex-direction: column; align-items: flex-start; gap: 6px;">
+      <span class="node process" style="width: fit-content;">Confirmed orders for tomorrow (exact quantities by product)</span>
+      <span style="color: var(--muted); font-size: 0.8rem; margin-left: 20px;">+</span>
+      <span class="node process" style="width: fit-content;">Estimated immediate delivery units (configurable per product)</span>
+      <span style="color: var(--muted); font-size: 0.8rem; margin-left: 20px;">=</span>
+      <span class="node auto" style="width: fit-content; font-weight: 700;">Total to produce per product / flavor / size</span>
+    </div>
+
+    <div class="flow-divider" data-label="Step 3.2 — Send plan to kitchen"></div>
+
+    <div class="flow-row">
+      <span class="role-tag admin">Admin</span>
+      <span class="node manual"><span class="node-icon">📱</span> Send production plan via WhatsApp group (manual in Phase 1)</span>
+    </div>
+    <div class="note">Phase 2: auto-send via WhatsApp Business API at 6 PM</div>
+
+    <div class="flow-row">
+      <span class="role-tag system">System</span>
+      <span class="node auto">Plan visible on Kitchen Display for next morning</span>
+    </div>
+
+    <div class="flow-divider" data-label="Step 3.3 — Kitchen produces (6 AM onwards)"></div>
+
+    <div class="flow-row">
+      <span class="role-tag kitchen">Kitchen</span>
+      <span class="node process"><span class="node-icon">🌅</span> First staff arrives 6 AM</span>
+      <span class="arrow">&#10140;</span>
+      <span class="node process"><span class="node-icon">👀</span> View production list on Kitchen Display</span>
+    </div>
+
+    <div class="flow-row">
+      <span class="role-tag kitchen">Kitchen</span>
+      <span class="node process"><span class="node-icon">🧁</span> Produce tarts</span>
+      <span class="arrow">&#10140;</span>
+      <span class="node process"><span class="node-icon">❄️</span> Refrigerate overnight</span>
+      <span class="arrow">&#10140;</span>
+      <span class="node process"><span class="node-icon">✅</span> Ready for tomorrow</span>
+    </div>
+
+    <div class="flow-row">
+      <span class="role-tag kitchen">Kitchen</span>
+      <span class="node process"><span class="node-icon">📦</span> Register production in system: Inventory "+" button per product</span>
+    </div>
+
+    <div class="flow-row">
+      <span class="role-tag system">System</span>
+      <span class="node auto"><span class="node-icon">📊</span> Update <code>inventory_finished</code> in real-time</span>
+      <span class="arrow">&#10140;</span>
+      <span class="node auto">Log to <code>inventory_log</code> (reason: "produccion")</span>
+    </div>
+  </div>
+</div>
+
+<!-- =========================================== -->
+<!-- SECTION 4: DELIVERY DAY -->
+<!-- =========================================== -->
+<div class="section">
+  <div class="section-header">
+    <div class="section-num" style="background: rgba(249,115,22,0.12); color: #fb923c;">4</div>
+    <div>
+      <div class="section-title">Delivery Day &mdash; Dispatch & Tracking</div>
+      <div class="section-sub">Who: Kitchen dispatches, Admin coordinates &nbsp;|&nbsp; When: All day &nbsp;|&nbsp; Where: Kitchen Display + Orders View</div>
+    </div>
+  </div>
+
+  <div class="flow-canvas">
+    <!-- 4.1 -->
+    <div style="font-size:0.7rem; font-weight:700; text-transform:uppercase; letter-spacing:0.08em; color:var(--muted); margin-bottom:12px;">Step 4.1 &mdash; Start production (if needed)</div>
+
+    <div class="flow-row">
+      <span class="node decision">Requires fresh production?</span>
+      <span class="branch-label yes">Yes</span>
+      <span class="arrow">&#10140;</span>
+      <span class="role-tag admin">Admin / Kitchen</span>
+      <span class="node process">Mark as "En Produccion"</span>
+      <span class="arrow">&#10140;</span>
+      <span class="node status production">En Produccion</span>
+    </div>
+
+    <div class="flow-divider" data-label="Step 4.2 — Order ready"></div>
+
+    <div class="flow-row">
+      <span class="role-tag kitchen">Kitchen</span>
+      <span class="node process"><span class="node-icon">📦</span> Prepare & pack order</span>
+      <span class="arrow">&#10140;</span>
+      <span class="node process">Mark "Listo" on Kitchen Display</span>
+      <span class="arrow">&#10140;</span>
+      <span class="node status ready">Listo</span>
+    </div>
+    <div class="note">Order highlighted with green border. Admin sees change in real-time.</div>
+
+    <div class="flow-divider" data-label="Step 4.3 — Dispatch"></div>
+
+    <div class="flow-row">
+      <span class="node decision">Delivery type?</span>
+    </div>
+
+    <!-- Delivery branch -->
+    <div style="margin-left: 24px; padding: 12px; border-left: 2px solid var(--blue); margin-bottom: 12px;">
+      <div style="font-size:0.68rem; font-weight:700; color:#60a5fa; margin-bottom: 8px;">DOMICILIO (Delivery)</div>
+      <div class="flow-row">
+        <span class="role-tag admin">Admin</span>
+        <span class="node manual"><span class="node-icon">💬</span> Coordinate with delivery person via WhatsApp</span>
+      </div>
+      <div class="flow-row">
+        <span class="role-tag kitchen">Kitchen</span>
+        <span class="node process">Hand off to delivery person</span>
+        <span class="arrow">&#10140;</span>
+        <span class="node process">Mark "Despachar" on Kitchen Display</span>
+        <span class="arrow">&#10140;</span>
+        <span class="node status dispatched">Despachado</span>
+      </div>
+    </div>
+
+    <!-- Pickup branch -->
+    <div style="margin-left: 24px; padding: 12px; border-left: 2px solid var(--purple); margin-bottom: 12px;">
+      <div style="font-size:0.68rem; font-weight:700; color:#a78bfa; margin-bottom: 8px;">RECOGE EN LOCAL (Pickup)</div>
+      <div class="flow-row">
+        <span class="role-tag kitchen">Kitchen</span>
+        <span class="node process">Customer arrives, hand off order</span>
+        <span class="arrow">&#10140;</span>
+        <span class="node process">Mark "Despachar"</span>
+        <span class="arrow">&#10140;</span>
+        <span class="node status dispatched">Despachado</span>
+      </div>
+    </div>
+
+    <div class="flow-divider" data-label="Step 4.4 — Delivered"></div>
+
+    <div class="flow-row">
+      <span class="node manual"><span class="node-icon">💬</span> Delivery person confirms via WhatsApp</span>
+      <span class="arrow">&#10140;</span>
+      <span class="role-tag admin">Admin</span>
+      <span class="node process">Mark "Entregado"</span>
+      <span class="arrow">&#10140;</span>
+      <span class="node status delivered">Entregado</span>
+    </div>
+    <div class="note">Phase 2: auto WhatsApp notification "tu pedido fue entregado" + photo &nbsp;|&nbsp; Phase 3: auto-invoice in Siigo</div>
+
+    <div class="flow-divider" data-label="Step 4.5 — Auto inventory deduction"></div>
+
+    <div class="flow-row">
+      <span class="role-tag system">System</span>
+      <span class="node auto"><span class="node-icon">📉</span> On dispatch: auto-deduct inventory per order item</span>
+    </div>
+    <div class="flow-row">
+      <span class="role-tag system">System</span>
+      <span class="node auto">Log to <code>inventory_log</code> (reason: "sale", ref: order.id)</span>
+    </div>
+    <div class="flow-row">
+      <span class="role-tag system">System</span>
+      <span class="node decision">Stock = 0 or &le; minimum (2)?</span>
+      <span class="branch-label yes">Yes</span>
+      <span class="node alert"><span class="node-icon">🚨</span> Alert: "[Product] agotado — desactivar en Rappi"</span>
+    </div>
+    <div class="note">Alert visible on Kitchen Display (red banner) and Dashboard (alert card)</div>
+  </div>
+</div>
+
+<!-- =========================================== -->
+<!-- SECTION 5: INVENTORY -->
+<!-- =========================================== -->
+<div class="section">
+  <div class="section-header">
+    <div class="section-num" style="background: var(--green-dim); color: var(--green);">5</div>
+    <div>
+      <div class="section-title">Inventory &mdash; Continuous Control</div>
+      <div class="section-sub">Who: Kitchen (during day) + Admin (review) &nbsp;|&nbsp; When: All day + evening close &nbsp;|&nbsp; Where: Kitchen Display + Inventory View</div>
+    </div>
+  </div>
+
+  <div class="flow-canvas">
+    <div style="font-size:0.7rem; font-weight:700; text-transform:uppercase; letter-spacing:0.08em; color:var(--muted); margin-bottom:12px;">5.1 &mdash; Inventory Adjustments (Kitchen, anytime)</div>
+
+    <div class="inv-actions">
+      <div class="inv-card prod">
+        <div class="inv-title">Production (+)</div>
+        <div class="inv-desc">Finished a batch &rarr; add units. Logged as "produccion".</div>
+      </div>
+      <div class="inv-card waste">
+        <div class="inv-title">Waste / Merma (-)</div>
+        <div class="inv-desc">Product damaged &rarr; subtract. Logged as "waste".</div>
+      </div>
+      <div class="inv-card adjust">
+        <div class="inv-title">Manual Adjustment</div>
+        <div class="inv-desc">Physical count mismatch &rarr; correct. Logged as "adjustment".</div>
+      </div>
+      <div class="inv-card sale">
+        <div class="inv-title">Direct Sale (-)</div>
+        <div class="inv-desc">Walk-in purchase without formal order &rarr; subtract. Logged as "sale".</div>
+      </div>
+    </div>
+
+    <div class="flow-divider" data-label="5.2 — Low stock alerts"></div>
+
+    <div class="flow-row">
+      <span class="role-tag system">System</span>
+      <span class="node auto">Threshold: configurable (default 2 units)</span>
+    </div>
+
+    <div class="flow-row">
+      <span class="node alert"><span class="node-icon">🔴</span> Kitchen Display: red banner at top</span>
+      <span class="node alert"><span class="node-icon">📊</span> Dashboard: alert card</span>
+      <span class="node alert"><span class="node-icon">📦</span> Inventory View: product highlighted red</span>
+    </div>
+    <div class="note">Message: product name + remaining quantity + "desactivar en Rappi"</div>
+
+    <div class="flow-divider" data-label="5.3 — Evening close"></div>
+
+    <div class="flow-row">
+      <span class="role-tag kitchen">Kitchen</span>
+      <span class="node process"><span class="node-icon">📋</span> Physical inventory count</span>
+      <span class="arrow">&#10140;</span>
+      <span class="node decision">Matches system?</span>
+    </div>
+    <div class="flow-row" style="margin-left: 48px;">
+      <span class="branch-label yes">Yes</span>
+      <span class="node process">Done for the day</span>
+    </div>
+    <div class="flow-row" style="margin-left: 48px;">
+      <span class="branch-label no">No</span>
+      <span class="node process">Manual adjustment with explanatory note</span>
+    </div>
+    <div class="note">Replaces the end-of-day WhatsApp message to inventory group</div>
+  </div>
+</div>
+
+<!-- =========================================== -->
+<!-- SECTION 6: DASHBOARD -->
+<!-- =========================================== -->
+<div class="section">
+  <div class="section-header">
+    <div class="section-num" style="background: var(--amber-dim); color: var(--amber);">6</div>
+    <div>
+      <div class="section-title">Dashboard &mdash; Overview</div>
+      <div class="section-sub">Who: Admin (Andrea) &nbsp;|&nbsp; When: All day &nbsp;|&nbsp; Where: Dashboard (home)</div>
+    </div>
+  </div>
+
+  <div class="dash-grid">
+    <div class="dash-card">
+      <div class="d-icon">📋</div>
+      <div class="d-name">Today's Orders</div>
+      <div class="d-desc">Total count + list with status indicators</div>
+    </div>
+    <div class="dash-card">
+      <div class="d-icon">⏳</div>
+      <div class="d-name">Pending</div>
+      <div class="d-desc">Orders not yet confirmed or dispatched</div>
+    </div>
+    <div class="dash-card">
+      <div class="d-icon">💰</div>
+      <div class="d-name">Today's Revenue</div>
+      <div class="d-desc">Sum of delivered orders</div>
+    </div>
+    <div class="dash-card">
+      <div class="d-icon">📅</div>
+      <div class="d-name">Tomorrow's Orders</div>
+      <div class="d-desc">Preview of what's coming</div>
+    </div>
+    <div class="dash-card">
+      <div class="d-icon">📊</div>
+      <div class="d-name">By Channel</div>
+      <div class="d-desc">WhatsApp / Rappi / IG / POS / B2B</div>
+    </div>
+    <div class="dash-card">
+      <div class="d-icon">🚨</div>
+      <div class="d-name">Low Stock Alerts</div>
+      <div class="d-desc">Products needing attention</div>
+    </div>
+    <div class="dash-card">
+      <div class="d-icon">🧁</div>
+      <div class="d-name">Tomorrow's Production</div>
+      <div class="d-desc">Summary if plan already generated</div>
+    </div>
+  </div>
+</div>
+
+<!-- =========================================== -->
+<!-- STATUS TRANSITIONS -->
+<!-- =========================================== -->
+<div class="section">
+  <div class="section-header">
+    <div class="section-num" style="background: var(--surface2); color: var(--text);">&#9881;</div>
+    <div>
+      <div class="section-title">Status Transition Rules</div>
+      <div class="section-sub">Only sequential advancement allowed &mdash; no skipping states</div>
+    </div>
+  </div>
+
+  <table class="transition-table">
+    <thead>
+      <tr>
+        <th>Status</th>
+        <th>Color</th>
+        <th>Changed By</th>
+        <th>When</th>
+        <th>Can Cancel?</th>
+      </tr>
+    </thead>
+    <tbody>
+      <tr>
+        <td><span class="status-dot dot-pending"></span> Pendiente</td>
+        <td style="color:var(--amber)">Yellow</td>
+        <td>System (auto on create)</td>
+        <td>Order just created</td>
+        <td style="color:#4ade80">Yes</td>
+      </tr>
+      <tr>
+        <td><span class="status-dot dot-confirmed"></span> Confirmado</td>
+        <td style="color:var(--teal)">Teal</td>
+        <td>Admin</td>
+        <td>Payment verified / credit approved</td>
+        <td style="color:#4ade80">Yes</td>
+      </tr>
+      <tr>
+        <td><span class="status-dot dot-production"></span> En Produccion</td>
+        <td style="color:var(--purple)">Purple</td>
+        <td>Admin or Kitchen</td>
+        <td>Preparation started</td>
+        <td style="color:#4ade80">Yes</td>
+      </tr>
+      <tr>
+        <td><span class="status-dot dot-ready"></span> Listo</td>
+        <td style="color:var(--green)">Green</td>
+        <td>Kitchen</td>
+        <td>Packed & ready</td>
+        <td style="color:var(--red)">No</td>
+      </tr>
+      <tr>
+        <td><span class="status-dot dot-dispatched"></span> Despachado</td>
+        <td style="color:var(--blue)">Blue</td>
+        <td>Kitchen</td>
+        <td>Handed off to delivery / customer</td>
+        <td style="color:var(--red)">No</td>
+      </tr>
+      <tr>
+        <td><span class="status-dot dot-delivered"></span> Entregado</td>
+        <td style="color:#4ade80">Dark Green</td>
+        <td>Admin</td>
+        <td>Delivery confirmed</td>
+        <td style="color:var(--red)">No</td>
+      </tr>
+      <tr>
+        <td><span class="status-dot dot-cancelled"></span> Cancelado</td>
+        <td style="color:var(--red)">Red</td>
+        <td>Admin</td>
+        <td>Client cancels / no-show</td>
+        <td>&mdash;</td>
+      </tr>
+    </tbody>
+  </table>
+
+  <ul class="rules-list">
+    <li class="block"><span class="rule-icon">🚫</span> Cannot skip states &mdash; must advance sequentially</li>
+    <li class="block"><span class="rule-icon">🚫</span> Cannot cancel if Listo, Despachado, or Entregado</li>
+    <li class="auto"><span class="rule-icon">🔄</span> On cancel: if inventory was already deducted, system auto-reverses the deduction</li>
+  </ul>
+</div>
+
+<!-- =========================================== -->
+<!-- DAILY TIMELINE -->
+<!-- =========================================== -->
+<div class="section">
+  <div class="section-header">
+    <div class="section-num" style="background: rgba(96,165,250,0.12); color: #60a5fa;">&#128339;</div>
+    <div>
+      <div class="section-title">Daily Operations Timeline</div>
+    </div>
+  </div>
+
+  <div class="daily-timeline">
+    <div class="tl-item">
+      <div class="tl-dot">☀️</div>
+      <div class="tl-content">
+        <div class="tl-time">All Day</div>
+        <div class="tl-desc">Receive & create orders from all channels</div>
+        <span class="role-tag admin tl-who">Admin</span>
+      </div>
+    </div>
+
+    <div class="tl-item">
+      <div class="tl-dot">🧁</div>
+      <div class="tl-content">
+        <div class="tl-time">6:00 AM &mdash; All Day</div>
+        <div class="tl-desc">Production + inventory registration</div>
+        <span class="role-tag kitchen tl-who">Kitchen</span>
+      </div>
+    </div>
+
+    <div class="tl-item">
+      <div class="tl-dot">🚚</div>
+      <div class="tl-content">
+        <div class="tl-time">All Day</div>
+        <div class="tl-desc">Dispatch ready orders (delivery + pickup)</div>
+        <div style="display:flex;gap:6px;margin-top:4px;">
+          <span class="role-tag kitchen">Kitchen</span>
+          <span class="role-tag admin">Admin</span>
+        </div>
+      </div>
+    </div>
+
+    <div class="tl-item">
+      <div class="tl-dot">📋</div>
+      <div class="tl-content">
+        <div class="tl-time">6:00 PM</div>
+        <div class="tl-desc">Order cutoff for tomorrow. Generate production plan.</div>
+        <div style="display:flex;gap:6px;margin-top:4px;">
+          <span class="role-tag admin">Admin</span>
+          <span class="role-tag system">System</span>
+        </div>
+      </div>
+    </div>
+
+    <div class="tl-item">
+      <div class="tl-dot">📱</div>
+      <div class="tl-content">
+        <div class="tl-time">6:00 PM</div>
+        <div class="tl-desc">Send production plan to kitchen WhatsApp group (manual)</div>
+        <span class="role-tag admin tl-who">Admin</span>
+      </div>
+    </div>
+
+    <div class="tl-item">
+      <div class="tl-dot">📦</div>
+      <div class="tl-content">
+        <div class="tl-time">Evening</div>
+        <div class="tl-desc">Physical inventory count + reconciliation</div>
+        <span class="role-tag kitchen tl-who">Kitchen</span>
+      </div>
+    </div>
+
+    <div class="tl-item">
+      <div class="tl-dot">📊</div>
+      <div class="tl-content">
+        <div class="tl-time">Night</div>
+        <div class="tl-desc">Day close &mdash; review dashboard</div>
+        <span class="role-tag admin tl-who">Admin</span>
+      </div>
+    </div>
+
+    <div class="tl-item">
+      <div class="tl-dot">💰</div>
+      <div class="tl-content">
+        <div class="tl-time">Saturday</div>
+        <div class="tl-desc">Weekly close: cash reconciliation, accounts receivable, raw materials count</div>
+        <span class="role-tag admin tl-who">Admin</span>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- FOOTER -->
+<div style="text-align:center; padding: 32px 24px 64px; color: var(--muted); font-size: 0.7rem;">
+  Tartelle Ops &mdash; Phase 1 Process Flowchart &nbsp;|&nbsp; Generated from phase1-workflow.md
+</div>
+
+</body>
+</html>

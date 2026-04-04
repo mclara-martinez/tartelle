@@ -19,10 +19,14 @@ export function Toast({ message, type = 'success', onClose }: Props) {
   }, [onClose])
 
   return (
-    <div className={`fixed bottom-6 right-6 z-50 flex items-center gap-3 px-4 py-3 rounded-xl shadow-lg border transition-all duration-300 ${visible ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-2'} ${type === 'success' ? 'bg-[var(--color-success-light)] border-[var(--color-success)] text-[var(--color-success)]' : 'bg-[var(--color-danger-light)] border-[var(--color-danger)] text-[var(--color-danger)]'}`}>
+    <div
+      role="status"
+      aria-live="polite"
+      className={`fixed bottom-6 right-6 z-50 flex items-center gap-3 px-3 py-2.5 rounded-md shadow-[var(--shadow-dropdown)] border transition-all duration-300 ${visible ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-2'} ${type === 'success' ? 'bg-[var(--color-success-light)] border-[var(--color-success)] text-[var(--color-success)]' : 'bg-[var(--color-danger-light)] border-[var(--color-danger)] text-[var(--color-danger)]'}`}
+    >
       {type === 'success' ? <CheckCircle size={16} /> : <AlertCircle size={16} />}
       <span className="text-sm font-medium">{message}</span>
-      <button onClick={() => { setVisible(false); setTimeout(onClose, 300) }} className="ml-2 opacity-60 hover:opacity-100">
+      <button onClick={() => { setVisible(false); setTimeout(onClose, 300) }} aria-label="Cerrar notificación" className="ml-2 opacity-60 hover:opacity-100 min-h-[44px] min-w-[44px] flex items-center justify-center -mr-2">
         <X size={14} />
       </button>
     </div>

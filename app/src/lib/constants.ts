@@ -41,3 +41,13 @@ export const ORDER_STATUS_FLOW: OrderStatus[] = [
 ]
 
 export const LOW_STOCK_THRESHOLD = 2
+
+export const STATUS_DOT_COLORS: Record<OrderStatus, string> = {
+  pending: '#D4A017',
+  confirmed: '#1A6B5A',
+  in_production: '#3B7CB8',
+  ready: '#15803D',
+  dispatched: '#B8923A',
+  delivered: '#9CA3AF',
+  cancelled: '#B54848',
+}

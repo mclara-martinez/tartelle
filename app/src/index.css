@@ -1,15 +1,15 @@
-@import url('https://fonts.googleapis.com/css2?family=DM+Sans:ital,opsz,wght@0,9..40,300;0,9..40,400;0,9..40,500;0,9..40,600;0,9..40,700&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap');
 @import "tailwindcss";
 
 @theme {
-  /* Tartelle Brand — Deep Teal + Warm Gold */
-  --color-bg: #F7F4F0;
+  /* Tartelle Brand — ClickUp-style cool tones + brand accents */
+  --color-bg: #F7F8FA;
   --color-surface: #FFFFFF;
-  --color-surface-warm: #FAF7F3;
-  --color-border: #E6E0D8;
+  --color-surface-warm: #F0F1F3;
+  --color-border: #E4E7EC;
   --color-text-primary: #1E2A2A;
-  --color-text-secondary: #6B7575;
-  --color-text-muted: #9CA8A8;
+  --color-text-secondary: #6B7280;
+  --color-text-muted: #9CA3AF;
 
   /* Primary: Tartelle Teal */
   --color-teal: #1A6B5A;
@@ -36,7 +36,54 @@
   --color-info: #3B7CB8;
   --color-info-light: #EBF3FB;
 
-  --font-family-sans: 'DM Sans', system-ui, sans-serif;
+  /* Sidebar */
+  --color-sidebar-bg: #1E2533;
+  --color-sidebar-hover: #2A3346;
+  --color-sidebar-active: #333D52;
+  --color-sidebar-text: #A3AEBE;
+  --color-sidebar-text-active: #FFFFFF;
+
+  /* Shadows */
+  --shadow-card: 0 1px 3px rgba(0,0,0,0.04), 0 1px 2px rgba(0,0,0,0.06);
+  --shadow-dropdown: 0 4px 12px rgba(0,0,0,0.08);
+
+  --font-family-sans: 'Inter', system-ui, sans-serif;
+}
+
+/* Wizard step transitions */
+.wizard-step {
+  animation-duration: 0.25s;
+  animation-fill-mode: both;
+  animation-timing-function: ease-out;
+}
+
+.wizard-enter-right {
+  animation-name: slideInRight;
+}
+
+.wizard-enter-left {
+  animation-name: slideInLeft;
+}
+
+@keyframes slideInRight {
+  from { opacity: 0; transform: translateX(30px); }
+  to { opacity: 1; transform: translateX(0); }
+}
+
+@keyframes slideInLeft {
+  from { opacity: 0; transform: translateX(-30px); }
+  to { opacity: 1; transform: translateX(0); }
+}
+
+/* Respect user motion preferences */
+@media (prefers-reduced-motion: reduce) {
+  .wizard-step {
+    animation: none;
+  }
+  * {
+    transition-duration: 0.01ms !important;
+    animation-duration: 0.01ms !important;
+  }
 }
 
 * { box-sizing: border-box; margin: 0; padding: 0; }
@@ -46,6 +93,6 @@ body {
   color: var(--color-text-primary);
   font-family: var(--font-family-sans);
   font-size: 14px;
-  line-height: 1.5;
+  line-height: 1.4;
   -webkit-font-smoothing: antialiased;
 }

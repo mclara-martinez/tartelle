@@ -1,4 +1,4 @@
-import { STATUS_LABELS, STATUS_COLORS } from '../lib/constants'
+import { STATUS_LABELS, STATUS_DOT_COLORS } from '../lib/constants'
 import type { OrderStatus } from '../lib/types'
 
 interface Props {
@@ -7,9 +7,13 @@ interface Props {
 }
 
 export function StatusBadge({ status, size = 'md' }: Props) {
-  const base = size === 'sm' ? 'text-xs px-2 py-0.5' : 'text-xs px-2.5 py-1'
+  const textSize = size === 'sm' ? 'text-[11px]' : 'text-xs'
   return (
-    <span className={`inline-flex items-center rounded-full font-medium ${base} ${STATUS_COLORS[status]}`}>
+    <span className={`inline-flex items-center gap-1.5 ${textSize} font-medium text-[var(--color-text-secondary)]`}>
+      <span
+        className="w-2 h-2 rounded-full flex-shrink-0"
+        style={{ backgroundColor: STATUS_DOT_COLORS[status] }}
+      />
       {STATUS_LABELS[status]}
     </span>
   )
