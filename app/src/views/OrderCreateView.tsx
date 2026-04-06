@@ -5,7 +5,7 @@ import { createOrder } from '../hooks/useOrders'
 import { Toast } from '../components/Toast'
 import { formatCOP, today, tomorrow } from '../lib/utils'
 import { DELIVERY_FEE, CHANNEL_LABELS, SIZE_LABELS } from '../lib/constants'
-import type { OrderChannel, DeliveryType, Product } from '../lib/types'
+import type { Order, OrderChannel, DeliveryType, Product } from '../lib/types'
 import { X, Plus, Minus, Search, Bike, Store, ArrowLeft, ShoppingBag, User, Trash2 } from 'lucide-react'
 
 interface CartItem {
@@ -107,8 +107,7 @@ export function OrderCreateView({ onClose }: Props) {
           discount,
           total,
           notes: notes.trim() || null,
-          items: [],
-        },
+        } as Omit<Order, 'id' | 'created_at' | 'updated_at'>,
         cart.map(item => ({
           product_id: item.product.id,
           quantity: item.quantity,
