@@ -1,4 +1,4 @@
-import { STATUS_LABELS, STATUS_DOT_COLORS } from '../lib/constants'
+import { STATUS_LABELS, STATUS_COLORS } from '../lib/constants'
 import type { OrderStatus } from '../lib/types'
 
 interface Props {
@@ -6,14 +6,15 @@ interface Props {
   size?: 'sm' | 'md'
 }
 
+/** RestoFlow badge pattern: rounded-full px-2.5 py-0.5 text-xs font-medium */
 export function StatusBadge({ status, size = 'md' }: Props) {
-  const textSize = size === 'sm' ? 'text-[11px]' : 'text-xs'
+  const colors = STATUS_COLORS[status]
+  const cls = size === 'sm' ? 'text-xs px-2 py-0.5' : 'text-xs px-2.5 py-0.5'
   return (
-    <span className={`inline-flex items-center gap-1.5 ${textSize} font-medium text-[var(--color-text-secondary)]`}>
-      <span
-        className="w-2 h-2 rounded-full flex-shrink-0"
-        style={{ backgroundColor: STATUS_DOT_COLORS[status] }}
-      />
+    <span
+      className={`inline-flex items-center ${cls} font-medium rounded-full`}
+      style={{ backgroundColor: colors.bg, color: colors.text }}
+    >
       {STATUS_LABELS[status]}
     </span>
   )

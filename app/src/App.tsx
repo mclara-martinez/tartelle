@@ -4,11 +4,12 @@ import { DashboardView } from './views/DashboardView'
 import { OrdersView } from './views/OrdersView'
 import { KitchenView } from './views/KitchenView'
 import { InventoryView } from './views/InventoryView'
-import { IntakeWizardView } from './views/IntakeWizardView'
+import { ProductionView } from './views/ProductionView'
+import { OrderCreateView } from './views/OrderCreateView'
 
-export type View = 'dashboard' | 'orders' | 'kitchen' | 'inventory' | 'intake'
+export type View = 'dashboard' | 'orders' | 'kitchen' | 'inventory' | 'production' | 'create'
 
-const VALID_VIEWS: View[] = ['dashboard', 'orders', 'kitchen', 'inventory', 'intake']
+const VALID_VIEWS: View[] = ['dashboard', 'orders', 'kitchen', 'inventory', 'production', 'create']
 
 function viewFromHash(): View {
   const hash = window.location.hash.replace('#', '')
@@ -17,52 +18,49 @@ function viewFromHash(): View {
 
 export default function App() {
   const [view, setView] = useState<View>(viewFromHash)
+  const [selectedOrderId, setSelectedOrderId] = useState<string | null>(null)
 
   const navigate = useCallback((v: View) => {
     setView(v)
     window.location.hash = v
+    if (v !== 'orders') setSelectedOrderId(null)
   }, [])
 
-  // Listen for browser back/forward
   useEffect(() => {
-    function onHashChange() {
-      setView(viewFromHash())
-    }
+    function onHashChange() { setView(viewFromHash()) }
     window.addEventListener('hashchange', onHashChange)
     return () => window.removeEventListener('hashchange', onHashChange)
   }, [])
 
-  // Close wizard on Escape
-  useEffect(() => {
-    if (view !== 'intake') return
-    function onKey(e: KeyboardEvent) {
-      if (e.key === 'Escape') navigate('orders')
-    }
-    window.addEventListener('keydown', onKey)
-    return () => window.removeEventListener('keydown', onKey)
-  }, [view, navigate])
+  // Kitchen = full-screen, no Layout wrapper
+  if (view === 'kitchen') {
+    return <KitchenView onBack={() => navigate('dashboard')} />
+  }
 
-  // The sidebar view to highlight (orders when wizard is open)
-  const sidebarView = view === 'intake' ? 'orders' : view
-  const contentView = view === 'intake' ? 'orders' : view
+  // Order create = full-screen POS mode
+  if (view === 'create') {
+    return <OrderCreateView onClose={() => navigate('orders')} />
+  }
+
+  const sidebarView = view
 
   return (
-    <>
-      <Layout current={sidebarView} onNavigate={navigate}>
-        {contentView === 'dashboard' && <DashboardView />}
-        {contentView === 'orders' && <OrdersView onNavigate={navigate} />}
-        {contentView === 'kitchen' && <KitchenView />}
-        {contentView === 'inventory' && <InventoryView />}
-      </Layout>
-
-      {/* Wizard modal overlay */}
-      {view === 'intake' && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4">
-          <div className="bg-white rounded-lg shadow-xl w-full max-w-lg max-h-[90vh] overflow-y-auto p-6">
-            <IntakeWizardView onClose={() => navigate('orders')} />
-          </div>
-        </div>
+    <Layout current={sidebarView} onNavigate={navigate}>
+      {view === 'dashboard' && (
+        <DashboardView
+          onNavigate={navigate}
+          onSelectOrder={(id) => { navigate('orders'); setSelectedOrderId(id) }}
+        />
       )}
-    </>
+      {view === 'orders' && (
+        <OrdersView
+          onNavigate={navigate}
+          selectedOrderId={selectedOrderId}
+          onSelectOrder={setSelectedOrderId}
+        />
+      )}
+      {view === 'inventory' && <InventoryView />}
+      {view === 'production' && <ProductionView />}
+    </Layout>
   )
 }

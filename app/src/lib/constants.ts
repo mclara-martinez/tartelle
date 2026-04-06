@@ -20,14 +20,14 @@ export const STATUS_LABELS: Record<OrderStatus, string> = {
   cancelled: 'Cancelado',
 }
 
-export const STATUS_COLORS: Record<OrderStatus, string> = {
-  pending: 'bg-[var(--color-warning-light)] text-[var(--color-warning)]',
-  confirmed: 'bg-[var(--color-teal-light)] text-[var(--color-teal)]',
-  in_production: 'bg-[var(--color-info-light)] text-[var(--color-info)]',
-  ready: 'bg-[var(--color-teal-light)] text-[var(--color-teal-dark)]',
-  dispatched: 'bg-[var(--color-gold-light)] text-[var(--color-gold-dark)]',
-  delivered: 'bg-[var(--color-bg)] text-[var(--color-text-muted)]',
-  cancelled: 'bg-[var(--color-danger-light)] text-[var(--color-danger)]',
+export const STATUS_COLORS: Record<OrderStatus, { bg: string; text: string; dot: string }> = {
+  pending:       { bg: 'var(--color-status-pending-bg)',    text: 'var(--color-status-pending)',    dot: '#F59E0B' },
+  confirmed:     { bg: 'var(--color-status-confirmed-bg)',  text: 'var(--color-status-confirmed)',  dot: '#3B82F6' },
+  in_production: { bg: 'var(--color-status-production-bg)', text: 'var(--color-status-production)', dot: '#8B5CF6' },
+  ready:         { bg: 'var(--color-status-ready-bg)',       text: 'var(--color-status-ready)',       dot: '#10B981' },
+  dispatched:    { bg: 'var(--color-status-dispatched-bg)', text: 'var(--color-status-dispatched)', dot: '#F97316' },
+  delivered:     { bg: 'var(--color-status-delivered-bg)',   text: 'var(--color-status-delivered)',   dot: '#6B7280' },
+  cancelled:     { bg: 'var(--color-status-cancelled-bg)',  text: 'var(--color-status-cancelled)',  dot: '#EF4444' },
 }
 
 export const SIZE_LABELS: Record<ProductSize, string> = {
@@ -40,14 +40,26 @@ export const ORDER_STATUS_FLOW: OrderStatus[] = [
   'pending', 'confirmed', 'in_production', 'ready', 'dispatched', 'delivered',
 ]
 
+export const NEXT_STATUS_ACTION: Partial<Record<OrderStatus, { next: OrderStatus; label: string }>> = {
+  pending:       { next: 'confirmed',     label: 'Confirmar' },
+  confirmed:     { next: 'in_production', label: 'A producción' },
+  in_production: { next: 'ready',         label: 'Marcar listo' },
+  ready:         { next: 'dispatched',    label: 'Despachar' },
+  dispatched:    { next: 'delivered',     label: 'Entregado' },
+}
+
+/** Kanban columns — only active statuses, no delivered/cancelled */
+export const KANBAN_COLUMNS: { status: OrderStatus; label: string }[] = [
+  { status: 'pending',       label: 'Pendiente' },
+  { status: 'confirmed',     label: 'Confirmado' },
+  { status: 'in_production', label: 'En producción' },
+  { status: 'ready',         label: 'Listo' },
+  { status: 'dispatched',    label: 'Despachado' },
+]
+
 export const LOW_STOCK_THRESHOLD = 2
 
-export const STATUS_DOT_COLORS: Record<OrderStatus, string> = {
-  pending: '#D4A017',
-  confirmed: '#1A6B5A',
-  in_production: '#3B7CB8',
-  ready: '#15803D',
-  dispatched: '#B8923A',
-  delivered: '#9CA3AF',
-  cancelled: '#B54848',
-}
+/** Legacy compat — some components may still reference these */
+export const STATUS_DOT_COLORS: Record<OrderStatus, string> = Object.fromEntries(
+  Object.entries(STATUS_COLORS).map(([k, v]) => [k, v.dot])
+) as Record<OrderStatus, string>

@@ -3,160 +3,144 @@ import { useInventory } from '../hooks/useInventory'
 import { StatusBadge } from '../components/StatusBadge'
 import { formatCOP, formatDate, today, tomorrow } from '../lib/utils'
 import { CHANNEL_LABELS, LOW_STOCK_THRESHOLD } from '../lib/constants'
-import { AlertTriangle, TrendingUp, Package, Clock, Bike, Store } from 'lucide-react'
+import { AlertTriangle, TrendingUp, Package, Clock, Bike, Store, ShoppingBag, ArrowRight, LayoutDashboard } from 'lucide-react'
+import type { View } from '../App'
 
-export function DashboardView() {
+interface Props {
+  onNavigate: (v: View) => void
+  onSelectOrder: (id: string) => void
+}
+
+export function DashboardView({ onNavigate, onSelectOrder }: Props) {
   const { orders: todayOrders, loading: loadingToday } = useOrders(today())
   const { orders: tomorrowOrders, loading: loadingTomorrow } = useOrders(tomorrow())
   const { inventory, loading: loadingInv } = useInventory()
 
   const lowStock = inventory.filter(i => i.quantity <= LOW_STOCK_THRESHOLD)
   const todayRevenue = todayOrders.reduce((sum, o) => sum + o.total, 0)
-  const pendingToday = todayOrders.filter(o => !['delivered', 'cancelled'].includes(o.status))
-
-  const byChannel = todayOrders.reduce<Record<string, number>>((acc, o) => {
-    acc[o.channel] = (acc[o.channel] ?? 0) + 1
-    return acc
-  }, {})
+  const activeOrders = todayOrders.filter(o => !['delivered', 'cancelled'].includes(o.status))
+  const readyOrders = todayOrders.filter(o => o.status === 'ready')
 
   if (loadingToday || loadingTomorrow || loadingInv) {
-    return <div className="text-[var(--color-text-secondary)] text-[13px] pt-8">Cargando...</div>
+    return <div className="text-[var(--color-text-muted)] text-sm pt-10">Cargando...</div>
   }
 
   return (
-    <div className="space-y-4">
-      <div>
-        <p className="text-[11px] font-medium text-[var(--color-text-muted)] uppercase tracking-wider mb-0.5">Resumen</p>
-        <h1 className="text-lg font-semibold text-[var(--color-text-primary)]">
-          {formatDate(today())}
-        </h1>
+    <div className="space-y-6">
+      {/* Page header */}
+      <div className="flex items-center gap-3">
+        <LayoutDashboard className="h-6 w-6 text-[var(--color-text-secondary)]" strokeWidth={1.5} />
+        <div>
+          <h1 className="text-xl font-bold text-[var(--color-text-primary)]">Panel</h1>
+          <p className="text-sm text-[var(--color-text-muted)]">{formatDate(today())}</p>
+        </div>
       </div>
 
-      {/* Alerts */}
+      {/* Low stock alert */}
       {lowStock.length > 0 && (
-        <div className="bg-[var(--color-warning-light)] border border-[var(--color-warning)] rounded-md p-3 flex items-start gap-2.5">
-          <AlertTriangle size={15} className="text-[var(--color-warning)] mt-0.5 flex-shrink-0" />
-          <div>
-            <p className="text-[13px] font-medium text-[var(--color-warning)]">Stock bajo</p>
-            <p className="text-[12px] text-[var(--color-warning)] mt-0.5 opacity-80">
-              {lowStock.map(i => `${i.product?.flavor} ${i.product?.size} (${i.quantity})`).join(' · ')}
+        <div className="flex items-start gap-2 bg-[var(--color-warning-bg)] rounded-lg p-4">
+          <AlertTriangle className="h-4 w-4 text-[var(--color-warning-text)] mt-0.5 flex-shrink-0" />
+          <div className="min-w-0">
+            <p className="text-sm font-medium text-[var(--color-text-primary)]">Stock bajo</p>
+            <p className="text-sm text-[var(--color-text-secondary)] mt-0.5">
+              {lowStock.map(i => `${i.product?.flavor} ${i.product?.size}`).join(', ')}
+              {' '}— considerar apagar Rappi
             </p>
           </div>
         </div>
       )}
 
-      {/* Stats */}
-      <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
-        <StatCard label="Pedidos hoy" value={String(todayOrders.length)} icon={<ShoppingBagIcon />} />
-        <StatCard label="Pendientes" value={String(pendingToday.length)} icon={<Clock size={15} />} highlight={pendingToday.length > 0} />
-        <StatCard label="Venta del día" value={formatCOP(todayRevenue)} icon={<TrendingUp size={15} />} />
-        <StatCard label="Para mañana" value={String(tomorrowOrders.length)} icon={<Package size={15} />} />
+      {/* Score cards — RestoFlow: grid-cols-2 lg:grid-cols-4 gap-3, p-4 */}
+      <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
+        <ScoreCard label="Activos" value={String(activeOrders.length)} icon={<ShoppingBag className="h-4 w-4" />} />
+        <ScoreCard label="Listos" value={String(readyOrders.length)} icon={<Package className="h-4 w-4" />} />
+        <ScoreCard label="Venta del dia" value={formatCOP(todayRevenue)} icon={<TrendingUp className="h-4 w-4" />} />
+        <ScoreCard label="Manana" value={String(tomorrowOrders.length)} icon={<Clock className="h-4 w-4" />} />
       </div>
 
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-        {/* Today's orders */}
-        <div className="bg-white rounded-md border border-[var(--color-border)] shadow-[var(--shadow-card)] overflow-hidden">
-          <div className="px-4 py-2.5 border-b border-[var(--color-border)] bg-[var(--color-bg)]">
-            <h2 className="font-medium text-[13px] text-[var(--color-text-primary)]">Pedidos de hoy</h2>
+      {/* Lists */}
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
+        {/* Active orders */}
+        <section className="bg-white rounded-lg border border-[var(--color-border)] overflow-hidden">
+          <div className="px-4 py-2.5 border-b border-[var(--color-border)] flex items-center justify-between">
+            <h2 className="text-sm font-semibold text-[var(--color-text-primary)]">Pedidos activos</h2>
+            <button
+              onClick={() => onNavigate('orders')}
+              className="text-xs text-[var(--color-accent)] font-medium flex items-center gap-1 hover:underline"
+            >
+              Ver todos <ArrowRight className="h-3.5 w-3.5" />
+            </button>
           </div>
-          {todayOrders.length === 0 ? (
-            <p className="text-[13px] text-[var(--color-text-secondary)] px-4 py-4">Sin pedidos para hoy</p>
+          {activeOrders.length === 0 ? (
+            <p className="text-sm text-[var(--color-text-muted)] px-4 py-8 text-center">Todo entregado</p>
           ) : (
-            <div className="divide-y divide-[var(--color-border)]">
-              {todayOrders.map(order => (
-                <div key={order.id} className="flex items-center justify-between gap-2 px-4 py-2 hover:bg-[var(--color-bg)] transition-colors">
-                  <div className="min-w-0">
-                    <p className="text-[13px] font-medium text-[var(--color-text-primary)] truncate">
-                      {order.customer_name ?? 'Cliente'}
-                    </p>
-                    <p className="text-[11px] text-[var(--color-text-muted)]">
+            <div>
+              {activeOrders.slice(0, 6).map((order, i) => (
+                <button
+                  key={order.id}
+                  onClick={() => onSelectOrder(order.id)}
+                  className={`w-full flex items-center justify-between gap-3 px-4 py-2.5 hover:bg-[var(--color-bg-hover)] transition-colors duration-200 text-left ${
+                    i > 0 ? 'border-t border-[var(--color-border-light)]' : ''
+                  }`}
+                >
+                  <div className="min-w-0 flex-1">
+                    <p className="text-sm font-medium text-[var(--color-text-primary)] truncate">{order.customer_name ?? 'Cliente'}</p>
+                    <p className="text-xs text-[var(--color-text-muted)] flex items-center gap-1 mt-0.5">
+                      {order.delivery_type === 'delivery' ? <Bike className="h-3 w-3" /> : <Store className="h-3 w-3" />}
                       {CHANNEL_LABELS[order.channel]} · {formatCOP(order.total)}
                     </p>
                   </div>
                   <StatusBadge status={order.status} size="sm" />
-                </div>
+                </button>
               ))}
             </div>
           )}
-        </div>
+        </section>
 
-        {/* By channel */}
-        <div className="bg-white rounded-md border border-[var(--color-border)] shadow-[var(--shadow-card)] overflow-hidden">
-          <div className="px-4 py-2.5 border-b border-[var(--color-border)] bg-[var(--color-bg)]">
-            <h2 className="font-medium text-[13px] text-[var(--color-text-primary)]">Por canal</h2>
+        {/* Tomorrow preview */}
+        <section className="bg-white rounded-lg border border-[var(--color-border)] overflow-hidden">
+          <div className="px-4 py-2.5 border-b border-[var(--color-border)]">
+            <h2 className="text-sm font-semibold text-[var(--color-text-primary)]">Manana — {formatDate(tomorrow())}</h2>
           </div>
-          {Object.keys(byChannel).length === 0 ? (
-            <p className="text-[13px] text-[var(--color-text-secondary)] px-4 py-4">Sin datos aún</p>
+          {tomorrowOrders.length === 0 ? (
+            <p className="text-sm text-[var(--color-text-muted)] px-4 py-8 text-center">Sin pedidos</p>
           ) : (
-            <div className="divide-y divide-[var(--color-border)]">
-              {Object.entries(byChannel).map(([channel, count]) => (
-                <div key={channel} className="flex items-center justify-between px-4 py-2">
-                  <span className="text-[13px] text-[var(--color-text-primary)]">
-                    {CHANNEL_LABELS[channel as keyof typeof CHANNEL_LABELS] ?? channel}
-                  </span>
-                  <div className="flex items-center gap-2.5">
-                    <div className="w-20 bg-[var(--color-border)] rounded-full h-1">
-                      <div
-                        className="bg-[var(--color-accent)] rounded-full h-1"
-                        style={{ width: `${(count / todayOrders.length) * 100}%` }}
-                      />
-                    </div>
-                    <span className="text-[13px] font-medium text-[var(--color-text-primary)] w-4 text-right">{count}</span>
+            <div>
+              {tomorrowOrders.map((order, i) => (
+                <div key={order.id} className={`flex items-center justify-between gap-3 px-4 py-2.5 ${
+                  i > 0 ? 'border-t border-[var(--color-border-light)]' : ''
+                }`}>
+                  <div className="min-w-0">
+                    <p className="text-sm font-medium text-[var(--color-text-primary)] truncate">{order.customer_name ?? 'Cliente'}</p>
+                    <p className="text-xs text-[var(--color-text-muted)] mt-0.5">
+                      {order.items?.map(i => `${i.quantity}x ${i.product?.flavor}`).join(', ')}
+                    </p>
                   </div>
+                  <span className="text-xs text-[var(--color-text-muted)] flex-shrink-0 flex items-center gap-1">
+                    {order.delivery_type === 'delivery' ? <Bike className="h-3 w-3" /> : <Store className="h-3 w-3" />}
+                    {formatCOP(order.total)}
+                  </span>
                 </div>
               ))}
             </div>
           )}
-        </div>
+        </section>
       </div>
-
-      {/* Tomorrow preview */}
-      {tomorrowOrders.length > 0 && (
-        <div className="bg-white rounded-md border border-[var(--color-border)] shadow-[var(--shadow-card)] overflow-hidden">
-          <div className="px-4 py-2.5 border-b border-[var(--color-border)] bg-[var(--color-bg)]">
-            <h2 className="font-medium text-[13px] text-[var(--color-text-primary)]">
-              Para mañana — {formatDate(tomorrow())}
-            </h2>
-          </div>
-          <div className="divide-y divide-[var(--color-border)]">
-            {tomorrowOrders.map(order => (
-              <div key={order.id} className="flex items-center justify-between gap-2 px-4 py-2 hover:bg-[var(--color-bg)] transition-colors">
-                <div className="min-w-0">
-                  <p className="text-[13px] font-medium truncate">{order.customer_name ?? 'Cliente'}</p>
-                  <p className="text-[11px] text-[var(--color-text-muted)]">
-                    {order.items?.map(i => `${i.quantity}x ${i.product?.flavor} ${i.product?.size}`).join(', ')}
-                  </p>
-                </div>
-                <span className="text-[11px] text-[var(--color-text-muted)] flex-shrink-0 inline-flex items-center gap-1">
-                  {order.delivery_type === 'delivery' ? <><Bike size={10} />Dom.</> : <><Store size={10} />Recoge</>}
-                </span>
-              </div>
-            ))}
-          </div>
-        </div>
-      )}
     </div>
   )
 }
 
-function StatCard({ label, value, icon, highlight }: {
-  label: string; value: string; icon: React.ReactNode; highlight?: boolean
+/** RestoFlow ScoreCard: bg-white border rounded-lg p-4, icon h-4 w-4, value text-xl font-bold */
+function ScoreCard({ label, value, icon }: {
+  label: string; value: string; icon: React.ReactNode
 }) {
   return (
-    <div className={`rounded-md border p-3 shadow-[var(--shadow-card)] ${highlight ? 'bg-[var(--color-warning-light)] border-[var(--color-warning)]' : 'bg-white border-[var(--color-border)]'}`}>
-      <div className="flex items-center gap-1.5 text-[var(--color-text-muted)] mb-1.5">
+    <div className="bg-white rounded-lg border border-[var(--color-border)] p-4">
+      <div className="flex items-center gap-2 text-[var(--color-text-muted)] mb-1">
         {icon}
-        <span className="text-[11px]">{label}</span>
+        <span className="text-sm">{label}</span>
       </div>
-      <p className="text-lg font-semibold text-[var(--color-text-primary)]">{value}</p>
+      <p className="text-xl font-bold text-[var(--color-text-primary)]">{value}</p>
     </div>
-  )
-}
-
-function ShoppingBagIcon() {
-  return (
-    <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-      <path d="M6 2 3 6v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2V6l-3-4z"/><line x1="3" y1="6" x2="21" y2="6"/><path d="M16 10a4 4 0 0 1-8 0"/>
-    </svg>
   )
 }

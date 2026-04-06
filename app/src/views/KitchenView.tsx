@@ -1,224 +1,205 @@
-import { useOrders, updateOrderStatus } from '../hooks/useOrders'
-import { useInventory, adjustInventory } from '../hooks/useInventory'
-import { Toast } from '../components/Toast'
-import { StatusBadge } from '../components/StatusBadge'
-import { formatCOP, today } from '../lib/utils'
-import { LOW_STOCK_THRESHOLD } from '../lib/constants'
-import { AlertTriangle, CheckCircle, Truck, Plus, Minus, Bike, Store, FileText } from 'lucide-react'
 import { useState } from 'react'
+import { useOrders, updateOrderStatus } from '../hooks/useOrders'
+import { Toast } from '../components/Toast'
+import { today } from '../lib/utils'
+import { STATUS_LABELS, NEXT_STATUS_ACTION } from '../lib/constants'
+import { ArrowLeft, Bike, Store, Clock, CheckCircle, Truck, Play, AlertTriangle } from 'lucide-react'
+import type { Order, OrderStatus } from '../lib/types'
 
-export function KitchenView() {
-  const { orders, loading, error, refetch } = useOrders(today())
-  const { inventory, loading: loadingInv, refetch: refetchInv } = useInventory()
+interface Props {
+  onBack: () => void
+}
+
+export function KitchenView({ onBack }: Props) {
+  const { orders, loading, refetch } = useOrders(today())
   const [toast, setToast] = useState<{ msg: string; type: 'success' | 'error' } | null>(null)
   const [updatingId, setUpdatingId] = useState<string | null>(null)
 
   const active = orders.filter(o => !['delivered', 'cancelled'].includes(o.status))
   const done = orders.filter(o => o.status === 'delivered')
-  const lowStock = inventory.filter(i => i.quantity <= LOW_STOCK_THRESHOLD)
 
-  async function handleDispatch(orderId: string) {
+  async function handleAction(orderId: string, status: OrderStatus) {
     setUpdatingId(orderId)
     try {
-      await updateOrderStatus(orderId, 'dispatched')
-      setToast({ msg: 'Pedido despachado', type: 'success' })
+      await updateOrderStatus(orderId, status)
+      setToast({ msg: STATUS_LABELS[status], type: 'success' })
       refetch()
     } catch {
-      setToast({ msg: 'Error al actualizar', type: 'error' })
+      setToast({ msg: 'Error', type: 'error' })
     }
     setUpdatingId(null)
   }
 
-  async function handleReady(orderId: string) {
-    setUpdatingId(orderId)
-    try {
-      await updateOrderStatus(orderId, 'ready')
-      setToast({ msg: 'Pedido marcado como listo', type: 'success' })
-      refetch()
-    } catch {
-      setToast({ msg: 'Error al actualizar', type: 'error' })
-    }
-    setUpdatingId(null)
-  }
-
-  async function handleStock(productId: string, change: number) {
-    try {
-      await adjustInventory(productId, change, 'production')
-      refetchInv()
-    } catch {
-      setToast({ msg: 'Error al actualizar inventario', type: 'error' })
-    }
-  }
-
-  if (loading || loadingInv) {
-    return <div className="text-[var(--color-text-secondary)] text-[13px] pt-8">Cargando...</div>
-  }
-
-  if (error) {
-    return <div className="text-[13px] text-[var(--color-danger)] bg-[var(--color-danger-light)] rounded-md px-3 py-2">{error}</div>
+  if (loading) {
+    return (
+      <div className="min-h-screen bg-[#111827] flex items-center justify-center">
+        <p className="text-white text-xl">Cargando...</p>
+      </div>
+    )
   }
 
   return (
-    <div className="space-y-4">
-      <div>
-        <p className="text-[11px] font-medium text-[var(--color-text-muted)] uppercase tracking-wider mb-0.5">Cocina</p>
-        <h1 className="text-lg font-semibold">Vista cocina</h1>
-        <p className="text-[12px] text-[var(--color-text-secondary)] mt-0.5">
-          {active.length} pendientes · {done.length} entregados
-        </p>
-      </div>
-
-      {/* Low stock alerts */}
-      {lowStock.length > 0 && (
-        <div className="bg-[var(--color-danger-light)] border border-[var(--color-danger)] rounded-md p-3">
-          <div className="flex items-center gap-2 mb-1.5">
-            <AlertTriangle size={14} className="text-[var(--color-danger)]" />
-            <p className="text-[13px] font-medium text-[var(--color-danger)]">Apagar en Rappi</p>
-          </div>
-          <div className="flex flex-wrap gap-1.5">
-            {lowStock.map(i => (
-              <span key={i.id} className="text-[11px] bg-white border border-[var(--color-danger)] text-[var(--color-danger)] px-2 py-0.5 rounded font-medium">
-                {i.product?.flavor} {i.product?.size} — {i.quantity}
-              </span>
-            ))}
+    <div className="min-h-screen bg-[#111827] flex flex-col">
+      {/* Minimal top bar */}
+      <div className="flex items-center justify-between px-5 py-3 bg-[#1F2937] border-b border-[#374151]">
+        <div className="flex items-center gap-3">
+          <button onClick={onBack} className="p-2 text-gray-400 hover:text-white rounded-lg transition-colors" aria-label="Volver">
+            <ArrowLeft size={20} />
+          </button>
+          <div>
+            <h1 className="text-white text-lg font-bold tracking-wide">COCINA</h1>
           </div>
         </div>
-      )}
-
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
-        {/* Active orders */}
-        <div className="lg:col-span-2 space-y-2">
-          {active.length === 0 ? (
-            <div className="bg-white rounded-md border border-[var(--color-border)] shadow-[var(--shadow-card)] p-8 text-center">
-              <CheckCircle size={22} className="mx-auto text-[var(--color-success)] mb-1.5" />
-              <p className="text-[13px] text-[var(--color-text-secondary)]">Todo listo por ahora</p>
-            </div>
-          ) : (
-            active.map(order => (
-              <div key={order.id} className={`bg-white rounded-md border shadow-[var(--shadow-card)] p-3 ${
-                order.status === 'ready' ? 'border-[var(--color-success)]' : 'border-[var(--color-border)]'
-              }`}>
-                <div className="flex items-start justify-between mb-2">
-                  <div>
-                    <p className="font-semibold text-[13px]">{order.customer_name ?? 'Cliente'}</p>
-                    <p className="text-[11px] text-[var(--color-text-muted)] mt-0.5 flex items-center gap-1">
-                      {order.delivery_type === 'delivery' ? <><Bike size={11} />Domicilio</> : <><Store size={11} />Recoge</>}
-                      {order.customer_phone && ` · ${order.customer_phone}`}
-                    </p>
-                  </div>
-                  <StatusBadge status={order.status} />
-                </div>
-
-                {/* Items */}
-                <div className="space-y-0.5 mb-3">
-                  {order.items?.map(item => (
-                    <div key={item.id} className="flex items-center justify-between text-[13px]">
-                      <span className="font-medium">{item.quantity}× {item.product?.flavor}</span>
-                      <span className="text-[var(--color-text-muted)] capitalize text-[12px]">{item.product?.size}</span>
-                    </div>
-                  ))}
-                  {order.notes && (
-                    <p className="text-[11px] text-[var(--color-warning)] mt-1 bg-[var(--color-warning-light)] px-2 py-1 rounded flex items-start gap-1.5">
-                      <FileText size={11} className="flex-shrink-0 mt-0.5" />
-                      {order.notes}
-                    </p>
-                  )}
-                </div>
-
-                {/* Actions */}
-                <div className="flex gap-2 pt-2 border-t border-[var(--color-border)]">
-                  {order.status === 'in_production' && (
-                    <button
-                      onClick={() => handleReady(order.id)}
-                      disabled={updatingId === order.id}
-                      className="flex-1 flex items-center justify-center gap-1.5 bg-[var(--color-success-light)] text-[var(--color-success)] border border-[var(--color-success)] py-1.5 rounded-md text-[12px] font-medium hover:bg-[#d5ebe0] disabled:opacity-50 transition-colors"
-                    >
-                      <CheckCircle size={13} />
-                      Listo
-                    </button>
-                  )}
-                  {order.status === 'ready' && (
-                    <button
-                      onClick={() => handleDispatch(order.id)}
-                      disabled={updatingId === order.id}
-                      className="flex-1 flex items-center justify-center gap-1.5 bg-[var(--color-accent)] text-white py-1.5 rounded-md text-[12px] font-medium hover:bg-[var(--color-teal-dark)] disabled:opacity-50 transition-colors"
-                    >
-                      <Truck size={13} />
-                      Despachar
-                    </button>
-                  )}
-                  {(order.status === 'pending' || order.status === 'confirmed') && (
-                    <button
-                      onClick={() => updateOrderStatus(order.id, 'in_production').then(refetch)}
-                      className="flex-1 py-1.5 border border-[var(--color-border)] rounded-md text-[12px] text-[var(--color-text-secondary)] hover:border-[var(--color-accent)] hover:text-[var(--color-accent)] transition-colors"
-                    >
-                      Iniciar
-                    </button>
-                  )}
-                </div>
-              </div>
-            ))
+        <div className="flex items-center gap-4">
+          <span className="text-2xl font-bold text-white">{active.length}</span>
+          <span className="text-sm text-gray-400">activos</span>
+          {done.length > 0 && (
+            <span className="text-sm text-gray-500 ml-2">{done.length} entregados</span>
           )}
         </div>
-
-        {/* Inventory panel */}
-        <div className="bg-white rounded-md border border-[var(--color-border)] shadow-[var(--shadow-card)] overflow-hidden h-fit">
-          <div className="px-3 py-2.5 border-b border-[var(--color-border)] bg-[var(--color-bg)]">
-            <h2 className="font-medium text-[13px] text-[var(--color-text-primary)]">Inventario actual</h2>
-          </div>
-          <div className="divide-y divide-[var(--color-border)]">
-            {inventory.map(item => (
-              <div key={item.id} className="flex items-center justify-between gap-2 px-3 py-2">
-                <div className="min-w-0 flex-1">
-                  <p className="text-[12px] font-medium text-[var(--color-text-primary)] truncate">
-                    {item.product?.flavor}
-                  </p>
-                  <p className="text-[11px] text-[var(--color-text-muted)] capitalize">{item.product?.size}</p>
-                </div>
-                <div className="flex items-center gap-1.5 flex-shrink-0">
-                  <button
-                    onClick={() => handleStock(item.product_id, -1)}
-                    aria-label={`Reducir ${item.product?.flavor}`}
-                    className="w-7 h-7 rounded border border-[var(--color-border)] flex items-center justify-center hover:border-[var(--color-danger)] hover:text-[var(--color-danger)] transition-colors"
-                    disabled={item.quantity === 0}
-                  >
-                    <Minus size={12} />
-                  </button>
-                  <span className={`text-[13px] font-semibold w-5 text-center ${
-                    item.quantity <= LOW_STOCK_THRESHOLD ? 'text-[var(--color-danger)]' : 'text-[var(--color-text-primary)]'
-                  }`}>
-                    {item.quantity}
-                  </span>
-                  <button
-                    onClick={() => handleStock(item.product_id, 1)}
-                    aria-label={`Aumentar ${item.product?.flavor}`}
-                    className="w-7 h-7 rounded border border-[var(--color-border)] flex items-center justify-center hover:border-[var(--color-success)] hover:text-[var(--color-success)] transition-colors"
-                  >
-                    <Plus size={12} />
-                  </button>
-                </div>
-              </div>
-            ))}
-          </div>
-        </div>
       </div>
 
-      {/* Delivered */}
-      {done.length > 0 && (
-        <div>
-          <p className="text-[11px] font-medium text-[var(--color-text-muted)] mb-1.5">Entregados hoy ({done.length})</p>
-          <div className="grid grid-cols-2 sm:grid-cols-3 gap-1.5">
-            {done.map(order => (
-              <div key={order.id} className="bg-white rounded border border-[var(--color-border)] p-2 opacity-60">
-                <p className="text-[12px] font-medium truncate">{order.customer_name}</p>
-                <p className="text-[11px] text-[var(--color-text-muted)]">{formatCOP(order.total)}</p>
-              </div>
+      {/* Cards grid */}
+      <div className="flex-1 p-4 overflow-y-auto">
+        {active.length === 0 ? (
+          <div className="flex flex-col items-center justify-center h-full text-center">
+            <CheckCircle size={64} className="text-green-500 mb-4" />
+            <p className="text-white text-2xl font-bold">Todo listo</p>
+            <p className="text-gray-400 text-lg mt-1">No hay pedidos pendientes</p>
+          </div>
+        ) : (
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            {active.map(order => (
+              <KitchenCard
+                key={order.id}
+                order={order}
+                isUpdating={updatingId === order.id}
+                onAction={handleAction}
+              />
             ))}
           </div>
-        </div>
-      )}
+        )}
+      </div>
 
       {toast && <Toast message={toast.msg} type={toast.type} onClose={() => setToast(null)} />}
     </div>
   )
+}
+
+function KitchenCard({ order, isUpdating, onAction }: {
+  order: Order
+  isUpdating: boolean
+  onAction: (orderId: string, status: OrderStatus) => void
+}) {
+  const action = NEXT_STATUS_ACTION[order.status]
+  const isReady = order.status === 'ready'
+  const isProduction = order.status === 'in_production'
+
+  // Color scheme per status
+  const borderColor = isReady ? '#10B981' : isProduction ? '#8B5CF6' : '#F59E0B'
+  const statusBgColor = isReady ? '#064E3B' : isProduction ? '#4C1D95' : '#78350F'
+  const statusTextColor = isReady ? '#6EE7B7' : isProduction ? '#C4B5FD' : '#FCD34D'
+
+  // Action button config
+  const actionConfig = action ? getActionConfig(order.status) : null
+
+  return (
+    <div
+      className={`bg-[#1F2937] rounded-xl border-l-4 overflow-hidden ${isReady ? 'kitchen-card-ready' : ''}`}
+      style={{ borderLeftColor: borderColor }}
+    >
+      {/* Card header */}
+      <div className="px-5 pt-4 pb-3 flex items-start justify-between">
+        <div className="flex-1 min-w-0">
+          <p className="text-white text-xl font-bold truncate">{order.customer_name ?? 'Cliente'}</p>
+          <div className="flex items-center gap-3 mt-1">
+            <span className="text-gray-400 text-sm flex items-center gap-1">
+              {order.delivery_type === 'delivery' ? (
+                <><Bike size={14} className="text-orange-400" /> Domicilio</>
+              ) : (
+                <><Store size={14} className="text-blue-400" /> Local</>
+              )}
+            </span>
+            {order.customer_phone && (
+              <span className="text-gray-500 text-sm">{order.customer_phone}</span>
+            )}
+          </div>
+        </div>
+        <span
+          className="text-xs font-bold uppercase tracking-wider px-3 py-1 rounded-full flex-shrink-0"
+          style={{ backgroundColor: statusBgColor, color: statusTextColor }}
+        >
+          {STATUS_LABELS[order.status]}
+        </span>
+      </div>
+
+      {/* Items — large and clear */}
+      <div className="px-5 pb-3 space-y-1">
+        {order.items?.map(item => (
+          <div key={item.id} className="flex items-center justify-between">
+            <span className="text-white text-lg font-semibold">
+              {item.quantity}x {item.product?.flavor}
+            </span>
+            <span className="text-gray-400 text-base capitalize">{item.product?.size}</span>
+          </div>
+        ))}
+      </div>
+
+      {/* Notes */}
+      {order.notes && (
+        <div className="mx-5 mb-3 bg-yellow-900/40 border border-yellow-600/30 rounded-lg px-3 py-2 flex items-start gap-2">
+          <AlertTriangle size={14} className="text-yellow-400 mt-0.5 flex-shrink-0" />
+          <p className="text-yellow-200 text-sm">{order.notes}</p>
+        </div>
+      )}
+
+      {/* ONE action button — full width, large, obvious */}
+      {actionConfig && (
+        <button
+          onClick={() => onAction(order.id, action!.next)}
+          disabled={isUpdating}
+          className="w-full py-4 text-base font-bold flex items-center justify-center gap-2 transition-colors disabled:opacity-50"
+          style={{
+            backgroundColor: actionConfig.bgColor,
+            color: actionConfig.textColor,
+          }}
+        >
+          {actionConfig.icon}
+          {action!.label}
+        </button>
+      )}
+    </div>
+  )
+}
+
+function getActionConfig(status: OrderStatus): { bgColor: string; textColor: string; icon: React.ReactNode } | null {
+  switch (status) {
+    case 'pending':
+    case 'confirmed':
+      return {
+        bgColor: '#7C3AED',
+        textColor: '#FFFFFF',
+        icon: <Play size={18} />,
+      }
+    case 'in_production':
+      return {
+        bgColor: '#059669',
+        textColor: '#FFFFFF',
+        icon: <CheckCircle size={18} />,
+      }
+    case 'ready':
+      return {
+        bgColor: '#2563EB',
+        textColor: '#FFFFFF',
+        icon: <Truck size={18} />,
+      }
+    case 'dispatched':
+      return {
+        bgColor: '#374151',
+        textColor: '#9CA3AF',
+        icon: <Clock size={18} />,
+      }
+    default:
+      return null
+  }
 }

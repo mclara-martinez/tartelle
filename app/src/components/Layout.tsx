@@ -1,6 +1,5 @@
 import { useState } from 'react'
-import { ShoppingBag, LayoutDashboard, ChefHat, Package, Menu, X } from 'lucide-react'
-
+import { ShoppingBag, LayoutDashboard, ChefHat, Package, ClipboardList, Menu, X, LogOut } from 'lucide-react'
 import type { View } from '../App'
 
 interface Props {
@@ -10,10 +9,11 @@ interface Props {
 }
 
 const NAV = [
-  { id: 'dashboard' as View, label: 'Resumen', icon: LayoutDashboard },
+  { id: 'dashboard' as View, label: 'Panel', icon: LayoutDashboard },
   { id: 'orders' as View, label: 'Pedidos', icon: ShoppingBag },
-  { id: 'kitchen' as View, label: 'Cocina', icon: ChefHat },
+  { id: 'production' as View, label: 'Produccion', icon: ClipboardList },
   { id: 'inventory' as View, label: 'Inventario', icon: Package },
+  { id: 'kitchen' as View, label: 'Cocina', icon: ChefHat },
 ]
 
 function SidebarContent({ current, onNavigate, onItemClick }: {
@@ -22,38 +22,55 @@ function SidebarContent({ current, onNavigate, onItemClick }: {
   onItemClick?: () => void
 }) {
   return (
-    <>
-      {/* Logo */}
-      <div className="px-4 pt-4 pb-3 flex items-center gap-2.5">
-        <div className="w-8 h-8 rounded-md bg-[var(--color-teal)] border border-[var(--color-gold)]/30 flex items-center justify-center">
-          <span className="text-[var(--color-gold)] font-bold text-xs tracking-wider">T</span>
+    <div className="flex flex-col h-full">
+      {/* Logo — large icon + bold name, generous top padding */}
+      <div className="px-5 pt-7 pb-4 flex items-center gap-3">
+        <div className="w-10 h-10 rounded-xl bg-[var(--color-accent)] flex items-center justify-center">
+          <span className="text-white font-bold text-base">T</span>
         </div>
-        <div className="flex flex-col">
-          <span className="text-white font-semibold text-[13px] tracking-widest uppercase">Tartelle</span>
-          <span className="text-[var(--color-sidebar-text)] text-[9px] tracking-wide uppercase">Ops</span>
-        </div>
+        <span className="text-[var(--color-text-primary)] font-bold text-lg">Tartelle</span>
       </div>
 
-      {/* Nav items */}
-      <nav className="flex-1 px-2 py-2 space-y-0.5" aria-label="Navegación principal">
-        {NAV.map(({ id, label, icon: Icon }) => (
-          <button
-            key={id}
-            onClick={() => { onNavigate(id); onItemClick?.() }}
-            aria-label={label}
-            aria-current={current === id ? 'page' : undefined}
-            className={`w-full flex items-center gap-2.5 px-3 py-2 rounded-md text-[13px] font-medium transition-colors text-left ${
-              current === id
-                ? 'bg-[var(--color-sidebar-active)] text-white'
-                : 'text-[var(--color-sidebar-text)] hover:bg-[var(--color-sidebar-hover)] hover:text-white'
-            }`}
-          >
-            <Icon size={16} />
-            {label}
-          </button>
-        ))}
+      {/* User info — with border separator like RestoFlow */}
+      <div className="px-5 pb-4 mb-2 border-b border-[var(--color-border-light)]">
+        <p className="text-sm font-medium text-[var(--color-text-primary)]">Operaciones</p>
+        <p className="text-xs text-[var(--color-text-muted)] mt-0.5">Administrador</p>
+      </div>
+
+      {/* Nav — generous spacing between items like RestoFlow */}
+      <nav className="flex-1 px-3 py-3 space-y-2" aria-label="Navegacion principal">
+        {NAV.map(({ id, label, icon: Icon }) => {
+          const active = current === id
+          return (
+            <button
+              key={id}
+              onClick={() => { onNavigate(id); onItemClick?.() }}
+              aria-label={label}
+              aria-current={active ? 'page' : undefined}
+              className={`w-full flex items-center gap-3.5 px-4 py-3 rounded-lg text-sm transition-colors duration-200 text-left ${
+                active
+                  ? 'bg-[var(--color-accent-light)] text-[var(--color-accent)] font-semibold'
+                  : 'text-[var(--color-text-secondary)] hover:bg-[var(--color-bg-hover)] hover:text-[var(--color-text-primary)] font-medium'
+              }`}
+            >
+              <Icon className="h-5 w-5" strokeWidth={1.75} />
+              {label}
+              {id === 'kitchen' && (
+                <span className="ml-auto text-[10px] text-[var(--color-text-muted)] font-normal">Tablet</span>
+              )}
+            </button>
+          )
+        })}
       </nav>
-    </>
+
+      {/* Footer */}
+      <div className="px-3 py-4 border-t border-[var(--color-border-light)]">
+        <button className="w-full flex items-center gap-3.5 px-4 py-3 rounded-lg text-sm font-medium text-[var(--color-text-muted)] hover:bg-[var(--color-bg-hover)] hover:text-[var(--color-text-primary)] transition-colors duration-200 text-left">
+          <LogOut className="h-5 w-5" strokeWidth={1.75} />
+          Cerrar sesion
+        </button>
+      </div>
+    </div>
   )
 }
 
@@ -66,40 +83,40 @@ export function Layout({ current, onNavigate, children }: Props) {
         Ir al contenido principal
       </a>
 
-      {/* Desktop sidebar */}
-      <aside className="hidden md:flex fixed inset-y-0 left-0 z-40 w-[220px] bg-[var(--color-sidebar-bg)] flex-col border-r border-[#2A3346]">
+      {/* Desktop sidebar — w-60 = 240px */}
+      <aside className="hidden lg:flex fixed inset-y-0 left-0 z-40 w-60 bg-white border-r border-[var(--color-border)] flex-col">
         <SidebarContent current={current} onNavigate={onNavigate} />
       </aside>
 
       {/* Mobile header */}
-      <header className="md:hidden fixed top-0 left-0 right-0 z-40 bg-[var(--color-sidebar-bg)] px-4 py-2.5 flex items-center justify-between">
+      <header className="lg:hidden fixed top-0 left-0 right-0 z-40 bg-white border-b border-[var(--color-border)] px-4 py-3 flex items-center justify-between">
         <div className="flex items-center gap-2.5">
-          <div className="w-7 h-7 rounded-md bg-[var(--color-teal)] border border-[var(--color-gold)]/30 flex items-center justify-center">
-            <span className="text-[var(--color-gold)] font-bold text-[10px] tracking-wider">T</span>
+          <div className="w-8 h-8 rounded-lg bg-[var(--color-accent)] flex items-center justify-center">
+            <span className="text-white font-bold text-xs">T</span>
           </div>
-          <span className="text-white font-semibold text-[13px] tracking-widest uppercase">Tartelle</span>
+          <span className="text-[var(--color-text-primary)] font-bold text-base">Tartelle</span>
         </div>
         <button
           onClick={() => setSidebarOpen(!sidebarOpen)}
-          aria-label={sidebarOpen ? 'Cerrar menú' : 'Abrir menú'}
-          className="text-[var(--color-sidebar-text)] hover:text-white p-1.5 min-h-[44px] min-w-[44px] flex items-center justify-center"
+          aria-label={sidebarOpen ? 'Cerrar menu' : 'Abrir menu'}
+          className="text-[var(--color-text-secondary)] hover:text-[var(--color-text-primary)] p-1.5 min-h-[44px] min-w-[44px] flex items-center justify-center"
         >
-          {sidebarOpen ? <X size={20} /> : <Menu size={20} />}
+          {sidebarOpen ? <X className="h-5 w-5" /> : <Menu className="h-5 w-5" />}
         </button>
       </header>
 
       {/* Mobile sidebar overlay */}
       {sidebarOpen && (
         <>
-          <div className="md:hidden fixed inset-0 z-40 bg-black/40" onClick={() => setSidebarOpen(false)} />
-          <aside className="md:hidden fixed inset-y-0 left-0 z-50 w-[220px] bg-[var(--color-sidebar-bg)] flex flex-col">
+          <div className="lg:hidden fixed inset-0 z-40 bg-black/40 backdrop-enter" onClick={() => setSidebarOpen(false)} />
+          <aside className="lg:hidden fixed inset-y-0 left-0 z-50 w-60 bg-white shadow-xl flex flex-col">
             <SidebarContent current={current} onNavigate={onNavigate} onItemClick={() => setSidebarOpen(false)} />
           </aside>
         </>
       )}
 
       {/* Main content */}
-      <main id="main-content" className="flex-1 md:ml-[220px] p-5 pt-16 md:pt-5 max-w-[1200px]">
+      <main id="main-content" className="flex-1 lg:ml-60 p-4 pt-16 lg:p-6 lg:pt-6">
         {children}
       </main>
     </div>

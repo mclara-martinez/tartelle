@@ -1,98 +1,101 @@
-@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@300;400;500;600;700&display=swap');
 @import "tailwindcss";
 
-@theme {
-  /* Tartelle Brand — ClickUp-style cool tones + brand accents */
-  --color-bg: #F7F8FA;
+:root {
+  /* ── Surfaces ── */
+  --color-bg: #F7F6F3;
   --color-surface: #FFFFFF;
-  --color-surface-warm: #F0F1F3;
-  --color-border: #E4E7EC;
-  --color-text-primary: #1E2A2A;
-  --color-text-secondary: #6B7280;
-  --color-text-muted: #9CA3AF;
+  --color-surface-warm: #F1F0ED;
+  --color-border: #E8E5E0;
+  --color-border-light: #F0EFEB;
+  --color-bg-hover: #F1F0ED;
+  --color-bg-active: #E8E5E0;
 
-  /* Primary: Tartelle Teal */
-  --color-teal: #1A6B5A;
-  --color-teal-dark: #145649;
-  --color-teal-light: #E8F5F0;
-  --color-teal-50: #F0FAF6;
+  /* ── Text ── */
+  --color-text-primary: #37352F;
+  --color-text-secondary: #646360;
+  --color-text-muted: #6F6E6B;
 
-  /* Accent: Warm Gold */
-  --color-gold: #B8923A;
-  --color-gold-dark: #9A7A2E;
-  --color-gold-light: #FBF5E8;
-
-  /* Keep accent pointing to teal (primary actions) */
-  --color-accent: #1A6B5A;
+  /* ── Accent: Tartelle Teal ── */
+  --color-accent: #0D9373;
+  --color-accent-hover: #047857;
   --color-accent-light: #E8F5F0;
+  --color-accent-subtle: #D1EDE5;
 
-  /* Semantic */
-  --color-success: #1A6B5A;
-  --color-success-light: #E8F5F0;
-  --color-warning: #B8923A;
-  --color-warning-light: #FBF5E8;
-  --color-danger: #B54848;
-  --color-danger-light: #FCEAEA;
-  --color-info: #3B7CB8;
-  --color-info-light: #EBF3FB;
+  /* ── Semantic ── */
+  --color-success-bg: #DBEDDB;
+  --color-success-text: #1E6B3A;
+  --color-danger-bg: #FFE2DD;
+  --color-danger-text: #C4554D;
+  --color-warning-bg: #FDE9D0;
+  --color-warning-text: #C77D2E;
+  --color-neutral-bg: #E8E5E0;
+  --color-neutral-text: #646360;
 
-  /* Sidebar */
-  --color-sidebar-bg: #1E2533;
-  --color-sidebar-hover: #2A3346;
-  --color-sidebar-active: #333D52;
-  --color-sidebar-text: #A3AEBE;
-  --color-sidebar-text-active: #FFFFFF;
+  /* ── Status ── */
+  --color-status-pending: #C77D2E;
+  --color-status-pending-bg: #FDE9D0;
+  --color-status-confirmed: #3B82F6;
+  --color-status-confirmed-bg: #DBEAFE;
+  --color-status-production: #8B5CF6;
+  --color-status-production-bg: #EDE9FE;
+  --color-status-ready: #1E6B3A;
+  --color-status-ready-bg: #DBEDDB;
+  --color-status-dispatched: #C77D2E;
+  --color-status-dispatched-bg: #FDE9D0;
+  --color-status-delivered: #646360;
+  --color-status-delivered-bg: #E8E5E0;
+  --color-status-cancelled: #C4554D;
+  --color-status-cancelled-bg: #FFE2DD;
 
-  /* Shadows */
-  --shadow-card: 0 1px 3px rgba(0,0,0,0.04), 0 1px 2px rgba(0,0,0,0.06);
-  --shadow-dropdown: 0 4px 12px rgba(0,0,0,0.08);
-
-  --font-family-sans: 'Inter', system-ui, sans-serif;
+  /* ── Shadows ── */
+  --shadow-dropdown: 0 4px 12px rgba(0,0,0,0.06);
+  --shadow-drawer: -2px 0 16px rgba(0,0,0,0.08);
 }
 
-/* Wizard step transitions */
-.wizard-step {
-  animation-duration: 0.25s;
-  animation-fill-mode: both;
-  animation-timing-function: ease-out;
+/* ── Animations ── */
+.drawer-enter { animation: drawerSlideIn 0.2s ease-out both; }
+@keyframes drawerSlideIn {
+  from { transform: translateX(100%); }
+  to { transform: translateX(0); }
 }
-
-.wizard-enter-right {
-  animation-name: slideInRight;
+.backdrop-enter { animation: backdropFadeIn 0.15s ease-out both; }
+@keyframes backdropFadeIn {
+  from { opacity: 0; }
+  to { opacity: 1; }
 }
+.kanban-column { transition: background-color 0.15s ease; }
+.pos-product-card { transition: transform 0.1s ease, box-shadow 0.1s ease; }
+.pos-product-card:active { transform: scale(0.97); }
 
-.wizard-enter-left {
-  animation-name: slideInLeft;
+@keyframes readyPulse {
+  0%, 100% { border-color: #1E6B3A; }
+  50% { border-color: #34D399; }
 }
+.kitchen-card-ready { animation: readyPulse 2s ease-in-out infinite; }
 
-@keyframes slideInRight {
-  from { opacity: 0; transform: translateX(30px); }
-  to { opacity: 1; transform: translateX(0); }
-}
-
-@keyframes slideInLeft {
-  from { opacity: 0; transform: translateX(-30px); }
-  to { opacity: 1; transform: translateX(0); }
-}
-
-/* Respect user motion preferences */
 @media (prefers-reduced-motion: reduce) {
-  .wizard-step {
-    animation: none;
-  }
-  * {
-    transition-duration: 0.01ms !important;
-    animation-duration: 0.01ms !important;
-  }
+  .drawer-enter, .backdrop-enter { animation: none; }
+  .kitchen-card-ready { animation: none; }
+  .pos-product-card { transition: none; }
+  * { transition-duration: 0.01ms !important; animation-duration: 0.01ms !important; }
 }
-
-* { box-sizing: border-box; margin: 0; padding: 0; }
 
 body {
   background-color: var(--color-bg);
   color: var(--color-text-primary);
-  font-family: var(--font-family-sans);
+  font-family: 'IBM Plex Sans', system-ui, sans-serif;
   font-size: 14px;
-  line-height: 1.4;
+  line-height: 1.5;
   -webkit-font-smoothing: antialiased;
 }
+
+/* iOS auto-zoom prevention */
+@media (max-width: 640px) {
+  input, select, textarea { font-size: 16px; }
+}
+
+/* ── Scrollbar ── */
+.kanban-scroll::-webkit-scrollbar { width: 4px; }
+.kanban-scroll::-webkit-scrollbar-track { background: transparent; }
+.kanban-scroll::-webkit-scrollbar-thumb { background: var(--color-border); border-radius: 2px; }
