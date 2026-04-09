@@ -1,126 +1,89 @@
-# Tartelle Ops — Propuesta Comercial
+# Propuesta de Automatización para Tartelle
+
+Preparado por MClara Martínez para Andrea Gómez
 
 ---
 
-## PÁGINA 1
+## Lo que vemos hoy
 
-### Header
-**Tartelle Ops**
-*Tu operación, simplificada.*
+Hoy tu operación corre sobre Excel, WhatsApp y Siigo. Identificamos estos dolores:
 
----
-
-### Lo que escuchamos
-
-4 dolores que identificamos:
-
-- **Sobreventa** — WhatsApp, Rappi y el local no se hablan. Se vende lo mismo dos veces.
-- **Inventario a ciegas** — El stock de producto terminado vive en WhatsApp y se actualiza tarde. No hay visibilidad en tiempo real.
-- **Operación manual** — Pedidos en Excel, producción por grupos de WhatsApp, facturación una por una en Siigo. Demasiados pasos, demasiado margen de error.
-- **Ventas perdidas** — Clientes que escriben y no completan su pedido. Sin seguimiento automático, esa venta se va.
+1. **Sobreventa** — WhatsApp, Rappi y el local no se hablan. Se vende lo mismo dos veces.
+2. **Inventario a ciegas** — El stock vive en WhatsApp y no hay visibilidad en tiempo real.
+3. **Operación manual** — Pedidos en Excel, producción por grupos de WhatsApp, facturación una por una en Siigo.
+4. **Ventas perdidas** — Clientes que escriben y no completan su pedido. Sin seguimiento automático.
+5. **Comunicación fragmentada** — Confirmaciones, actualizaciones de estado y coordinación de domicilios se hacen copiando y pegando en WhatsApp.
+6. **Materia prima de memoria** — Las cantidades de insumos se manejan de memoria. No hay sistema que avise cuándo pedir ni que permita auditar el consumo.
 
 ---
 
-### La solución
+## Paso 1 — Entender a fondo
 
-**Una sola plataforma. Todo conectado.**
+Antes de construir nada, exploramos juntos tu operación para entender exactamente dónde está el valor:
 
-Una aplicación a la medida — accesible desde tablet (cocina), computador (admin) y celular — que centraliza pedidos, inventario y comunicación en tiempo real.
+- **Siigo**: qué hace hoy, qué datos tiene, qué se puede automatizar desde ahí
+- **Tu Excel de pedidos**: qué datos maneja, qué cálculos hace, qué le falta
+- **Comunicaciones**: mapear el flujo real de WhatsApp — clientes, cocina, domicilios, proveedores
+- **Procesos**: cómo es el día a día desde que entra un pedido hasta que se entrega
 
-**Fase 1 resuelve los 4 dolores:**
-
-| Qué incluye | Qué reemplaza |
-|---|---|
-| Gestión de pedidos multicanal | Excel de pedidos |
-| Inventario de producto terminado en tiempo real | Grupos de WhatsApp + Siigo manual |
-| Dashboard de cocina en tablet | Mensajes al grupo de producción |
-| Panel administrativo | Filtros manuales + seguimiento a ojo |
-| Planeación de producción automática (6pm) | Lista manual de lo que se produce mañana |
+**Duración:** 1 a 2 semanas
+**Costo:** Sin costo — es nuestra inversión para entender tu negocio a fondo
+**Entregable:** Diagnóstico detallado + mapa de soluciones priorizado contigo
 
 ---
 
-## PÁGINA 2
+## Tus dolores → Nuestras soluciones
 
-### Hoja de ruta
+Cada dolor tiene posibles soluciones. Tú decides cuáles atacamos primero:
 
-| Fase | Nombre | Qué incluye |
-|---|---|---|
-| **1** | Centro de Operaciones | Pedidos, inventario PT, dashboard cocina, panel admin, producción automática |
-| **2** | Comunicación Inteligente | Notificaciones WhatsApp al cliente, tracking de domicilios, follow-ups automáticos, alertas de stock |
-| **3** | Control de Insumos | Inventario materia prima, órdenes de compra automáticas, verificación de entregas, mínimos por temporada |
-| **4** | Conoce tu Cliente | CRM, historial de pedidos, analytics de ventas, email marketing |
-| **5** | Automatización Avanzada | Chatbot WhatsApp (primeras interacciones), optimización de flujos Rappi y Siigo |
+**Dolor:** Sobreventa (se vende lo mismo 2 veces)
+**Soluciones:** Inventario centralizado en tiempo real, alertas de stock bajo, bloqueo automático cuando stock llega a 0
 
----
+**Dolor:** Inventario sin visibilidad en tiempo real
+**Soluciones:** Dashboard de inventario en tiempo real, ajustes con registro de auditoría, consultar integración con Siigo
 
-### Inversión
+**Dolor:** Operación manual (Excel + WhatsApp + Siigo)
+**Soluciones:** app tipo POS digital con grilla de productos y carrito, dashboard de cocina en tablet (diseñado para manos con harina), planeación de producción automática, explorar automatización con Siigo
 
-| Fase | Implementación | Mensualidad acumulada |
-|---|---|---|
-| Fase 1 — Centro de Operaciones | $3.480.000 COP | $980.000/mes |
-| Fase 2 — Comunicación Inteligente | $1.480.000 COP | $1.350.000/mes |
-| Fase 3 — Control de Insumos | $1.680.000 COP | $1.580.000/mes |
-| Fase 4 — Conoce tu Cliente | $680.000 COP | $1.850.000/mes |
-| Fase 5 — Automatización Avanzada | $780.000 COP | $2.155.000/mes |
-| **Total** | **$8.100.000 COP** | **$2.155.000/mes** |
+**Dolor:** Ventas perdidas (sin seguimiento)
+**Soluciones:** CRM básico con historial de cliente, follow-ups automáticos por WhatsApp, notificaciones de estado al cliente *pendiente revisar si implementar un tercero o diseñar un flujo propio.
 
-> La mensualidad incluye hosting, soporte técnico, actualizaciones y monitoreo.
-> Los costos de WhatsApp Business API y email marketing van por cuenta del cliente (escalan con el uso).
+**Dolor:** Comunicación fragmentada (copiar y pegar en WhatsApp)
+**Soluciones:** WhatsApp Business API para confirmaciones automáticas, notificación "tu pedido está listo", tracking de domicilios
+
+**Dolor:** Materia prima de memoria
+**Soluciones:** Inventario de insumos con recetas (1 tarta = X queso crema + Y base), órdenes de compra automáticas, ajustes por temporada (diciembre = 3x volumen)
 
 ---
 
-### Siguiente paso
+## Cómo trabajamos
 
-**Arrancamos con Fase 1.**
-En 4 a 6 semanas tu operación funciona desde una sola plataforma — sin Excel, sin grupos de WhatsApp para producción, sin sobreventa.
+- **Iteraciones cortas:** cada 3 a 4 semanas entregamos algo funcional que puedes usar inmediatamente
+- **Después de cada entrega evaluamos juntos:** qué funciona, qué ajustar, qué sigue
+- **Tú priorizas** qué dolor atacamos en cada iteración
+- El sistema crece con tu negocio — **a tu ritmo**
 
 ---
 
-## Justificación de precios (uso interno)
+## Inversión
 
-### Implementación por fase
+Un solo fee mensual que crece con el valor que te entregamos:
 
-| Fase | Precio | Esfuerzo estimado | Justificación |
-|---|---|---|---|
-| Fase 1 | $3.480.000 | 80-100 horas | Fase más pesada: base de datos, auth, 2 dashboards, inventario en tiempo real, planeación de producción |
-| Fase 2 | $1.480.000 | 50-60 horas | Capa de comunicación sobre plataforma existente. Integración WhatsApp Business API, tracking domicilios, automatizaciones |
-| Fase 3 | $1.680.000 | 45-55 horas | Alta reutilización de Buen Humo (inventario, OC, verificación). Trabajo nuevo: mínimos por temporada, alertas calendario |
-| Fase 4 | $680.000 | 35-45 horas | Fase más económica: organiza datos que ya existen desde Fase 1. Analytics + email vía SendGrid/Resend |
-| Fase 5 | $780.000 | 30-40 horas | Chatbot WhatsApp (Meta Cloud API). Rappi sin API abierta → workflow optimizado. Siigo → pending investigación de API |
+**Diagnóstico (semanas 1-2):** Exploración Siigo, Excel, procesos, comunicaciones — **GRATIS**
 
-### Mensualidad — desglose
+**Primera solución en desarrollo (semanas 3-8):** Desarrollo de la solución que tú priorices — **$583.700/mes**
 
-**Fase 1: $980.000/mes**
-- Hosting (Supabase Pro + Vercel + dominio): $200.000
-- Soporte y mantenimiento (~6-8 horas/mes): $380.000
-- Monitoreo de plataforma: $150.000
-- Mejoras continuas: $250.000
+**Primera solución en producción:** Solución funcionando + hosting + soporte + mantenimiento — **$583.700/mes**
 
-**Fase 2: +$370.000 → $1.350.000/mes**
-- Monitoreo WhatsApp API + templates: $150.000
-- Sistema de tracking domicilios: $100.000
-- Mantenimiento de automatizaciones: $120.000
+**Cada solución adicional:** Se desarrolla y agrega al mantenimiento — **sube entre $217.000 y $354.000/mes**
 
-**Fase 3: +$230.000 → $1.580.000/mes**
-- Mantenimiento sistema de compras: $100.000
-- Optimización OCR facturas: $80.000
-- Soporte planeación estacional: $50.000
+El diagnóstico es gratis. El fee arranca cuando empezamos a construir. Mientras desarrollamos, el fee cubre el trabajo. Cuando la solución está en producción, el mismo fee cubre hosting, soporte y mantenimiento. Cada solución nueva sube el fee un poco. Solo pagas más cuando ya tienes más valor funcionando. Puedes pausar entre soluciones si necesitas. Podemos definir un fee maximo que haga sentido para las dos dependiendo de las soluciones adicionales que querramos construir.
 
-**Fase 4: +$270.000 → $1.850.000/mes**
-- Analytics y reportes: $120.000
-- Email marketing (gestión + costos SendGrid): $80.000
-- Mantenimiento CRM: $70.000
+---
 
-**Fase 5: +$305.000 → $2.155.000/mes**
-- Mantenimiento chatbot: $150.000
-- Optimización workflows Rappi/Siigo: $100.000
-- Confiabilidad plataforma completa: $55.000
+## Siguiente paso
 
-### Costos de terceros (a cargo del cliente)
-- WhatsApp Business API (desde Fase 2): ~$80.000-$150.000 COP/mes
-- Email marketing (desde Fase 4): ~$30.000-$50.000 COP/mes
-- Siigo: sin cambio respecto a lo que paga hoy
-
-### Nota sobre Fase 5
-- **Rappi**: no tiene API abierta para merchants. Se ofrece workflow optimizado interno, no integración directa.
-- **Siigo**: requiere investigación de API antes de prometer integración automática.
+Arrancamos con el diagnóstico — sin costo.
+En 2 semanas tenemos el mapa completo de tu operación.
+Tú decides qué resolvemos primero.
+Juntas armamos el cronograma.
