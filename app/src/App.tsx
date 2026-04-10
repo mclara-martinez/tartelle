@@ -6,10 +6,11 @@ import { KitchenView } from './views/KitchenView'
 import { InventoryView } from './views/InventoryView'
 import { ProductionView } from './views/ProductionView'
 import { OrderCreateView } from './views/OrderCreateView'
+import { DomiciliarioView } from './views/DomiciliarioView'
 
-export type View = 'dashboard' | 'orders' | 'kitchen' | 'inventory' | 'production' | 'create'
+export type View = 'dashboard' | 'orders' | 'kitchen' | 'inventory' | 'production' | 'create' | 'domiciliario'
 
-const VALID_VIEWS: View[] = ['dashboard', 'orders', 'kitchen', 'inventory', 'production', 'create']
+const VALID_VIEWS: View[] = ['dashboard', 'orders', 'kitchen', 'inventory', 'production', 'create', 'domiciliario']
 
 function viewFromHash(): View {
   const hash = window.location.hash.replace('#', '')
@@ -31,6 +32,11 @@ export default function App() {
     window.addEventListener('hashchange', onHashChange)
     return () => window.removeEventListener('hashchange', onHashChange)
   }, [])
+
+  // Domiciliario = standalone, no Layout, no auth
+  if (view === 'domiciliario') {
+    return <DomiciliarioView />
+  }
 
   // Kitchen = full-screen, no Layout wrapper
   if (view === 'kitchen') {

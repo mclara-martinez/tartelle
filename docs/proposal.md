@@ -65,17 +65,31 @@ Cada dolor tiene posibles soluciones. Tú decides cuáles atacamos primero:
 
 ---
 
+## Lo que entrega la primera fase (2-4 semanas)
+
+1. **Dashboard administrativo** — resumen en tiempo real: pedidos del dia, ingresos, alertas de stock bajo, produccion pendiente
+2. **Registro de pedidos tipo POS** — formulario visual con catalogo de productos, busqueda de clientes existentes, calculo automatico de precios/descuentos/domicilio
+3. **Base de datos de clientes** — clientes recurrentes con descuentos automaticos (restaurantes, corporativos)
+4. **Vista de cocina para tablet** — pantalla de produccion totalizada + despacho por pedido, diseñada para usar con las manos untadas de harina
+5. **Inventario de producto terminado** — stock en tiempo real por sabor y tamano, ajustes manuales, alertas de agotamiento
+6. **Planeacion de produccion** — lista de produccion diaria generada desde pedidos confirmados
+7. **Vista de domiciliario** — link para el celular del domiciliario con lista de entregas, botones de recogido/entregado, foto de factura firmada
+8. **Seguimiento de pagos** — registro de metodo de pago, banco, comprobante adjunto por pedido
+9. **Tablero Kanban de pedidos** — estados visuales desde pendiente hasta entregado, tiempo real
+
+---
+
 ## Inversión
 
 Un solo fee mensual que crece con el valor que te entregamos:
 
 **Diagnóstico (semanas 1-2):** Exploración Siigo, Excel, procesos, comunicaciones — **GRATIS**
 
-**Primera solución en desarrollo (semanas 3-8):** Desarrollo de la solución que tú priorices — **$583.700/mes**
+**Primera solución en desarrollo (semanas 3-4):** Desarrollo de la solución que tú priorices — **$483.700/mes**
 
-**Primera solución en producción:** Solución funcionando + hosting + soporte + mantenimiento — **$583.700/mes**
+**Primera solución en producción:** Solución funcionando + hosting + soporte + mantenimiento — **$483.700/mes**
 
-**Cada solución adicional:** Se desarrolla y agrega al mantenimiento — **sube entre $217.000 y $354.000/mes**
+**Cada solución adicional:** Se desarrolla y agrega al mantenimiento — **sube incrementalmente**
 
 El diagnóstico es gratis. El fee arranca cuando empezamos a construir. Mientras desarrollamos, el fee cubre el trabajo. Cuando la solución está en producción, el mismo fee cubre hosting, soporte y mantenimiento. Cada solución nueva sube el fee un poco. Solo pagas más cuando ya tienes más valor funcionando. Puedes pausar entre soluciones si necesitas. Podemos definir un fee maximo que haga sentido para las dos dependiendo de las soluciones adicionales que querramos construir.
 

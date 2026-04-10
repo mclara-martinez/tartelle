@@ -5,6 +5,10 @@ export type DeliveryType = 'pickup' | 'delivery'
 export type ProductSize = 'grande' | 'mediana' | 'mini'
 export type InventoryReason = 'production' | 'sale' | 'adjustment' | 'waste'
 export type PlanStatus = 'draft' | 'sent' | 'in_progress' | 'done'
+export type PaymentStatus = 'pending' | 'paid' | 'credit'
+export type PaymentMethod = 'transfer' | 'cash' | 'card' | 'rappi'
+export type PaymentBank = 'bancolombia' | 'itau' | 'davivienda' | 'nequi' | 'bbva'
+export type CardType = 'debit' | 'credit'
 
 export interface Customer {
   id: string
@@ -46,6 +50,17 @@ export interface Order {
   notes: string | null
   customer_name: string | null
   customer_phone: string | null
+  payment_status: PaymentStatus
+  payment_method: PaymentMethod | null
+  payment_bank: PaymentBank | null
+  card_type: CardType | null
+  payment_receipt_url: string | null
+  packaging_notes: string | null
+  assigned_driver: string | null
+  picked_up_at: string | null
+  delivered_at: string | null
+  dispatch_photo_url: string | null
+  invoice_photo_url: string | null
   created_at: string
   updated_at: string
   items?: OrderItem[]

@@ -4,9 +4,10 @@ import { useCustomerSearch, useRecentCustomers, createCustomer } from '../hooks/
 import { createOrder } from '../hooks/useOrders'
 import { Toast } from '../components/Toast'
 import { formatCOP, today, tomorrow } from '../lib/utils'
-import { DELIVERY_FEE, CHANNEL_LABELS, SIZE_LABELS } from '../lib/constants'
-import type { Order, OrderChannel, DeliveryType, Product } from '../lib/types'
-import { X, Plus, Minus, Search, Bike, Store, ArrowLeft, ShoppingBag, User, Trash2 } from 'lucide-react'
+import { DELIVERY_FEE, CHANNEL_LABELS, SIZE_LABELS, PAYMENT_METHOD_LABELS, PAYMENT_BANK_LABELS, CARD_TYPE_LABELS } from '../lib/constants'
+import { PhotoUpload } from '../components/PhotoUpload'
+import type { Order, OrderChannel, DeliveryType, Product, PaymentMethod, PaymentBank, CardType } from '../lib/types'
+import { X, Plus, Minus, Search, Bike, Store, ArrowLeft, ShoppingBag, User, Trash2, Package } from 'lucide-react'
 
 interface CartItem {
   product: Product
@@ -34,6 +35,12 @@ export function OrderCreateView({ onClose }: Props) {
   const [deliveryAddress, setDeliveryAddress] = useState('')
   const [deliveryDate, setDeliveryDate] = useState<'today' | 'tomorrow'>('today')
   const [notes, setNotes] = useState('')
+  const [paymentMethod, setPaymentMethod] = useState<PaymentMethod | null>(null)
+  const [paymentBank, setPaymentBank] = useState<PaymentBank | null>(null)
+  const [cardType, setCardType] = useState<CardType | null>(null)
+  const [paymentReceiptUrl, setPaymentReceiptUrl] = useState<string | null>(null)
+  const [packagingNotes, setPackagingNotes] = useState('')
+  const [tempOrderId] = useState(() => crypto.randomUUID())
   const [submitting, setSubmitting] = useState(false)
   const [toast, setToast] = useState<{ msg: string; type: 'success' | 'error' } | null>(null)
 
@@ -107,6 +114,12 @@ export function OrderCreateView({ onClose }: Props) {
           discount,
           total,
           notes: notes.trim() || null,
+          payment_status: paymentReceiptUrl ? 'paid' : 'pending',
+          payment_method: paymentMethod,
+          payment_bank: paymentMethod === 'transfer' ? paymentBank : null,
+          card_type: paymentMethod === 'card' ? cardType : null,
+          payment_receipt_url: paymentReceiptUrl,
+          packaging_notes: packagingNotes.trim() || null,
         } as Omit<Order, 'id' | 'created_at' | 'updated_at'>,
         cart.map(item => ({
           product_id: item.product.id,
@@ -359,6 +372,100 @@ export function OrderCreateView({ onClose }: Props) {
                   </button>
                 ))}
               </div>
+            </div>
+
+            {/* Payment method */}
+            <div>
+              <label className="text-xs font-medium text-[var(--color-text-muted)] uppercase tracking-wider block mb-1.5">Medio de pago</label>
+              <div className="flex flex-wrap gap-1.5">
+                {(Object.entries(PAYMENT_METHOD_LABELS) as [PaymentMethod, string][]).map(([pm, label]) => (
+                  <button
+                    key={pm}
+                    onClick={() => { setPaymentMethod(pm); setPaymentBank(null); setCardType(null); setPaymentReceiptUrl(null) }}
+                    className={`px-3 py-1.5 rounded-lg text-xs font-medium border transition-colors ${
+                      paymentMethod === pm ? 'border-[var(--color-accent)] bg-[var(--color-accent-light)] text-[var(--color-accent)]' : 'border-[var(--color-border)] text-[var(--color-text-secondary)] hover:border-[var(--color-text-muted)]'
+                    }`}
+                  >
+                    {label}
+                  </button>
+                ))}
+              </div>
+            </div>
+
+            {/* Bank selector (transfer only) */}
+            {paymentMethod === 'transfer' && (
+              <div>
+                <label className="text-xs font-medium text-[var(--color-text-muted)] uppercase tracking-wider block mb-1.5">Banco</label>
+                <div className="flex flex-wrap gap-1.5">
+                  {(Object.entries(PAYMENT_BANK_LABELS) as [PaymentBank, string][]).map(([bank, label]) => (
+                    <button
+                      key={bank}
+                      onClick={() => setPaymentBank(bank)}
+                      className={`px-3 py-1.5 rounded-lg text-xs font-medium border transition-colors ${
+                        paymentBank === bank ? 'border-[var(--color-accent)] bg-[var(--color-accent-light)] text-[var(--color-accent)]' : 'border-[var(--color-border)] text-[var(--color-text-secondary)] hover:border-[var(--color-text-muted)]'
+                      }`}
+                    >
+                      {label}
+                    </button>
+                  ))}
+                </div>
+                {/* Receipt upload */}
+                <div className="mt-2">
+                  <PhotoUpload
+                    orderId={tempOrderId}
+                    type="receipt"
+                    existingPath={paymentReceiptUrl}
+                    onUpload={setPaymentReceiptUrl}
+                    label="Comprobante"
+                  />
+                </div>
+              </div>
+            )}
+
+            {/* Card type selector (card only) */}
+            {paymentMethod === 'card' && (
+              <div>
+                <label className="text-xs font-medium text-[var(--color-text-muted)] uppercase tracking-wider block mb-1.5">Tipo de tarjeta</label>
+                <div className="flex gap-1.5">
+                  {(Object.entries(CARD_TYPE_LABELS) as [CardType, string][]).map(([ct, label]) => (
+                    <button
+                      key={ct}
+                      onClick={() => setCardType(ct)}
+                      className={`flex-1 py-2 rounded-lg text-xs font-medium border transition-colors ${
+                        cardType === ct ? 'border-[var(--color-accent)] bg-[var(--color-accent-light)] text-[var(--color-accent)]' : 'border-[var(--color-border)] text-[var(--color-text-secondary)]'
+                      }`}
+                    >
+                      {label}
+                    </button>
+                  ))}
+                </div>
+              </div>
+            )}
+
+            {/* Packaging notes */}
+            <div>
+              <label className="text-xs font-medium text-[var(--color-text-muted)] uppercase tracking-wider block mb-1.5">
+                <Package size={11} className="inline mr-1" />
+                Empaque especial
+              </label>
+              <div className="flex flex-wrap gap-1.5 mb-2">
+                {['Regalo', 'Marcada por 10 porciones', 'Marcada por 8 porciones'].map(chip => (
+                  <button
+                    key={chip}
+                    onClick={() => setPackagingNotes(prev => prev ? `${prev}, ${chip}` : chip)}
+                    className="px-2.5 py-1 rounded-md text-xs border border-[var(--color-border)] text-[var(--color-text-secondary)] hover:border-[var(--color-accent)] transition-colors"
+                  >
+                    {chip}
+                  </button>
+                ))}
+              </div>
+              <input
+                type="text"
+                placeholder="Instrucciones de empaque"
+                value={packagingNotes}
+                onChange={e => setPackagingNotes(e.target.value)}
+                className="w-full border border-[var(--color-border)] rounded-lg px-3 py-2 text-sm focus:outline-none focus:border-[var(--color-accent)]"
+              />
             </div>
 
             {/* Notes */}

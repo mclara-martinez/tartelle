@@ -1,4 +1,4 @@
-import type { OrderChannel, OrderStatus, ProductSize } from './types'
+import type { OrderChannel, OrderStatus, ProductSize, PaymentStatus, PaymentMethod, PaymentBank, CardType } from './types'
 
 export const DELIVERY_FEE = 8000
 
@@ -56,6 +56,38 @@ export const KANBAN_COLUMNS: { status: OrderStatus; label: string }[] = [
   { status: 'ready',         label: 'Listo' },
   { status: 'dispatched',    label: 'Despachado' },
 ]
+
+export const PAYMENT_STATUS_LABELS: Record<PaymentStatus, string> = {
+  pending: 'Pendiente',
+  paid: 'Pagado',
+  credit: 'Crédito',
+}
+
+export const PAYMENT_STATUS_COLORS: Record<PaymentStatus, { bg: string; text: string }> = {
+  pending: { bg: '#FEF3C7', text: '#92400E' },
+  paid: { bg: '#D1FAE5', text: '#065F46' },
+  credit: { bg: '#DBEAFE', text: '#1E40AF' },
+}
+
+export const PAYMENT_METHOD_LABELS: Record<PaymentMethod, string> = {
+  transfer: 'Transferencia',
+  cash: 'Efectivo',
+  card: 'Tarjeta',
+  rappi: 'Rappi',
+}
+
+export const PAYMENT_BANK_LABELS: Record<PaymentBank, string> = {
+  bancolombia: 'Bancolombia',
+  itau: 'Itaú',
+  davivienda: 'Davivienda',
+  nequi: 'Nequi',
+  bbva: 'BBVA',
+}
+
+export const CARD_TYPE_LABELS: Record<CardType, string> = {
+  debit: 'Débito',
+  credit: 'Crédito',
+}
 
 export const LOW_STOCK_THRESHOLD = 2
 

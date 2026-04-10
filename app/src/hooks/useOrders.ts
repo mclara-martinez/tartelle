@@ -63,6 +63,14 @@ export async function updateOrderStatus(orderId: string, status: Order['status']
   if (error) throw new Error(error.message)
 }
 
+export async function updateOrderFields(orderId: string, fields: Partial<Order>) {
+  const { error } = await supabase
+    .from('orders')
+    .update(fields)
+    .eq('id', orderId)
+  if (error) throw new Error(error.message)
+}
+
 export async function createOrder(order: Omit<Order, 'id' | 'created_at' | 'updated_at'>, items: { product_id: string; quantity: number; unit_price: number }[]) {
   const { data: newOrder, error: orderErr } = await supabase
     .from('orders')

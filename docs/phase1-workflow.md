@@ -12,7 +12,7 @@ Phase 1 es el **Centro de Operaciones**: una sola plataforma que reemplaza Excel
 |-----|---------|-------------|--------|
 | **Admin** | Andrea / Asistente | Computador / Celular | Todo: Dashboard, Pedidos, Inventario, Produccion |
 | **Cocina** | 3 operarias | Tablet / iPad | Kitchen Display: pedidos activos, inventario, despacho |
-| **Domiciliario** | 1 fijo + inDrive | Celular (futuro) | N/A en Phase 1 (coordinado por WhatsApp aun) |
+| **Domiciliario** | 1 fijo (John) + inDrive | Celular (Chrome URL) | Vista Domiciliario: lista entregas, recogido/entregado con timestamps, foto factura firmada (B2B) |
 
 ---
 
@@ -43,6 +43,11 @@ Admin abre el formulario "Nuevo Pedido" y llena:
 | **Tipo de entrega** | Domicilio ($8,000 COP) o Recoge en local |
 | **Direccion** | Solo si es domicilio |
 | **Productos** | Seleccionar del catalogo (nombre + sabor + tamano) con cantidad |
+| **Medio de pago** | Transferencia / Efectivo / Tarjeta / Rappi |
+| **Banco** | (Solo si transferencia) Bancolombia / Itau / Davivienda / Nequi / BBVA |
+| **Tipo tarjeta** | (Solo si tarjeta) Debito / Credito |
+| **Comprobante** | (Solo si transferencia) Foto del comprobante de pago |
+| **Empaque especial** | Regalo, marcada por porciones, instrucciones especiales |
 | **Notas** | Instrucciones especiales, velas, dedicatoria, etc. |
 
 **Logica de precios:**
@@ -105,12 +110,14 @@ Admin abre el formulario "Nuevo Pedido" y llena:
 
 #### Paso 3.3 — Cocina produce (6am - durante el dia)
 - Primera operaria llega a las 6am
-- Ve en el Kitchen Display la lista de produccion del dia
-- Produce las tartas → refrigeracion overnight → listas para manana
-- A medida que termina, registra produccion en el sistema:
-  - Kitchen Display → Inventario → boton "+" por producto
+- Ve en el Kitchen Display (modo **Produccion**) la lista **totalizada** del dia
+  - NO por pedido, sino por producto: "10 Grandes Original, 5 Medianas Pistacho"
+  - Ellas producen en batch, no pedido por pedido
+- A medida que termina cada linea, marca como "Producido" en el Kitchen Display
   - Esto actualiza `inventory_finished` en tiempo real
   - Se logea en `inventory_log` con razon "produccion"
+- **Produccion adicional durante el dia:** Si llega un pedido nuevo que requiere produccion (ej: un producto que no hay), se puede "Anadir a produccion" desde el Kitchen Display
+- Una vez terminada la produccion, cambian al modo **Despacho** para ver pedidos individuales
 
 ---
 
@@ -142,11 +149,17 @@ Admin abre el formulario "Nuevo Pedido" y llena:
   - Cliente llega, cocina entrega
   - Cocina marca como **Despachado** directamente
 
+#### Paso 4.3b — Foto de despacho
+- Cocina puede tomar foto del pedido empacado antes de despachar
+  - Prueba para Andrea (control de calidad) y para disputas de Rappi
+  - Boton de camara en Kitchen Display (modo Despacho)
+  - Foto se guarda en `dispatch_photo_url`
+
 #### Paso 4.4 — Entregado
-- Domiciliario confirma entrega (WhatsApp a admin, manual)
-- Admin marca como **Entregado** (verde oscuro)
-- (Phase 2: dispara notificacion "tu pedido fue entregado" + foto)
-- (Phase 3: dispara facturacion automatica en Siigo)
+- Domiciliario marca como **Entregado** desde su Vista Domiciliario (boton con timestamp)
+  - Se registra `delivered_at` con hora exacta
+  - Para pedidos B2B: el domiciliario puede adjuntar foto de la factura firmada (`invoice_photo_url`)
+- Admin ve el cambio en tiempo real en el Dashboard
 
 #### Paso 4.5 — Descuento de inventario
 - Al despachar un pedido, el sistema **automaticamente** descuenta las cantidades del inventario:
@@ -262,6 +275,35 @@ Basado en la entrevista con Andrea:
 
 ---
 
+### 7. DOMICILIARIO — Vista de Entregas
+
+**Quien:** John (domiciliario fijo)
+**Cuando:** Todo el dia de entrega
+**Donde:** Celular → URL directa en Chrome (sin instalar app)
+**Acceso:** `https://tartelle.onrender.com/#domiciliario`
+
+#### 7.1 — Ver entregas del dia
+- Lista de pedidos con `delivery_type = 'delivery'` para hoy
+- Cada pedido muestra: nombre cliente, direccion (link a Google Maps), telefono (link para llamar), items, estado de pago
+- Ordenados: primero los listos para recoger, luego los en camino
+
+#### 7.2 — Marcar recogido
+- Al recoger un pedido en la cocina, John pulsa "Recogido"
+- Se registra `picked_up_at` con timestamp exacto
+- Status cambia a **Despachado**
+
+#### 7.3 — Marcar entregado
+- Al entregar al cliente, John pulsa "Entregado"
+- Se registra `delivered_at` con timestamp exacto
+- Status cambia a **Entregado**
+
+#### 7.4 — Foto de factura (B2B)
+- Para pedidos de restaurantes (B2B), John puede adjuntar foto de la factura firmada
+- Boton de camara abre la camara del celular directamente
+- Foto se guarda en `invoice_photo_url` para que admin la revise
+
+---
+
 ## Que NO incluye Phase 1
 
 - Notificaciones automaticas por WhatsApp (Phase 2)
@@ -273,5 +315,6 @@ Basado en la entrevista con Andrea:
 - CRM / historial de clientes (Phase 4)
 - Reportes avanzados / analytics (Phase 4)
 - Multi-sede / punto de venta como sede separada (futuro)
+- Automatizacion de verificacion de pagos via Bancolombia SMS (futuro)
 
 Estos se coordinan manualmente por ahora (WhatsApp), como se hace hoy.
