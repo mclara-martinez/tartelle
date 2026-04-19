@@ -1,4 +1,4 @@
-import type { OrderChannel, OrderStatus, ProductSize, PaymentStatus, PaymentMethod, PaymentBank, CardType } from './types'
+import type { OrderChannel, OrderStatus, ProductSize, ProductCategory, PaymentStatus, PaymentMethod, PaymentBank, CardType } from './types'
 
 export const DELIVERY_FEE = 8000
 
@@ -34,6 +34,20 @@ export const SIZE_LABELS: Record<ProductSize, string> = {
   grande: 'Grande',
   mediana: 'Mediana',
   mini: 'Mini',
+  porcion: 'Porción',
+  other: 'Otro',
+}
+
+export const CATEGORY_LABELS: Record<ProductCategory, string> = {
+  tarta: 'Tarta',
+  bites: 'Bites',
+  cucheareable: 'Cucheareable',
+  vela: 'Vela',
+  torta: 'Torta',
+  galleta: 'Galleta',
+  brownie: 'Brownie',
+  pan: 'Pan',
+  otro: 'Otro',
 }
 
 export const ORDER_STATUS_FLOW: OrderStatus[] = [

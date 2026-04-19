@@ -2,7 +2,9 @@ export type CustomerType = 'b2c' | 'b2b' | 'pos'
 export type OrderChannel = 'whatsapp' | 'rappi' | 'instagram' | 'walk_in' | 'b2b'
 export type OrderStatus = 'pending' | 'confirmed' | 'in_production' | 'ready' | 'dispatched' | 'delivered' | 'cancelled'
 export type DeliveryType = 'pickup' | 'delivery'
-export type ProductSize = 'grande' | 'mediana' | 'mini'
+export type ProductSize = 'grande' | 'mediana' | 'mini' | 'porcion' | 'other'
+export type ProductCategory = 'tarta' | 'bites' | 'cucheareable' | 'vela' | 'torta' | 'galleta' | 'brownie' | 'pan' | 'otro'
+export type TaxType = 'impoconsumo_8' | 'iva_19' | 'iva_0' | null
 export type InventoryReason = 'production' | 'sale' | 'adjustment' | 'waste'
 export type PlanStatus = 'draft' | 'sent' | 'in_progress' | 'done'
 export type PaymentStatus = 'pending' | 'paid' | 'credit'
@@ -14,6 +16,8 @@ export interface Customer {
   id: string
   name: string
   cedula: string | null
+  razon_social: string | null
+  nit: string | null
   email: string | null
   phone: string | null
   address: string | null
@@ -26,10 +30,13 @@ export interface Customer {
 
 export interface Product {
   id: string
+  sku: string | null
   name: string
   flavor: string
   size: ProductSize
+  category: ProductCategory | null
   base_price: number
+  tax_type: TaxType
   requires_advance_order: boolean
   active: boolean
   created_at: string

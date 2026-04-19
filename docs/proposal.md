@@ -28,7 +28,7 @@ Antes de construir nada, exploramos juntos tu operación para entender exactamen
 
 **Duración:** 1 a 2 semanas
 **Costo:** Sin costo — es nuestra inversión para entender tu negocio a fondo
-**Entregable:** Diagnóstico detallado + mapa de soluciones priorizado contigo
+**Entregable:** Diagnóstico + mapa de soluciones priorizado contigo
 
 ---
 
@@ -37,10 +37,10 @@ Antes de construir nada, exploramos juntos tu operación para entender exactamen
 Cada dolor tiene posibles soluciones. Tú decides cuáles atacamos primero:
 
 **Dolor:** Sobreventa (se vende lo mismo 2 veces)
-**Soluciones:** Inventario centralizado en tiempo real, alertas de stock bajo, bloqueo automático cuando stock llega a 0
+**Soluciones:** Inventario centralizado en tiempo real, alertas de stock bajo, bloqueo cuando stock llega a 0
 
 **Dolor:** Inventario sin visibilidad en tiempo real
-**Soluciones:** Dashboard de inventario en tiempo real, ajustes con registro de auditoría, consultar integración con Siigo
+**Soluciones:** Dashboard de inventario  de materias primas en tiempo real, ajustes con registro de auditoría, consultar integración con Siigo
 
 **Dolor:** Operación manual (Excel + WhatsApp + Siigo)
 **Soluciones:** app tipo POS digital con grilla de productos y carrito, dashboard de cocina en tablet (diseñado para manos con harina), planeación de producción automática, explorar automatización con Siigo
@@ -75,7 +75,7 @@ Cada dolor tiene posibles soluciones. Tú decides cuáles atacamos primero:
 6. **Planeacion de produccion** — lista de produccion diaria generada desde pedidos confirmados
 7. **Vista de domiciliario** — link para el celular del domiciliario con lista de entregas, botones de recogido/entregado, foto de factura firmada
 8. **Seguimiento de pagos** — registro de metodo de pago, banco, comprobante adjunto por pedido
-9. **Tablero Kanban de pedidos** — estados visuales desde pendiente hasta entregado, tiempo real
+9. **Tablero de pedidos** — estados visuales desde pendiente hasta entregado, tiempo real
 
 ---
 

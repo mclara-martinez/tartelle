@@ -4,7 +4,7 @@ import { Toast } from '../components/Toast'
 import { PhotoUpload } from '../components/PhotoUpload'
 import { today, formatDate } from '../lib/utils'
 import { PAYMENT_STATUS_LABELS, PAYMENT_STATUS_COLORS } from '../lib/constants'
-import { MapPin, Phone, Package, CheckCircle, Truck, CreditCard, Camera } from 'lucide-react'
+import { MapPin, Phone, Package, CheckCircle, Truck, CreditCard } from 'lucide-react'
 import type { Order } from '../lib/types'
 
 export function DomiciliarioView() {
