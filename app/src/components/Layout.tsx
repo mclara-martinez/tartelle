@@ -1,10 +1,12 @@
 import { useState } from 'react'
 import { ShoppingBag, LayoutDashboard, ChefHat, Package, ClipboardList, Menu, X, LogOut } from 'lucide-react'
 import type { View } from '../App'
+import { useAuth } from '../context/AuthContext'
 
 interface Props {
   current: View
   onNavigate: (v: View) => void
+  onSignOut: () => void
   children: React.ReactNode
 }
 
@@ -16,11 +18,14 @@ const NAV = [
   { id: 'kitchen' as View, label: 'Cocina', icon: ChefHat },
 ]
 
-function SidebarContent({ current, onNavigate, onItemClick }: {
+function SidebarContent({ current, onNavigate, onSignOut, onItemClick }: {
   current: View
   onNavigate: (v: View) => void
+  onSignOut: () => void
   onItemClick?: () => void
 }) {
+  const { user } = useAuth()
+
   return (
     <div className="flex flex-col h-full">
       {/* Logo — large icon + bold name, generous top padding */}
@@ -31,10 +36,10 @@ function SidebarContent({ current, onNavigate, onItemClick }: {
         <span className="text-[var(--color-text-primary)] font-bold text-lg">Tartelle</span>
       </div>
 
-      {/* User info — with border separator like RestoFlow */}
+      {/* User info — with border separator */}
       <div className="px-5 pb-4 mb-2 border-b border-[var(--color-border-light)]">
-        <p className="text-sm font-medium text-[var(--color-text-primary)]">Operaciones</p>
-        <p className="text-xs text-[var(--color-text-muted)] mt-0.5">Administrador</p>
+        <p className="text-sm font-medium text-[var(--color-text-primary)]">Administrador</p>
+        <p className="text-xs text-[var(--color-text-muted)] mt-0.5 truncate">{user?.email}</p>
       </div>
 
       {/* Nav — generous spacing between items like RestoFlow */}
@@ -65,7 +70,10 @@ function SidebarContent({ current, onNavigate, onItemClick }: {
 
       {/* Footer */}
       <div className="px-3 py-4 border-t border-[var(--color-border-light)]">
-        <button className="w-full flex items-center gap-3.5 px-4 py-3 rounded-lg text-sm font-medium text-[var(--color-text-muted)] hover:bg-[var(--color-bg-hover)] hover:text-[var(--color-text-primary)] transition-colors duration-200 text-left">
+        <button
+          onClick={onSignOut}
+          className="w-full flex items-center gap-3.5 px-4 py-3 rounded-lg text-sm font-medium text-[var(--color-text-muted)] hover:bg-[var(--color-bg-hover)] hover:text-[var(--color-text-primary)] transition-colors duration-200 text-left"
+        >
           <LogOut className="h-5 w-5" strokeWidth={1.75} />
           Cerrar sesion
         </button>
@@ -74,7 +82,7 @@ function SidebarContent({ current, onNavigate, onItemClick }: {
   )
 }
 
-export function Layout({ current, onNavigate, children }: Props) {
+export function Layout({ current, onNavigate, onSignOut, children }: Props) {
   const [sidebarOpen, setSidebarOpen] = useState(false)
 
   return (
@@ -85,7 +93,7 @@ export function Layout({ current, onNavigate, children }: Props) {
 
       {/* Desktop sidebar — w-60 = 240px */}
       <aside className="hidden lg:flex fixed inset-y-0 left-0 z-40 w-60 bg-white border-r border-[var(--color-border)] flex-col">
-        <SidebarContent current={current} onNavigate={onNavigate} />
+        <SidebarContent current={current} onNavigate={onNavigate} onSignOut={onSignOut} />
       </aside>
 
       {/* Mobile header */}
@@ -110,7 +118,7 @@ export function Layout({ current, onNavigate, children }: Props) {
         <>
           <div className="lg:hidden fixed inset-0 z-40 bg-black/40 backdrop-enter" onClick={() => setSidebarOpen(false)} />
           <aside className="lg:hidden fixed inset-y-0 left-0 z-50 w-60 bg-white shadow-xl flex flex-col">
-            <SidebarContent current={current} onNavigate={onNavigate} onItemClick={() => setSidebarOpen(false)} />
+            <SidebarContent current={current} onNavigate={onNavigate} onSignOut={onSignOut} onItemClick={() => setSidebarOpen(false)} />
           </aside>
         </>
       )}

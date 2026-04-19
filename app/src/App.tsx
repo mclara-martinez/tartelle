@@ -1,5 +1,7 @@
 import { useState, useEffect, useCallback } from 'react'
+import { AuthProvider, useAuth } from './context/AuthContext'
 import { Layout } from './components/Layout'
+import { LoginView } from './views/LoginView'
 import { DashboardView } from './views/DashboardView'
 import { OrdersView } from './views/OrdersView'
 import { KitchenView } from './views/KitchenView'
@@ -17,7 +19,8 @@ function viewFromHash(): View {
   return VALID_VIEWS.includes(hash as View) ? (hash as View) : 'dashboard'
 }
 
-export default function App() {
+function AppContent() {
+  const { user, role, loading, signOut } = useAuth()
   const [view, setView] = useState<View>(viewFromHash)
   const [selectedOrderId, setSelectedOrderId] = useState<string | null>(null)
 
@@ -33,40 +36,65 @@ export default function App() {
     return () => window.removeEventListener('hashchange', onHashChange)
   }, [])
 
-  // Domiciliario = standalone, no Layout, no auth
-  if (view === 'domiciliario') {
+  if (loading) {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-[var(--color-bg)]">
+        <div className="w-8 h-8 rounded-full border-2 border-[var(--color-accent)] border-t-transparent animate-spin" />
+      </div>
+    )
+  }
+
+  if (!user) {
+    return <LoginView />
+  }
+
+  // Kitchen role: tablet-only view
+  if (role === 'kitchen') {
+    return <KitchenView onBack={() => {}} />
+  }
+
+  // Driver role: delivery view only
+  if (role === 'driver') {
     return <DomiciliarioView />
   }
 
-  // Kitchen = full-screen, no Layout wrapper
-  if (view === 'kitchen') {
+  // Admin role: full app with hash routing
+  // Guard: if admin navigates to domiciliario hash, redirect to dashboard
+  const safeView = view === 'domiciliario' ? 'dashboard' : view
+
+  if (safeView === 'kitchen') {
     return <KitchenView onBack={() => navigate('dashboard')} />
   }
 
-  // Order create = full-screen POS mode
-  if (view === 'create') {
+  if (safeView === 'create') {
     return <OrderCreateView onClose={() => navigate('orders')} />
   }
 
-  const sidebarView = view
-
   return (
-    <Layout current={sidebarView} onNavigate={navigate}>
-      {view === 'dashboard' && (
+    <Layout current={safeView} onNavigate={navigate} onSignOut={signOut}>
+      {safeView === 'dashboard' && (
         <DashboardView
           onNavigate={navigate}
           onSelectOrder={(id) => { navigate('orders'); setSelectedOrderId(id) }}
         />
       )}
-      {view === 'orders' && (
+      {safeView === 'orders' && (
         <OrdersView
           onNavigate={navigate}
           selectedOrderId={selectedOrderId}
           onSelectOrder={setSelectedOrderId}
         />
       )}
-      {view === 'inventory' && <InventoryView />}
-      {view === 'production' && <ProductionView />}
+      {safeView === 'inventory' && <InventoryView />}
+      {safeView === 'production' && <ProductionView />}
     </Layout>
+  )
+}
+
+export default function App() {
+  return (
+    <AuthProvider>
+      <AppContent />
+    </AuthProvider>
   )
 }
