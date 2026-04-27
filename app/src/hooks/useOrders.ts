@@ -3,7 +3,7 @@ import { supabase } from '../lib/supabase'
 import type { Order } from '../lib/types'
 import { today } from '../lib/utils'
 
-export function useOrders(date?: string) {
+export function useOrders(startDate?: string, endDate?: string) {
   const [orders, setOrders] = useState<Order[]>([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
@@ -12,7 +12,8 @@ export function useOrders(date?: string) {
   const fetchOrders = useCallback(async () => {
     setLoading(true)
     setError(null)
-    const targetDate = date ?? today()
+    const start = startDate ?? today()
+    const end = endDate ?? start
     const { data, error: err } = await supabase
       .from('orders')
       .select(`
@@ -23,7 +24,8 @@ export function useOrders(date?: string) {
         ),
         customer:customers (*)
       `)
-      .eq('delivery_date', targetDate)
+      .gte('delivery_date', start)
+      .lte('delivery_date', end)
       .neq('status', 'cancelled')
       .order('created_at', { ascending: true })
 
@@ -33,13 +35,13 @@ export function useOrders(date?: string) {
       setOrders(data ?? [])
     }
     setLoading(false)
-  }, [date])
+  }, [startDate, endDate])
 
   useEffect(() => {
     fetchOrders()
 
     const channel = supabase
-      .channel(`orders-changes-${date ?? 'today'}`)
+      .channel(`orders-changes-${startDate ?? 'today'}-${endDate ?? ''}`)
       .on('postgres_changes', { event: '*', schema: 'public', table: 'orders' }, () => {
         if (debounceRef.current) clearTimeout(debounceRef.current)
         debounceRef.current = setTimeout(() => fetchOrders(), 400)

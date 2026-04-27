@@ -5,7 +5,7 @@ import { useProducts } from '../../hooks/useProducts'
 import { Toast } from '../../components/Toast'
 import { today } from '../../lib/utils'
 import { SIZE_LABELS } from '../../lib/constants'
-import { CheckCircle, AlertTriangle, TrendingUp, Plus, X } from 'lucide-react'
+import { CheckCircle, TrendingUp, Plus, X } from 'lucide-react'
 import type { Product, ProductSize } from '../../lib/types'
 
 export function KitchenProductionMode() {
@@ -39,6 +39,23 @@ export function KitchenProductionMode() {
     return map
   }, [inventory])
 
+  const toProduceByFlavor = useMemo(() => {
+    const g: Record<string, Array<{ productId: string; flavor: string; size: ProductSize; needed: number; stock: number; deficit: number }>> = {}
+    for (const item of productNeeds) {
+      const stock = inventoryMap[item.productId] ?? 0
+      const deficit = Math.max(0, item.needed - stock)
+      if (deficit === 0) continue
+      g[item.flavor] = g[item.flavor] ?? []
+      g[item.flavor].push({ ...item, stock, deficit })
+    }
+    return g
+  }, [productNeeds, inventoryMap])
+
+  const toProduceCount = useMemo(
+    () => Object.values(toProduceByFlavor).reduce((s, items) => s + items.length, 0),
+    [toProduceByFlavor]
+  )
+
   async function handleProduce(productId: string, qty: number) {
     if (qty <= 0) return
     setProducing(productId)
@@ -56,7 +73,7 @@ export function KitchenProductionMode() {
     <div className="p-4 space-y-4">
       {/* Header with add button */}
       <div className="flex items-center justify-between">
-        <p className="text-gray-400 text-sm">{productNeeds.length} producto{productNeeds.length !== 1 ? 's' : ''} por producir</p>
+        <p className="text-gray-400 text-sm">{toProduceCount} producto{toProduceCount !== 1 ? 's' : ''} por producir</p>
         <button
           onClick={() => setShowAddForm(true)}
           className="flex items-center gap-2 px-4 py-2.5 bg-[#7C3AED] text-white rounded-lg text-sm font-medium hover:bg-[#6D28D9] transition-colors min-h-[44px]"
@@ -79,70 +96,41 @@ export function KitchenProductionMode() {
       )}
 
       {/* Totalized production list */}
-      {productNeeds.length === 0 ? (
+      {toProduceCount === 0 ? (
         <div className="flex flex-col items-center justify-center py-20 text-center">
           <CheckCircle size={64} className="text-green-500 mb-4" />
           <p className="text-white text-2xl font-bold">Sin produccion pendiente</p>
-          <p className="text-gray-400 text-lg mt-1">No hay pedidos que requieran produccion hoy</p>
+          <p className="text-gray-400 text-lg mt-1">Todo el stock esta cubierto</p>
         </div>
       ) : (
         <div className="space-y-3">
-          {productNeeds.map(item => {
-            const stock = inventoryMap[item.productId] ?? 0
-            const deficit = Math.max(0, item.needed - stock)
-            const isCovered = deficit === 0
-
-            return (
-              <div
-                key={item.productId}
-                className={`bg-[#1F2937] rounded-xl p-5 border-l-4 ${isCovered ? 'border-green-500' : 'border-yellow-500'}`}
-              >
-                <div className="flex items-center justify-between">
-                  <div>
-                    <p className="text-white text-xl font-bold capitalize">{item.flavor}</p>
-                    <p className="text-gray-400 text-base">{SIZE_LABELS[item.size]}</p>
-                  </div>
-                  <div className="text-right">
-                    <p className="text-white text-3xl font-bold tabular-nums">{item.needed}</p>
-                    <p className="text-gray-400 text-sm">necesarias</p>
-                  </div>
-                </div>
-
-                <div className="flex items-center justify-between mt-4 pt-4 border-t border-[#374151]">
-                  <div className="flex items-center gap-4">
-                    <div className="text-center">
-                      <p className="text-gray-400 text-xs">Stock</p>
-                      <p className="text-white text-lg font-semibold tabular-nums">{stock}</p>
-                    </div>
-                    <div className="text-center">
-                      <p className="text-gray-400 text-xs">Deficit</p>
-                      <p className={`text-lg font-semibold tabular-nums flex items-center gap-1 ${isCovered ? 'text-green-400' : 'text-yellow-400'}`}>
-                        {isCovered ? <CheckCircle size={14} /> : <AlertTriangle size={14} />}
-                        {deficit}
+          {Object.entries(toProduceByFlavor).map(([flavor, items]) => (
+            <div key={flavor} className="bg-[#1F2937] rounded-xl overflow-hidden border border-[#374151]">
+              <div className="px-5 pt-4 pb-3 border-b border-[#374151]">
+                <p className="text-white text-xl font-bold capitalize">{flavor}</p>
+              </div>
+              <div className="divide-y divide-[#374151]">
+                {items.map(item => (
+                  <div key={item.productId} className="flex items-center justify-between gap-4 px-5 py-4">
+                    <div className="flex-1 min-w-0">
+                      <p className="text-gray-300 text-base font-medium">{SIZE_LABELS[item.size]}</p>
+                      <p className="text-gray-400 text-sm mt-0.5">
+                        {item.needed} necesarias · {item.stock} en stock
                       </p>
                     </div>
-                  </div>
-
-                  {deficit > 0 && (
                     <button
-                      onClick={() => handleProduce(item.productId, deficit)}
+                      onClick={() => handleProduce(item.productId, item.deficit)}
                       disabled={producing === item.productId}
-                      className="flex items-center gap-2 px-5 py-3 bg-green-600 text-white rounded-xl text-base font-bold hover:bg-green-700 disabled:opacity-50 transition-colors min-h-[48px]"
+                      className="flex items-center gap-2 px-5 py-3 bg-green-600 text-white rounded-xl text-base font-bold hover:bg-green-700 disabled:opacity-50 transition-colors min-h-[48px] flex-shrink-0"
                     >
                       <TrendingUp size={18} />
-                      +{deficit} Producido
+                      +{item.deficit}
                     </button>
-                  )}
-
-                  {isCovered && (
-                    <span className="text-green-400 text-base font-semibold flex items-center gap-2">
-                      <CheckCircle size={18} /> Cubierto
-                    </span>
-                  )}
-                </div>
+                  </div>
+                ))}
               </div>
-            )
-          })}
+            </div>
+          ))}
         </div>
       )}
 

@@ -4,7 +4,7 @@ import { useInventory, adjustInventory } from '../hooks/useInventory'
 import { Toast } from '../components/Toast'
 import { formatDate, today, tomorrow } from '../lib/utils'
 import { SIZE_LABELS } from '../lib/constants'
-import { AlertTriangle, CheckCircle, TrendingUp, ClipboardList as PageIcon } from 'lucide-react'
+import { CheckCircle, TrendingUp, ClipboardList as PageIcon } from 'lucide-react'
 import type { ProductSize } from '../lib/types'
 
 type DateFilter = 'today' | 'tomorrow'
@@ -39,6 +39,15 @@ export function ProductionView() {
     for (const item of inventory) map[item.product_id] = item.quantity
     return map
   }, [inventory])
+
+  const productNeedsByFlavor = useMemo(() => {
+    const g: Record<string, typeof productNeeds> = {}
+    for (const item of productNeeds) {
+      g[item.flavor] = g[item.flavor] ?? []
+      g[item.flavor].push(item)
+    }
+    return g
+  }, [productNeeds])
 
   async function handleProduce(productId: string, qty: number) {
     if (qty <= 0) return
@@ -93,60 +102,63 @@ export function ProductionView() {
           <p className="text-sm text-[var(--color-text-muted)]">Sin pedidos que requieran produccion</p>
         </div>
       ) : (
-        <section className="bg-white rounded-lg border border-[var(--color-border)] overflow-hidden">
-          <div className="grid grid-cols-[1fr_70px_70px_70px_110px] px-4 py-2.5 border-b border-[var(--color-border)] text-left font-medium text-[var(--color-text-muted)]">
-            <span className="text-sm">Producto</span>
-            <span className="text-sm text-center">Pedidos</span>
-            <span className="text-sm text-center">Stock</span>
-            <span className="text-sm text-center">Deficit</span>
-            <span className="text-sm text-center">Accion</span>
-          </div>
-
-          {productNeeds.map((item, i) => {
-            const stock = inventoryMap[item.productId] ?? 0
-            const deficit = Math.max(0, item.needed - stock)
-            const isCovered = deficit === 0
-
-            return (
-              <div key={item.productId} className={`grid grid-cols-[1fr_70px_70px_70px_110px] px-4 py-2.5 items-center hover:bg-[var(--color-bg-hover)] transition-colors duration-200 ${
-                i > 0 ? 'border-t border-[var(--color-border-light)]' : ''
-              }`}>
-                <div>
-                  <p className="text-sm font-medium capitalize">{item.flavor}</p>
-                  <p className="text-xs text-[var(--color-text-muted)]">{SIZE_LABELS[item.size]}</p>
-                </div>
-                <span className="text-sm font-semibold text-center tabular-nums">{item.needed}</span>
-                <span className="text-sm text-center tabular-nums">{stock}</span>
-                <span className={`text-sm font-semibold text-center flex items-center justify-center gap-1 ${
-                  isCovered ? 'text-[var(--color-success-text)]' : 'text-[var(--color-warning-text)]'
-                }`}>
-                  {isCovered ? <><CheckCircle className="h-3 w-3" /> 0</> : <><AlertTriangle className="h-3 w-3" /> {deficit}</>}
-                </span>
-                <div className="flex justify-center">
-                  {deficit > 0 ? (
-                    <button
-                      onClick={() => handleProduce(item.productId, deficit)}
-                      disabled={producing === item.productId}
-                      className="flex items-center gap-1 text-xs font-medium text-white bg-[var(--color-accent)] px-3 py-1.5 rounded-lg hover:bg-[var(--color-accent-hover)] disabled:opacity-50 disabled:cursor-not-allowed transition-colors duration-200"
-                    >
-                      <TrendingUp className="h-3 w-3" />
-                      +{deficit}
-                    </button>
-                  ) : (
-                    <span className="text-xs text-[var(--color-success-text)] font-medium">Cubierto</span>
-                  )}
-                </div>
+        <div className="space-y-3">
+          {Object.entries(productNeedsByFlavor).map(([flavor, items]) => (
+            <section key={flavor} className="bg-white rounded-lg border border-[var(--color-border)] overflow-hidden">
+              <div className="px-4 py-2.5 border-b border-[var(--color-border)]">
+                <p className="text-sm font-bold capitalize text-[var(--color-text-primary)]">{flavor}</p>
               </div>
-            )
-          })}
+              <div className="divide-y divide-[var(--color-border-light)]">
+                {items.map(item => {
+                  const stock = inventoryMap[item.productId] ?? 0
+                  const deficit = Math.max(0, item.needed - stock)
+                  const isCovered = deficit === 0
+                  return (
+                    <div
+                      key={item.productId}
+                      className={`flex items-center justify-between gap-3 px-4 py-3 transition-colors duration-200 ${
+                        isCovered ? 'opacity-60' : 'hover:bg-[var(--color-bg-hover)]'
+                      }`}
+                    >
+                      <div className="min-w-0">
+                        <p className="text-sm font-medium text-[var(--color-text-secondary)]">
+                          {SIZE_LABELS[item.size]}
+                        </p>
+                        <p className="text-xs text-[var(--color-text-muted)] mt-0.5">
+                          {isCovered
+                            ? `${item.needed} pedidos · ${stock} en stock`
+                            : `Necesitas ${item.needed} · Tienes ${stock}`}
+                        </p>
+                      </div>
+                      {isCovered ? (
+                        <span className="flex items-center gap-1.5 text-xs font-medium text-[var(--color-success-text)] flex-shrink-0">
+                          <CheckCircle className="h-3.5 w-3.5" />
+                          Cubierto
+                        </span>
+                      ) : (
+                        <button
+                          onClick={() => handleProduce(item.productId, deficit)}
+                          disabled={producing === item.productId}
+                          className="flex items-center gap-1.5 text-xs font-medium text-white bg-[var(--color-accent)] px-3 py-1.5 rounded-lg hover:bg-[var(--color-accent-hover)] disabled:opacity-50 disabled:cursor-not-allowed transition-colors duration-200 flex-shrink-0"
+                        >
+                          <TrendingUp className="h-3 w-3" />
+                          +{deficit}
+                        </button>
+                      )}
+                    </div>
+                  )
+                })}
+              </div>
+            </section>
+          ))}
 
-          <div className="px-4 py-2.5 border-t border-[var(--color-border)] flex items-center justify-between text-sm text-[var(--color-text-muted)]">
-            <span>{productNeeds.length} producto{productNeeds.length !== 1 ? 's' : ''} requeridos</span>
+          <p className="text-sm text-[var(--color-text-muted)] px-1">
+            {productNeeds.length} producto{productNeeds.length !== 1 ? 's' : ''} requeridos
             {deficitCount > 0 && (
-              <span className="text-[var(--color-warning-text)] font-medium">{deficitCount} con deficit</span>
+              <span className="text-[var(--color-warning-text)] font-medium"> · {deficitCount} por producir</span>
             )}
-          </div>
-        </section>
+          </p>
+        </div>
       )}
 
       {toast && <Toast message={toast.msg} type={toast.type} onClose={() => setToast(null)} />}

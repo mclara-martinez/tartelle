@@ -1,5 +1,6 @@
 import { useState } from 'react'
 import { useOrders, updateOrderStatus, updateOrderFields } from '../../hooks/useOrders'
+import { adjustInventory } from '../../hooks/useInventory'
 import { Toast } from '../../components/Toast'
 import { PhotoUpload } from '../../components/PhotoUpload'
 import { today } from '../../lib/utils'
@@ -29,6 +30,19 @@ export function KitchenDispatchMode() {
     setUpdatingId(orderId)
     try {
       await updateOrderStatus(orderId, status)
+
+      // Decrement inventory when order leaves the building
+      if (status === 'dispatched') {
+        const order = orders.find(o => o.id === orderId)
+        if (order?.items) {
+          await Promise.all(
+            order.items.map(item =>
+              adjustInventory(item.product_id, -item.quantity, 'sale', orderId)
+            )
+          )
+        }
+      }
+
       setToast({ msg: STATUS_LABELS[status], type: 'success' })
       refetch()
     } catch {

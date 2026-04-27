@@ -5,12 +5,12 @@ import { OrderDrawer } from '../components/OrderDrawer'
 import { KanbanBoard } from '../components/KanbanBoard'
 import { Toast } from '../components/Toast'
 import { formatCOP, formatDate, today, tomorrow } from '../lib/utils'
-import { CHANNEL_LABELS, NEXT_STATUS_ACTION } from '../lib/constants'
-import type { OrderStatus } from '../lib/types'
+import { CHANNEL_LABELS, NEXT_STATUS_ACTION, STATUS_LABELS, PAYMENT_STATUS_LABELS } from '../lib/constants'
+import type { Order, OrderStatus } from '../lib/types'
 import type { View } from '../App'
-import { Plus, List, Columns3, Bike, Store, ChevronRight, Search, X, ShoppingBag as PageIcon } from 'lucide-react'
+import { Plus, List, Columns3, Bike, Store, ChevronRight, Search, X, ShoppingBag as PageIcon, Download, Calendar } from 'lucide-react'
 
-type DateFilter = 'today' | 'tomorrow'
+type DatePreset = 'today' | 'tomorrow' | 'range'
 type ViewMode = 'list' | 'kanban'
 
 interface Props {
@@ -19,18 +19,53 @@ interface Props {
   onSelectOrder: (id: string | null) => void
 }
 
+function exportCSV(orders: Order[], label: string) {
+  const headers = ['Fecha entrega', 'Cliente', 'Telefono', 'Canal', 'Entrega', 'Productos', 'Subtotal', 'Domicilio', 'Descuento', 'Total', 'Estado', 'Pago', 'Metodo pago']
+  const rows = orders.map(o => [
+    o.delivery_date,
+    o.customer_name ?? '',
+    o.customer_phone ?? '',
+    CHANNEL_LABELS[o.channel],
+    o.delivery_type === 'delivery' ? 'Domicilio' : 'Local',
+    o.items?.map(i => `${i.quantity}x ${i.product?.flavor} ${i.product?.size}`).join(' | ') ?? '',
+    o.subtotal,
+    o.delivery_fee,
+    o.discount,
+    o.total,
+    STATUS_LABELS[o.status],
+    PAYMENT_STATUS_LABELS[o.payment_status],
+    o.payment_method ?? '',
+  ])
+  const csv = [headers, ...rows]
+    .map(r => r.map(v => `"${String(v).replace(/"/g, '""')}"`).join(','))
+    .join('\n')
+  const blob = new Blob(['\uFEFF' + csv], { type: 'text/csv;charset=utf-8;' })
+  const url = URL.createObjectURL(blob)
+  const a = document.createElement('a')
+  a.href = url
+  a.download = `pedidos_${label}.csv`
+  a.click()
+  URL.revokeObjectURL(url)
+}
+
 export function OrdersView({ onNavigate, selectedOrderId, onSelectOrder }: Props) {
-  const [dateFilter, setDateFilter] = useState<DateFilter>('today')
+  const [preset, setPreset] = useState<DatePreset>('today')
+  const [rangeStart, setRangeStart] = useState(today())
+  const [rangeEnd, setRangeEnd] = useState(today())
   const [viewMode, setViewMode] = useState<ViewMode>('list')
   const [searchQuery, setSearchQuery] = useState('')
   const [toast, setToast] = useState<{ msg: string; type: 'success' | 'error' } | null>(null)
 
-  const targetDate = dateFilter === 'today' ? today() : tomorrow()
-  const { orders, loading, error, refetch } = useOrders(targetDate)
+  const startDate = preset === 'today' ? today() : preset === 'tomorrow' ? tomorrow() : rangeStart
+  const endDate = preset === 'today' ? today() : preset === 'tomorrow' ? tomorrow() : rangeEnd
+
+  const { orders, loading, error, refetch } = useOrders(startDate, endDate)
 
   const filteredOrders = searchQuery.trim()
     ? orders.filter(o => o.customer_name?.toLowerCase().includes(searchQuery.toLowerCase()))
     : orders
+
+  const csvLabel = preset === 'range' ? `${rangeStart}_${rangeEnd}` : preset === 'today' ? today() : tomorrow()
 
   async function handleStatusChange(orderId: string, status: OrderStatus) {
     try {
@@ -50,36 +85,73 @@ export function OrdersView({ onNavigate, selectedOrderId, onSelectOrder }: Props
           <PageIcon className="h-6 w-6 text-[var(--color-text-secondary)]" strokeWidth={1.5} />
           <div>
             <h1 className="text-xl font-bold">Pedidos</h1>
-            <p className="text-sm text-[var(--color-text-muted)]">{formatDate(targetDate)}</p>
+            <p className="text-sm text-[var(--color-text-muted)]">
+              {preset === 'range'
+                ? `${formatDate(rangeStart)} — ${formatDate(rangeEnd)}`
+                : formatDate(startDate)}
+            </p>
           </div>
         </div>
-        {/* RestoFlow primary button: bg-accent text-white rounded-lg px-4 py-2.5 */}
-        <button
-          onClick={() => onNavigate('create')}
-          className="flex items-center gap-1.5 bg-[var(--color-accent)] text-white px-4 py-2.5 rounded-lg text-sm font-medium hover:bg-[var(--color-accent-hover)] transition-colors duration-200 disabled:opacity-50"
-        >
-          <Plus className="h-4 w-4" />
-          Nuevo pedido
-        </button>
+        <div className="flex items-center gap-2">
+          <button
+            onClick={() => exportCSV(filteredOrders, csvLabel)}
+            disabled={filteredOrders.length === 0}
+            className="flex items-center gap-1.5 border border-[var(--color-border)] bg-white text-[var(--color-text-secondary)] px-3 py-2 rounded-lg text-sm font-medium hover:bg-[var(--color-surface-warm)] transition-colors duration-200 disabled:opacity-40"
+            title="Exportar CSV"
+          >
+            <Download className="h-4 w-4" />
+            CSV
+          </button>
+          <button
+            onClick={() => onNavigate('create')}
+            className="flex items-center gap-1.5 bg-[var(--color-accent)] text-white px-4 py-2.5 rounded-lg text-sm font-medium hover:bg-[var(--color-accent-hover)] transition-colors duration-200"
+          >
+            <Plus className="h-4 w-4" />
+            Nuevo pedido
+          </button>
+        </div>
       </div>
 
       {/* Toolbar */}
       <div className="flex items-center gap-2.5 flex-wrap">
+        {/* Date preset tabs */}
         <div className="flex bg-[var(--color-surface-warm)] p-0.5 rounded-lg">
-          {(['today', 'tomorrow'] as DateFilter[]).map(d => (
+          {(['today', 'tomorrow', 'range'] as DatePreset[]).map(p => (
             <button
-              key={d}
-              onClick={() => setDateFilter(d)}
-              className={`px-3 py-1.5 rounded-md text-sm font-medium transition-colors duration-200 ${
-                dateFilter === d
+              key={p}
+              onClick={() => setPreset(p)}
+              className={`px-3 py-1.5 rounded-md text-sm font-medium transition-colors duration-200 flex items-center gap-1.5 ${
+                preset === p
                   ? 'bg-white text-[var(--color-text-primary)] shadow-sm'
                   : 'text-[var(--color-text-secondary)] hover:text-[var(--color-text-primary)]'
               }`}
             >
-              {d === 'today' ? 'Hoy' : 'Manana'}
+              {p === 'range' && <Calendar className="h-3.5 w-3.5" />}
+              {p === 'today' ? 'Hoy' : p === 'tomorrow' ? 'Manana' : 'Rango'}
             </button>
           ))}
         </div>
+
+        {/* Date range inputs — only when range preset is active */}
+        {preset === 'range' && (
+          <div className="flex items-center gap-2 bg-white border border-[var(--color-border)] rounded-lg px-3 py-1.5">
+            <input
+              type="date"
+              value={rangeStart}
+              max={rangeEnd}
+              onChange={e => setRangeStart(e.target.value)}
+              className="text-sm text-[var(--color-text-primary)] bg-transparent outline-none"
+            />
+            <span className="text-[var(--color-text-muted)] text-sm">—</span>
+            <input
+              type="date"
+              value={rangeEnd}
+              min={rangeStart}
+              onChange={e => setRangeEnd(e.target.value)}
+              className="text-sm text-[var(--color-text-primary)] bg-transparent outline-none"
+            />
+          </div>
+        )}
 
         <div className="flex bg-[var(--color-surface-warm)] p-0.5 rounded-lg">
           <button
@@ -98,7 +170,6 @@ export function OrdersView({ onNavigate, selectedOrderId, onSelectOrder }: Props
           </button>
         </div>
 
-        {/* RestoFlow input: px-3 py-2.5 border rounded-lg, focus ring-2 ring-accent/15 */}
         <div className="relative flex-1 max-w-[240px]">
           <Search className="h-3.5 w-3.5 absolute left-3 top-1/2 -translate-y-1/2 text-[var(--color-text-muted)]" />
           <input
@@ -131,14 +202,14 @@ export function OrdersView({ onNavigate, selectedOrderId, onSelectOrder }: Props
       ) : filteredOrders.length === 0 ? (
         <div className="bg-white rounded-lg border border-[var(--color-border)] py-12 text-center">
           <p className="text-[var(--color-text-muted)] text-sm">
-            {searchQuery ? 'Sin resultados' : `Sin pedidos para ${dateFilter === 'today' ? 'hoy' : 'manana'}`}
+            {searchQuery ? 'Sin resultados' : 'Sin pedidos para este periodo'}
           </p>
         </div>
       ) : viewMode === 'kanban' ? (
         <KanbanBoard orders={filteredOrders} onSelectOrder={(id) => onSelectOrder(id)} onStatusChange={handleStatusChange} />
       ) : (
         <>
-          {/* Desktop table — RestoFlow: header px-4 py-2.5 font-medium, rows px-4 py-2.5, border-b */}
+          {/* Desktop table */}
           <div className="hidden md:block bg-white rounded-lg border border-[var(--color-border)] overflow-hidden">
             <div className="grid grid-cols-[1fr_90px_80px_90px_120px_50px] px-4 py-2.5 border-b border-[var(--color-border)] text-left font-medium text-[var(--color-text-muted)]">
               <span className="text-sm">Cliente</span>

@@ -2,12 +2,10 @@
   "version": "0.0.1",
   "configurations": [
     {
-      "name": "tartelle-dev",
-      "runtimeExecutable": "/bin/bash",
-      "runtimeArgs": ["-c", "export PATH=/Users/mclaramartinez/.nvm/versions/node/v20.20.0/bin:$PATH && npm run dev"],
-      "cwd": "app",
-      "port": 5173,
-      "autoPort": true
+      "name": "tartelle",
+      "runtimeExecutable": "npm",
+      "runtimeArgs": ["run", "dev", "--prefix", "app"],
+      "port": 5173
     }
   ]
 }
