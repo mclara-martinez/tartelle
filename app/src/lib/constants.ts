@@ -39,16 +39,21 @@ export const SIZE_LABELS: Record<ProductSize, string> = {
 }
 
 export const CATEGORY_LABELS: Record<ProductCategory, string> = {
-  tarta: 'Tarta',
+  tarta: 'Tartas',
   bites: 'Bites',
-  cucheareable: 'Cucheareable',
-  vela: 'Vela',
-  torta: 'Torta',
-  galleta: 'Galleta',
-  brownie: 'Brownie',
+  cucheareable: 'Cuchareables',
+  vela: 'Complementos',
+  torta: 'Torta en Capacillo',
+  galleta: 'Galletas',
+  brownie: 'Brownies',
   pan: 'Pan',
-  otro: 'Otro',
+  otro: 'Otros',
+  complemento: 'Complementos',
 }
+
+export const PRODUCT_CATEGORY_ORDER: ProductCategory[] = [
+  'tarta', 'bites', 'torta', 'cucheareable', 'galleta', 'complemento', 'otro', 'brownie',
+]
 
 export const ORDER_STATUS_FLOW: OrderStatus[] = [
   'pending', 'confirmed', 'in_production', 'ready', 'dispatched', 'delivered',

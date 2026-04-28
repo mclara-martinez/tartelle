@@ -4,9 +4,9 @@ import { useCustomerSearch, useRecentCustomers, createCustomer } from '../hooks/
 import { createOrder } from '../hooks/useOrders'
 import { Toast } from '../components/Toast'
 import { formatCOP, today, tomorrow } from '../lib/utils'
-import { DELIVERY_FEE, CHANNEL_LABELS, SIZE_LABELS, PAYMENT_METHOD_LABELS, PAYMENT_BANK_LABELS, CARD_TYPE_LABELS } from '../lib/constants'
+import { DELIVERY_FEE, CHANNEL_LABELS, SIZE_LABELS, CATEGORY_LABELS, PRODUCT_CATEGORY_ORDER, PAYMENT_METHOD_LABELS, PAYMENT_BANK_LABELS, CARD_TYPE_LABELS } from '../lib/constants'
 import { PhotoUpload } from '../components/PhotoUpload'
-import type { Order, OrderChannel, DeliveryType, Product, PaymentMethod, PaymentBank, CardType } from '../lib/types'
+import type { Order, OrderChannel, DeliveryType, Product, ProductCategory, PaymentMethod, PaymentBank, CardType } from '../lib/types'
 import { X, Plus, Minus, Search, Bike, Store, ArrowLeft, ShoppingBag, User, Trash2, Package } from 'lucide-react'
 
 interface CartItem {
@@ -44,16 +44,43 @@ export function OrderCreateView({ onClose }: Props) {
   const [submitting, setSubmitting] = useState(false)
   const [toast, setToast] = useState<{ msg: string; type: 'success' | 'error' } | null>(null)
 
-  // Group retail+ambos products by flavor
-  const productsByFlavor = useMemo(() => {
-    const grouped: Record<string, Product[]> = {}
+  // Group retail+ambos products by category → size
+  const productsByCategory = useMemo(() => {
+    const grouped: Record<string, Record<string, Product[]>> = {}
     for (const p of products) {
       if (p.catalog === 'eventos') continue
-      grouped[p.flavor] = grouped[p.flavor] ?? []
-      grouped[p.flavor].push(p)
+      const cat = p.category ?? 'otro'
+      grouped[cat] ??= {}
+      grouped[cat][p.size] ??= []
+      grouped[cat][p.size].push(p)
     }
     return grouped
   }, [products])
+
+  const [selectedSizes, setSelectedSizes] = useState<Record<string, string>>({})
+
+  function getActiveSize(cat: string): string {
+    if (selectedSizes[cat]) return selectedSizes[cat]
+    const sizeGroups = productsByCategory[cat] ?? {}
+    for (const s of ['grande', 'mediana', 'mini', 'porcion'] as const) {
+      if (sizeGroups[s]?.length) return s
+    }
+    return 'other'
+  }
+
+  function productCardLabel(p: Product, hasNamedSizes: boolean, cat: string): string {
+    if (hasNamedSizes) return p.flavor
+    if (cat === 'complemento') return p.name.replace(/^VELA\s*/i, '').toLowerCase()
+    return p.flavor
+  }
+
+  function productSubLabel(p: Product, cat: string): string | null {
+    if (cat !== 'bites') return null
+    const n = p.name.toUpperCase()
+    if (n.includes('X4')) return 'x4'
+    if (n.includes('UNIDAD')) return 'unidad'
+    return null
+  }
 
   const subtotal = cart.reduce((sum, item) => sum + item.product.base_price * item.quantity, 0)
   const deliveryFee = deliveryType === 'delivery' ? DELIVERY_FEE : 0
@@ -158,39 +185,68 @@ export function OrderCreateView({ onClose }: Props) {
           {loadingProducts ? (
             <p className="text-sm text-[var(--color-text-secondary)]">Cargando productos...</p>
           ) : (
-            <div className="space-y-5">
-              {Object.entries(productsByFlavor).map(([flavor, prods]) => (
-                <div key={flavor}>
-                  <h3 className="text-sm font-semibold text-[var(--color-text-primary)] mb-2 capitalize">{flavor}</h3>
-                  <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-2">
-                    {prods.map(product => {
-                      const inCart = cart.find(i => i.product.id === product.id)
-                      return (
-                        <button
-                          key={product.id}
-                          onClick={() => addToCart(product)}
-                          className={`pos-product-card relative bg-white rounded-lg border p-3 text-left transition-all ${
-                            inCart
-                              ? 'border-[var(--color-accent)] ring-1 ring-[var(--color-accent)]/20'
-                              : 'border-[var(--color-border)] hover:border-[var(--color-text-muted)]'
-                          }`}
-                        >
-                          <p className="text-sm font-medium capitalize">{flavor}</p>
-                          <p className="text-xs text-[var(--color-text-muted)] truncate">
-                            {product.size === 'other' ? product.name.toLowerCase() : SIZE_LABELS[product.size]}
-                          </p>
-                          <p className="text-sm font-semibold mt-1">{formatCOP(product.base_price)}</p>
-                          {inCart && (
-                            <span className="absolute -top-1.5 -right-1.5 w-5 h-5 bg-[var(--color-accent)] text-white rounded-full text-[11px] font-bold flex items-center justify-center">
-                              {inCart.quantity}
-                            </span>
-                          )}
-                        </button>
-                      )
-                    })}
+            <div className="space-y-6">
+              {PRODUCT_CATEGORY_ORDER.filter(cat => productsByCategory[cat]).map(cat => {
+                const sizeGroups = productsByCategory[cat]
+                const namedSizes = (['grande', 'mediana', 'mini', 'porcion'] as const).filter(s => sizeGroups[s]?.length)
+                const hasNamedSizes = namedSizes.length > 0
+                const activeSize = getActiveSize(cat)
+                const displayProducts = sizeGroups[activeSize] ?? sizeGroups['other'] ?? []
+
+                return (
+                  <div key={cat}>
+                    <h3 className="text-xs font-bold text-[var(--color-text-muted)] uppercase tracking-wider mb-2">
+                      {CATEGORY_LABELS[cat as ProductCategory] ?? cat}
+                    </h3>
+
+                    {hasNamedSizes && (
+                      <div className="flex gap-1 mb-3">
+                        {namedSizes.map(size => (
+                          <button
+                            key={size}
+                            onClick={() => setSelectedSizes(prev => ({ ...prev, [cat]: size }))}
+                            className={`px-3 py-1.5 rounded-lg text-xs font-medium border transition-colors ${
+                              activeSize === size
+                                ? 'border-[var(--color-accent)] bg-[var(--color-accent-light)] text-[var(--color-accent)]'
+                                : 'border-[var(--color-border)] text-[var(--color-text-secondary)] hover:border-[var(--color-text-muted)]'
+                            }`}
+                          >
+                            {SIZE_LABELS[size]}
+                          </button>
+                        ))}
+                      </div>
+                    )}
+
+                    <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-2">
+                      {displayProducts.map(product => {
+                        const inCart = cart.find(i => i.product.id === product.id)
+                        const label = productCardLabel(product, hasNamedSizes, cat)
+                        const sub = productSubLabel(product, cat)
+                        return (
+                          <button
+                            key={product.id}
+                            onClick={() => addToCart(product)}
+                            className={`pos-product-card relative bg-white rounded-lg border p-3 text-left transition-all ${
+                              inCart
+                                ? 'border-[var(--color-accent)] ring-1 ring-[var(--color-accent)]/20'
+                                : 'border-[var(--color-border)] hover:border-[var(--color-text-muted)]'
+                            }`}
+                          >
+                            <p className="text-sm font-medium capitalize leading-tight">{label}</p>
+                            {sub && <p className="text-[11px] text-[var(--color-text-muted)]">{sub}</p>}
+                            <p className="text-sm font-semibold mt-1">{formatCOP(product.base_price)}</p>
+                            {inCart && (
+                              <span className="absolute -top-1.5 -right-1.5 w-5 h-5 bg-[var(--color-accent)] text-white rounded-full text-[11px] font-bold flex items-center justify-center">
+                                {inCart.quantity}
+                              </span>
+                            )}
+                          </button>
+                        )
+                      })}
+                    </div>
                   </div>
-                </div>
-              ))}
+                )
+              })}
             </div>
           )}
         </div>
