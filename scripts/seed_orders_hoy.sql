@@ -1,5 +1,5 @@
 -- =============================================================
--- Seed: pedidos de prueba para HOY (2026-04-27)
+-- Seed: pedidos de prueba para HOY (2026-04-28)
 -- Cubre todos los estados del flujo para probar el sistema completo
 -- Ejecutar desde Supabase SQL Editor o MCP
 -- =============================================================
@@ -24,7 +24,7 @@ DECLARE
   -- B2B cliente (Entrecote Interplaza)
   c_entrecote       uuid := '6e716534-4263-4ae5-a6b2-8f214aa6b373';
 
-  hoy date := '2026-04-27';
+  hoy date := '2026-04-28';
 
   o1 uuid; o2 uuid; o3 uuid; o4 uuid; o5 uuid;
   o6 uuid; o7 uuid; o8 uuid; o9 uuid; o10 uuid;
@@ -159,6 +159,6 @@ RETURNING id INTO o10;
 INSERT INTO order_items (order_id, product_id, quantity, unit_price, subtotal)
 VALUES (o10, p_milo_mediana, 1, 124000, 124000); -- ajuste precio mostrador
 
-RAISE NOTICE 'Seed completado: 10 pedidos insertados para 2026-04-27';
+RAISE NOTICE 'Seed completado: 10 pedidos insertados para 2026-04-28';
 RAISE NOTICE 'IDs: % % % % % % % % % %', o1, o2, o3, o4, o5, o6, o7, o8, o9, o10;
 END $$;

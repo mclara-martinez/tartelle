@@ -44,10 +44,11 @@ export function OrderCreateView({ onClose }: Props) {
   const [submitting, setSubmitting] = useState(false)
   const [toast, setToast] = useState<{ msg: string; type: 'success' | 'error' } | null>(null)
 
-  // Group products by flavor
+  // Group retail+ambos products by flavor
   const productsByFlavor = useMemo(() => {
     const grouped: Record<string, Product[]> = {}
     for (const p of products) {
+      if (p.catalog === 'eventos') continue
       grouped[p.flavor] = grouped[p.flavor] ?? []
       grouped[p.flavor].push(p)
     }
@@ -175,7 +176,9 @@ export function OrderCreateView({ onClose }: Props) {
                           }`}
                         >
                           <p className="text-sm font-medium capitalize">{flavor}</p>
-                          <p className="text-xs text-[var(--color-text-muted)]">{SIZE_LABELS[product.size]}</p>
+                          <p className="text-xs text-[var(--color-text-muted)] truncate">
+                            {product.size === 'other' ? product.name.toLowerCase() : SIZE_LABELS[product.size]}
+                          </p>
                           <p className="text-sm font-semibold mt-1">{formatCOP(product.base_price)}</p>
                           {inCart && (
                             <span className="absolute -top-1.5 -right-1.5 w-5 h-5 bg-[var(--color-accent)] text-white rounded-full text-[11px] font-bold flex items-center justify-center">

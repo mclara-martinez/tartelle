@@ -4,6 +4,7 @@ export type OrderStatus = 'pending' | 'confirmed' | 'in_production' | 'ready' | 
 export type DeliveryType = 'pickup' | 'delivery'
 export type ProductSize = 'grande' | 'mediana' | 'mini' | 'porcion' | 'other'
 export type ProductCategory = 'tarta' | 'bites' | 'cucheareable' | 'vela' | 'torta' | 'galleta' | 'brownie' | 'pan' | 'otro'
+export type ProductCatalog = 'retail' | 'eventos' | 'ambos'
 export type TaxType = 'impoconsumo_8' | 'iva_19' | 'iva_0' | null
 export type InventoryReason = 'production' | 'sale' | 'adjustment' | 'waste'
 export type PlanStatus = 'draft' | 'sent' | 'in_progress' | 'done'
@@ -38,6 +39,7 @@ export interface Product {
   base_price: number
   tax_type: TaxType
   requires_advance_order: boolean
+  catalog: ProductCatalog
   active: boolean
   created_at: string
 }
