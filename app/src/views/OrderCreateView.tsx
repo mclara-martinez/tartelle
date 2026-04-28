@@ -44,18 +44,23 @@ export function OrderCreateView({ onClose }: Props) {
   const [submitting, setSubmitting] = useState(false)
   const [toast, setToast] = useState<{ msg: string; type: 'success' | 'error' } | null>(null)
 
-  // Group retail+ambos products by category → size
+  const [catalogFilter, setCatalogFilter] = useState<'retail' | 'eventos'>('retail')
+
+  // Group products by category → size, filtered by catalogFilter
   const productsByCategory = useMemo(() => {
     const grouped: Record<string, Record<string, Product[]>> = {}
     for (const p of products) {
-      if (p.catalog === 'eventos') continue
+      const visible = catalogFilter === 'retail'
+        ? p.catalog !== 'eventos'
+        : p.catalog !== 'retail'
+      if (!visible) continue
       const cat = p.category ?? 'otro'
       grouped[cat] ??= {}
       grouped[cat][p.size] ??= []
       grouped[cat][p.size].push(p)
     }
     return grouped
-  }, [products])
+  }, [products, catalogFilter])
 
   const [selectedSizes, setSelectedSizes] = useState<Record<string, string>>({})
 
@@ -75,10 +80,16 @@ export function OrderCreateView({ onClose }: Props) {
   }
 
   function productSubLabel(p: Product, cat: string): string | null {
-    if (cat !== 'bites') return null
     const n = p.name.toUpperCase()
-    if (n.includes('X4')) return 'x4'
-    if (n.includes('UNIDAD')) return 'unidad'
+    if (cat === 'bites') {
+      if (n.includes('X4')) return 'x4'
+      if (n.includes('UNIDAD')) return 'unidad'
+    }
+    if (cat === 'galleta') {
+      if (n.includes('X35')) return 'x35'
+      if (n.includes('X8')) return 'x8'
+      if (n.includes('X4')) return 'x4'
+    }
     return null
   }
 
@@ -185,7 +196,23 @@ export function OrderCreateView({ onClose }: Props) {
           {loadingProducts ? (
             <p className="text-sm text-[var(--color-text-secondary)]">Cargando productos...</p>
           ) : (
-            <div className="space-y-6">
+            <>
+              <div className="flex gap-2 mb-4">
+                {(['retail', 'eventos'] as const).map(cat => (
+                  <button
+                    key={cat}
+                    onClick={() => setCatalogFilter(cat)}
+                    className={`px-4 py-2 rounded-full text-sm font-medium transition-colors ${
+                      catalogFilter === cat
+                        ? 'bg-[var(--color-accent)] text-white'
+                        : 'bg-[var(--color-bg)] text-[var(--color-text-secondary)] hover:text-[var(--color-text-primary)]'
+                    }`}
+                  >
+                    {cat === 'retail' ? 'Tienda' : 'Eventos'}
+                  </button>
+                ))}
+              </div>
+              <div className="space-y-6">
               {PRODUCT_CATEGORY_ORDER.filter(cat => productsByCategory[cat]).map(cat => {
                 const sizeGroups = productsByCategory[cat]
                 const namedSizes = (['grande', 'mediana', 'mini', 'porcion'] as const).filter(s => sizeGroups[s]?.length)
@@ -248,6 +275,7 @@ export function OrderCreateView({ onClose }: Props) {
                 )
               })}
             </div>
+            </>
           )}
         </div>
 
