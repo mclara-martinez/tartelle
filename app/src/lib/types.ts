@@ -4,7 +4,7 @@ export type OrderStatus = 'pending' | 'confirmed' | 'in_production' | 'ready' | 
 export type DeliveryType = 'pickup' | 'delivery'
 export type ProductSize = 'grande' | 'mediana' | 'mini' | 'porcion' | 'other'
 export type ProductCategory = 'tarta' | 'bites' | 'cucheareable' | 'vela' | 'torta' | 'galleta' | 'brownie' | 'pan' | 'otro' | 'complemento'
-export type ProductCatalog = 'retail' | 'eventos' | 'ambos'
+export type ProductCatalog = 'retail' | 'eventos' | 'ambos' | 'cafe_velez'
 export type TaxType = 'impoconsumo_8' | 'iva_19' | 'iva_0' | null
 export type InventoryReason = 'production' | 'sale' | 'adjustment' | 'waste'
 export type PlanStatus = 'draft' | 'sent' | 'in_progress' | 'done'
@@ -64,6 +64,9 @@ export interface Order {
   payment_bank: PaymentBank | null
   card_type: CardType | null
   payment_receipt_url: string | null
+  billing_name: string | null
+  billing_id_number: string | null
+  billing_email: string | null
   packaging_notes: string | null
   assigned_driver: string | null
   picked_up_at: string | null

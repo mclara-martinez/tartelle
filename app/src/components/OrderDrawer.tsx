@@ -103,6 +103,15 @@ export function OrderDrawer({ orderId, onClose, onStatusChange }: Props) {
                   {order.delivery_address}
                 </p>
               )}
+
+              {(order.billing_name || order.billing_id_number || order.billing_email) && (
+                <div className="border border-[var(--color-border)] rounded-lg px-3 py-2.5 space-y-0.5">
+                  <p className="text-[10px] font-medium text-[var(--color-text-muted)] uppercase tracking-wider mb-1.5">Facturación</p>
+                  {order.billing_name && <p className="text-sm font-medium">{order.billing_name}</p>}
+                  {order.billing_id_number && <p className="text-sm text-[var(--color-text-secondary)]">{order.billing_id_number}</p>}
+                  {order.billing_email && <p className="text-sm text-[var(--color-text-secondary)]">{order.billing_email}</p>}
+                </div>
+              )}
             </div>
 
             {/* Items */}

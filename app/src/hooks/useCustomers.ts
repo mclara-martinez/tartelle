@@ -85,6 +85,7 @@ export async function createCustomer(data: {
   name: string
   phone?: string | null
   address?: string | null
+  email?: string | null
   type?: Customer['type']
 }): Promise<Customer | null> {
   try {
@@ -94,6 +95,7 @@ export async function createCustomer(data: {
         name: data.name,
         phone: data.phone ?? null,
         address: data.address ?? null,
+        email: data.email ?? null,
         type: data.type ?? 'b2c',
       })
       .select()

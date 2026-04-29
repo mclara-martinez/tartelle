@@ -28,6 +28,9 @@ export function OrderCreateView({ onClose }: Props) {
   const [customerPhone, setCustomerPhone] = useState('')
   const [customerId, setCustomerId] = useState<string | null>(null)
   const [customerDiscount, setCustomerDiscount] = useState(0)
+  const [billingName, setBillingName] = useState('')
+  const [billingIdNumber, setBillingIdNumber] = useState('')
+  const [billingEmail, setBillingEmail] = useState('')
   const [customerSearch, setCustomerSearch] = useState('')
   const [showCustomerSearch, setShowCustomerSearch] = useState(false)
   const [channel, setChannel] = useState<OrderChannel>('walk_in')
@@ -44,15 +47,16 @@ export function OrderCreateView({ onClose }: Props) {
   const [submitting, setSubmitting] = useState(false)
   const [toast, setToast] = useState<{ msg: string; type: 'success' | 'error' } | null>(null)
 
-  const [catalogFilter, setCatalogFilter] = useState<'retail' | 'eventos'>('retail')
+  const [catalogFilter, setCatalogFilter] = useState<'retail' | 'eventos' | 'cafe_velez'>('retail')
 
   // Group products by category → size, filtered by catalogFilter
   const productsByCategory = useMemo(() => {
     const grouped: Record<string, Record<string, Product[]>> = {}
     for (const p of products) {
-      const visible = catalogFilter === 'retail'
-        ? p.catalog !== 'eventos'
-        : p.catalog !== 'retail'
+      const visible =
+        catalogFilter === 'retail'   ? (p.catalog === 'retail' || p.catalog === 'ambos') :
+        catalogFilter === 'eventos'  ? (p.catalog === 'eventos' || p.catalog === 'ambos') :
+        /* cafe_velez */               p.catalog === 'cafe_velez'
       if (!visible) continue
       const cat = p.category ?? 'otro'
       grouped[cat] ??= {}
@@ -115,11 +119,14 @@ export function OrderCreateView({ onClose }: Props) {
     )
   }
 
-  function selectCustomer(c: { id: string; name: string; phone: string | null; discount_pct: number }) {
+  function selectCustomer(c: { id: string; name: string; phone: string | null; discount_pct: number; razon_social?: string | null; cedula?: string | null; nit?: string | null; email?: string | null }) {
     setCustomerId(c.id)
     setCustomerName(c.name)
     setCustomerPhone(c.phone ?? '')
     setCustomerDiscount(c.discount_pct)
+    setBillingName(c.razon_social || c.name || '')
+    setBillingIdNumber(c.nit || c.cedula || '')
+    setBillingEmail(c.email || '')
     setShowCustomerSearch(false)
     setCustomerSearch('')
   }
@@ -134,6 +141,7 @@ export function OrderCreateView({ onClose }: Props) {
         const newCustomer = await createCustomer({
           name: customerName.trim(),
           phone: customerPhone.trim() || null,
+          email: billingEmail.trim() || null,
         })
         cId = newCustomer?.id ?? null
       }
@@ -158,6 +166,9 @@ export function OrderCreateView({ onClose }: Props) {
           payment_bank: paymentMethod === 'transfer' ? paymentBank : null,
           card_type: paymentMethod === 'card' ? cardType : null,
           payment_receipt_url: paymentReceiptUrl,
+          billing_name: billingName.trim() || null,
+          billing_id_number: billingIdNumber.trim() || null,
+          billing_email: billingEmail.trim() || null,
           packaging_notes: packagingNotes.trim() || null,
         } as Omit<Order, 'id' | 'created_at' | 'updated_at'>,
         cart.map(item => ({
@@ -198,7 +209,7 @@ export function OrderCreateView({ onClose }: Props) {
           ) : (
             <>
               <div className="flex gap-2 mb-4">
-                {(['retail', 'eventos'] as const).map(cat => (
+                {(['retail', 'eventos', 'cafe_velez'] as const).map(cat => (
                   <button
                     key={cat}
                     onClick={() => setCatalogFilter(cat)}
@@ -208,7 +219,7 @@ export function OrderCreateView({ onClose }: Props) {
                         : 'bg-[var(--color-bg)] text-[var(--color-text-secondary)] hover:text-[var(--color-text-primary)]'
                     }`}
                   >
-                    {cat === 'retail' ? 'Tienda' : 'Eventos'}
+                    {cat === 'retail' ? 'Tienda' : cat === 'eventos' ? 'Eventos' : 'Café Vélez'}
                   </button>
                 ))}
               </div>
@@ -351,6 +362,34 @@ export function OrderCreateView({ onClose }: Props) {
                   />
                 </div>
               )}
+            </div>
+
+            {/* Billing */}
+            <div>
+              <label className="text-xs font-medium text-[var(--color-text-muted)] uppercase tracking-wider block mb-1.5">Facturación</label>
+              <div className="space-y-2">
+                <input
+                  type="text"
+                  placeholder="Nombre completo o razón social"
+                  value={billingName}
+                  onChange={e => setBillingName(e.target.value)}
+                  className="w-full border border-[var(--color-border)] rounded-lg px-3 py-2 text-sm focus:outline-none focus:border-[var(--color-accent)]"
+                />
+                <input
+                  type="text"
+                  placeholder="Cédula o NIT"
+                  value={billingIdNumber}
+                  onChange={e => setBillingIdNumber(e.target.value)}
+                  className="w-full border border-[var(--color-border)] rounded-lg px-3 py-2 text-sm focus:outline-none focus:border-[var(--color-accent)]"
+                />
+                <input
+                  type="email"
+                  placeholder="Correo electrónico"
+                  value={billingEmail}
+                  onChange={e => setBillingEmail(e.target.value)}
+                  className="w-full border border-[var(--color-border)] rounded-lg px-3 py-2 text-sm focus:outline-none focus:border-[var(--color-accent)]"
+                />
+              </div>
             </div>
 
             {/* Cart items */}
