@@ -8,13 +8,29 @@ import {
 } from '../../lib/constants'
 import type { Product, ProductCatalog, ProductSize, ProductCategory, TaxType } from '../../lib/types'
 
-const CATALOG_OPTIONS: { value: ProductCatalog | 'all'; label: string }[] = [
-  { value: 'all',       label: 'Todos' },
+type CatalogTag = 'retail' | 'eventos' | 'cafe_velez'
+
+const CATALOG_TAGS: { value: CatalogTag; label: string }[] = [
   { value: 'retail',    label: 'Retail' },
   { value: 'eventos',   label: 'Eventos' },
-  { value: 'ambos',     label: 'Ambos' },
   { value: 'cafe_velez', label: 'Café Vélez' },
 ]
+
+function productMatchesTags(catalog: ProductCatalog, tags: Set<CatalogTag>): boolean {
+  if (tags.size === 0) return true
+  if (tags.has('retail') && (catalog === 'retail' || catalog === 'ambos')) return true
+  if (tags.has('eventos') && (catalog === 'eventos' || catalog === 'ambos')) return true
+  if (tags.has('cafe_velez') && catalog === 'cafe_velez') return true
+  return false
+}
+
+// Display tags for a product's catalog value
+function catalogDisplayTags(catalog: ProductCatalog): { label: string; key: string }[] {
+  if (catalog === 'ambos') return [{ label: 'Retail', key: 'retail' }, { label: 'Eventos', key: 'eventos' }]
+  if (catalog === 'retail') return [{ label: 'Retail', key: 'retail' }]
+  if (catalog === 'eventos') return [{ label: 'Eventos', key: 'eventos' }]
+  return [{ label: 'Café Vélez', key: 'cafe_velez' }]
+}
 
 const ACTIVE_OPTIONS = [
   { value: 'all',      label: 'Todos' },
@@ -248,7 +264,7 @@ function ProductModal({
 
 export function CatalogoTab() {
   const { products, loading, error, createProduct, updateProduct, toggleActive } = useAdminProducts()
-  const [catalogFilter, setCatalogFilter] = useState<ProductCatalog | 'all'>('all')
+  const [catalogTags, setCatalogTags] = useState<Set<CatalogTag>>(new Set())
   const [activeFilter, setActiveFilter] = useState<'all' | 'active' | 'inactive'>('all')
   const [search, setSearch] = useState('')
   const [modalOpen, setModalOpen] = useState(false)
@@ -256,9 +272,17 @@ export function CatalogoTab() {
   const [togglingId, setTogglingId] = useState<string | null>(null)
   const [toast, setToast] = useState<{ msg: string; type: 'success' | 'error' } | null>(null)
 
+  function toggleTag(tag: CatalogTag) {
+    setCatalogTags(prev => {
+      const next = new Set(prev)
+      next.has(tag) ? next.delete(tag) : next.add(tag)
+      return next
+    })
+  }
+
   const filtered = useMemo(() =>
     products
-      .filter(p => catalogFilter === 'all' || p.catalog === catalogFilter)
+      .filter(p => productMatchesTags(p.catalog, catalogTags))
       .filter(p =>
         activeFilter === 'all' ? true :
         activeFilter === 'active' ? p.active : !p.active
@@ -268,7 +292,7 @@ export function CatalogoTab() {
         const q = search.toLowerCase()
         return p.name.toLowerCase().includes(q) || p.flavor.toLowerCase().includes(q) || (p.sku ?? '').toLowerCase().includes(q)
       }),
-    [products, catalogFilter, activeFilter, search]
+    [products, catalogTags, activeFilter, search]
   )
 
   async function handleSave(data: ProductInput) {
@@ -311,21 +335,32 @@ export function CatalogoTab() {
           className="text-sm border border-[var(--color-border)] rounded-lg px-3 py-2 bg-[var(--color-bg)] focus:outline-none focus:ring-2 focus:ring-[var(--color-accent)] w-48"
         />
 
-        {/* Catalog filter pills */}
-        <div className="flex gap-1 p-1 bg-[var(--color-surface-warm)] rounded-lg border border-[var(--color-border)]">
-          {CATALOG_OPTIONS.map(opt => (
+        {/* Catalog tag multi-select */}
+        <div className="flex items-center gap-1.5">
+          {CATALOG_TAGS.map(tag => {
+            const active = catalogTags.has(tag.value)
+            return (
+              <button
+                key={tag.value}
+                onClick={() => toggleTag(tag.value)}
+                className={`px-3 py-1 rounded-full text-xs font-medium border transition-colors ${
+                  active
+                    ? 'bg-[var(--color-accent)] text-white border-[var(--color-accent)]'
+                    : 'bg-[var(--color-surface)] text-[var(--color-text-muted)] border-[var(--color-border)] hover:border-[var(--color-accent)] hover:text-[var(--color-accent)]'
+                }`}
+              >
+                {tag.label}
+              </button>
+            )
+          })}
+          {catalogTags.size > 0 && (
             <button
-              key={opt.value}
-              onClick={() => setCatalogFilter(opt.value)}
-              className={`px-3 py-1 rounded-md text-xs font-medium transition-colors ${
-                catalogFilter === opt.value
-                  ? 'bg-white text-[var(--color-text-primary)] shadow-sm'
-                  : 'text-[var(--color-text-muted)] hover:text-[var(--color-text-primary)]'
-              }`}
+              onClick={() => setCatalogTags(new Set())}
+              className="text-xs text-[var(--color-text-muted)] hover:text-[var(--color-text-primary)] underline ml-1"
             >
-              {opt.label}
+              Limpiar
             </button>
-          ))}
+          )}
         </div>
 
         {/* Active filter pills */}
@@ -390,9 +425,13 @@ export function CatalogoTab() {
                   {p.category ? CATEGORY_LABELS[p.category] : '—'}
                 </td>
                 <td className="px-4 py-3">
-                  <span className="inline-flex px-2 py-0.5 rounded-full text-xs font-medium bg-[var(--color-surface-warm)] text-[var(--color-text-secondary)]">
-                    {CATALOG_LABELS[p.catalog]}
-                  </span>
+                  <div className="flex flex-wrap gap-1">
+                    {catalogDisplayTags(p.catalog).map(t => (
+                      <span key={t.key} className="inline-flex px-2 py-0.5 rounded-full text-xs font-medium bg-[var(--color-surface-warm)] text-[var(--color-text-secondary)] border border-[var(--color-border)]">
+                        {t.label}
+                      </span>
+                    ))}
+                  </div>
                 </td>
                 <td className="px-4 py-3 text-right tabular-nums">{formatCOP(p.base_price)}</td>
                 <td className="px-4 py-3 text-center">
