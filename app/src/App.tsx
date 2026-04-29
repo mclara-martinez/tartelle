@@ -60,8 +60,7 @@ function AppContent() {
   }
 
   // Admin role: full app with hash routing
-  // Guard: if admin navigates to domiciliario hash, redirect to dashboard
-  const safeView = view === 'domiciliario' ? 'dashboard' : view
+  const safeView = view
 
   if (safeView === 'kitchen') {
     return <KitchenView onBack={() => navigate('dashboard')} />
@@ -88,6 +87,7 @@ function AppContent() {
       )}
       {safeView === 'inventory' && <InventoryView />}
       {safeView === 'production' && <ProductionView />}
+      {safeView === 'domiciliario' && <DomiciliarioView />}
       {safeView === 'settings' && <SettingsView />}
     </Layout>
   )

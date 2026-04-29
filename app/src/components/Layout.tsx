@@ -1,5 +1,5 @@
 import { useState } from 'react'
-import { ShoppingBag, LayoutDashboard, ChefHat, Package, ClipboardList, Settings, Menu, X, LogOut } from 'lucide-react'
+import { ShoppingBag, LayoutDashboard, ChefHat, Package, ClipboardList, Settings, Menu, X, LogOut, Truck } from 'lucide-react'
 import type { View } from '../App'
 import { useAuth } from '../context/AuthContext'
 
@@ -16,6 +16,7 @@ const NAV = [
   { id: 'production' as View, label: 'Produccion', icon: ClipboardList },
   { id: 'inventory' as View, label: 'Inventario', icon: Package },
   { id: 'kitchen' as View, label: 'Cocina', icon: ChefHat },
+  { id: 'domiciliario' as View, label: 'Domiciliario', icon: Truck },
   { id: 'settings' as View, label: 'Ajustes', icon: Settings },
 ]
 
