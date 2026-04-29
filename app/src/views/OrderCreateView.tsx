@@ -4,9 +4,9 @@ import { useCustomerSearch, useRecentCustomers, createCustomer } from '../hooks/
 import { createOrder } from '../hooks/useOrders'
 import { Toast } from '../components/Toast'
 import { formatCOP, today, tomorrow } from '../lib/utils'
-import { DELIVERY_FEE, CHANNEL_LABELS, SIZE_LABELS, CATEGORY_LABELS, PRODUCT_CATEGORY_ORDER, PAYMENT_METHOD_LABELS, PAYMENT_BANK_LABELS, CARD_TYPE_LABELS } from '../lib/constants'
+import { DELIVERY_FEE, CHANNEL_LABELS, SIZE_LABELS, CATEGORY_LABELS, PRODUCT_CATEGORY_ORDER, PAYMENT_METHOD_LABELS, PAYMENT_BANK_LABELS } from '../lib/constants'
 import { PhotoUpload } from '../components/PhotoUpload'
-import type { Order, OrderChannel, DeliveryType, Product, ProductCategory, PaymentMethod, PaymentBank, CardType } from '../lib/types'
+import type { Order, OrderChannel, DeliveryType, Product, ProductCategory, PaymentMethod, PaymentBank } from '../lib/types'
 import { X, Plus, Minus, Search, Bike, Store, ArrowLeft, ShoppingBag, User, Trash2, Package } from 'lucide-react'
 
 interface CartItem {
@@ -40,7 +40,6 @@ export function OrderCreateView({ onClose }: Props) {
   const [notes, setNotes] = useState('')
   const [paymentMethod, setPaymentMethod] = useState<PaymentMethod | null>(null)
   const [paymentBank, setPaymentBank] = useState<PaymentBank | null>(null)
-  const [cardType, setCardType] = useState<CardType | null>(null)
   const [paymentReceiptUrl, setPaymentReceiptUrl] = useState<string | null>(null)
   const [packagingNotes, setPackagingNotes] = useState('')
   const [tempOrderId] = useState(() => crypto.randomUUID())
@@ -164,7 +163,7 @@ export function OrderCreateView({ onClose }: Props) {
           payment_status: paymentReceiptUrl ? 'paid' : 'pending',
           payment_method: paymentMethod,
           payment_bank: paymentMethod === 'transfer' ? paymentBank : null,
-          card_type: paymentMethod === 'card' ? cardType : null,
+          card_type: null,
           payment_receipt_url: paymentReceiptUrl,
           billing_name: billingName.trim() || null,
           billing_id_number: billingIdNumber.trim() || null,
@@ -507,7 +506,7 @@ export function OrderCreateView({ onClose }: Props) {
                 {(Object.entries(PAYMENT_METHOD_LABELS) as [PaymentMethod, string][]).map(([pm, label]) => (
                   <button
                     key={pm}
-                    onClick={() => { setPaymentMethod(pm); setPaymentBank(null); setCardType(null); setPaymentReceiptUrl(null) }}
+                    onClick={() => { setPaymentMethod(pm); setPaymentBank(null); setPaymentReceiptUrl(null) }}
                     className={`px-3 py-1.5 rounded-lg text-xs font-medium border transition-colors ${
                       paymentMethod === pm ? 'border-[var(--color-accent)] bg-[var(--color-accent-light)] text-[var(--color-accent)]' : 'border-[var(--color-border)] text-[var(--color-text-secondary)] hover:border-[var(--color-text-muted)]'
                     }`}
@@ -548,23 +547,16 @@ export function OrderCreateView({ onClose }: Props) {
               </div>
             )}
 
-            {/* Card type selector (card only) */}
-            {paymentMethod === 'card' && (
+            {/* Comprobante Bold */}
+            {paymentMethod === 'bold' && (
               <div>
-                <label className="text-xs font-medium text-[var(--color-text-muted)] uppercase tracking-wider block mb-1.5">Tipo de tarjeta</label>
-                <div className="flex gap-1.5">
-                  {(Object.entries(CARD_TYPE_LABELS) as [CardType, string][]).map(([ct, label]) => (
-                    <button
-                      key={ct}
-                      onClick={() => setCardType(ct)}
-                      className={`flex-1 py-2 rounded-lg text-xs font-medium border transition-colors ${
-                        cardType === ct ? 'border-[var(--color-accent)] bg-[var(--color-accent-light)] text-[var(--color-accent)]' : 'border-[var(--color-border)] text-[var(--color-text-secondary)]'
-                      }`}
-                    >
-                      {label}
-                    </button>
-                  ))}
-                </div>
+                <PhotoUpload
+                  orderId={tempOrderId}
+                  type="receipt"
+                  existingPath={paymentReceiptUrl}
+                  onUpload={setPaymentReceiptUrl}
+                  label="Comprobante"
+                />
               </div>
             )}
 

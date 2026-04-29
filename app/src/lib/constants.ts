@@ -1,4 +1,4 @@
-import type { OrderChannel, OrderStatus, ProductSize, ProductCategory, PaymentStatus, PaymentMethod, PaymentBank, CardType } from './types'
+import type { OrderChannel, OrderStatus, ProductSize, ProductCategory, PaymentStatus, PaymentMethod, PaymentBank } from './types'
 
 export const DELIVERY_FEE = 8000
 
@@ -91,7 +91,7 @@ export const PAYMENT_STATUS_COLORS: Record<PaymentStatus, { bg: string; text: st
 export const PAYMENT_METHOD_LABELS: Record<PaymentMethod, string> = {
   transfer: 'Transferencia',
   cash: 'Efectivo',
-  card: 'Tarjeta',
+  bold: 'Link Bold',
   rappi: 'Rappi',
 }
 
@@ -101,11 +101,6 @@ export const PAYMENT_BANK_LABELS: Record<PaymentBank, string> = {
   davivienda: 'Davivienda',
   nequi: 'Nequi',
   bbva: 'BBVA',
-}
-
-export const CARD_TYPE_LABELS: Record<CardType, string> = {
-  debit: 'Débito',
-  credit: 'Crédito',
 }
 
 export const LOW_STOCK_THRESHOLD = 2
