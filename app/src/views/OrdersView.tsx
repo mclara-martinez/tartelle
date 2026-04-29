@@ -5,7 +5,7 @@ import { OrderDrawer } from '../components/OrderDrawer'
 import { KanbanBoard } from '../components/KanbanBoard'
 import { Toast } from '../components/Toast'
 import { formatCOP, formatDate, today, tomorrow } from '../lib/utils'
-import { CHANNEL_LABELS, NEXT_STATUS_ACTION, STATUS_LABELS, PAYMENT_STATUS_LABELS } from '../lib/constants'
+import { CHANNEL_LABELS, NEXT_STATUS_ACTION } from '../lib/constants'
 import type { Order, OrderStatus } from '../lib/types'
 import type { View } from '../App'
 import { Plus, List, Columns3, Bike, Store, ChevronRight, Search, X, ShoppingBag as PageIcon, Download, Calendar } from 'lucide-react'
@@ -19,23 +19,83 @@ interface Props {
   onSelectOrder: (id: string | null) => void
 }
 
-function exportCSV(orders: Order[], label: string) {
-  const headers = ['Fecha entrega', 'Cliente', 'Telefono', 'Canal', 'Entrega', 'Productos', 'Subtotal', 'Domicilio', 'Descuento', 'Total', 'Estado', 'Pago', 'Metodo pago']
-  const rows = orders.map(o => [
-    o.delivery_date,
-    o.customer_name ?? '',
-    o.customer_phone ?? '',
-    CHANNEL_LABELS[o.channel],
-    o.delivery_type === 'delivery' ? 'Domicilio' : 'Local',
-    o.items?.map(i => `${i.quantity}x ${i.product?.flavor} ${i.product?.size}`).join(' | ') ?? '',
-    o.subtotal,
-    o.delivery_fee,
-    o.discount,
-    o.total,
-    STATUS_LABELS[o.status],
-    PAYMENT_STATUS_LABELS[o.payment_status],
-    o.payment_method ?? '',
-  ])
+// Ajustar estos códigos según la configuración de Siigo de Andrea
+const SIIGO_SELLER_ID = ''
+const SIIGO_PAYMENT_CODE: Record<string, string> = {
+  cash:     '1', // Efectivo
+  transfer: '2', // Transferencia bancaria
+  card:     '3', // Tarjeta débito/crédito
+  rappi:    '4', // Rappi
+}
+
+function exportSiigo(orders: Order[], label: string) {
+  const headers = [
+    'Tipo de comprobante', 'Consecutivo', 'Identificación tercero',
+    'Sucursal', 'Código centro/subcentro de costos', 'Fecha de elaboración',
+    'Sigla Moneda', 'Tasa de cambio', 'Nombre contacto', 'Email Contacto',
+    'Orden de compra', 'Orden de entrega', 'Fecha orden de entrega',
+    'Código producto', 'Descripción producto', 'Identificación vendedor',
+    'Código de Bodega', 'Cantidad producto', 'Valor unitario', 'Valor Descuento',
+    'Base AIU', 'Identificación ingreso para terceros',
+    'Retención 1', 'Base retención 1', 'Retención 2', 'Base retención 2', 'Retención 3',
+    'Código forma de pago', 'Valor forma de pago', 'Fecha Vencimiento', 'Observaciones',
+  ]
+
+  const rows: (string | number)[][] = []
+
+  for (const o of orders) {
+    const clientId = o.billing_id_number ?? o.customer?.nit ?? o.customer?.cedula ?? '222222222222'
+    const clientName = o.billing_name ?? o.customer?.razon_social ?? o.customer_name ?? ''
+    const clientEmail = o.billing_email ?? o.customer?.email ?? ''
+    const dateStr = o.delivery_date.split('-').reverse().join('/')
+    const paymentCode = o.payment_method ? (SIIGO_PAYMENT_CODE[o.payment_method] ?? '1') : '1'
+
+    const lineItems: Array<{ sku: string; desc: string; qty: number; price: number }> =
+      (o.items ?? []).map(i => ({
+        sku: i.product?.sku ?? '',
+        desc: i.product?.name ?? `${i.product?.flavor ?? ''} ${i.product?.size ?? ''}`.trim(),
+        qty: i.quantity,
+        price: i.unit_price,
+      }))
+
+    if (o.delivery_fee > 0) {
+      lineItems.push({ sku: 'Dom01', desc: 'Domicilio', qty: 1, price: o.delivery_fee })
+    }
+
+    lineItems.forEach((item, idx) => {
+      const isFirst = idx === 0
+      rows.push([
+        'FV',                                   // A Tipo de comprobante
+        '',                                     // B Consecutivo (Siigo auto-asigna)
+        clientId,                               // C Identificación tercero
+        '',                                     // D Sucursal
+        '',                                     // E Código centro costos
+        dateStr,                                // F Fecha de elaboración DD/MM/YYYY
+        '',                                     // G Sigla Moneda
+        '',                                     // H Tasa de cambio
+        clientName,                             // I Nombre contacto
+        clientEmail,                            // J Email Contacto
+        '',                                     // K Orden de compra
+        '',                                     // L Orden de entrega
+        '',                                     // M Fecha orden de entrega
+        item.sku,                               // N Código producto
+        item.desc,                              // O Descripción producto
+        SIIGO_SELLER_ID,                        // P Identificación vendedor
+        '',                                     // Q Código de Bodega
+        item.qty,                               // R Cantidad producto
+        item.price,                             // S Valor unitario
+        isFirst ? o.discount : '',              // T Valor Descuento (sólo primera fila)
+        '',                                     // U Base AIU
+        '',                                     // V Ingreso para terceros
+        '', '', '', '', '',                     // W–AA Retenciones (5 cols)
+        isFirst ? paymentCode : '',             // AB Código forma de pago (sólo primera fila)
+        isFirst ? o.total : '',                 // AC Valor forma de pago (sólo primera fila)
+        '',                                     // AD Fecha Vencimiento
+        o.notes ?? '',                          // AE Observaciones
+      ])
+    })
+  }
+
   const csv = [headers, ...rows]
     .map(r => r.map(v => `"${String(v).replace(/"/g, '""')}"`).join(','))
     .join('\n')
@@ -43,7 +103,7 @@ function exportCSV(orders: Order[], label: string) {
   const url = URL.createObjectURL(blob)
   const a = document.createElement('a')
   a.href = url
-  a.download = `pedidos_${label}.csv`
+  a.download = `siigo_FV_${label}.csv`
   a.click()
   URL.revokeObjectURL(url)
 }
@@ -94,13 +154,13 @@ export function OrdersView({ onNavigate, selectedOrderId, onSelectOrder }: Props
         </div>
         <div className="flex items-center gap-2">
           <button
-            onClick={() => exportCSV(filteredOrders, csvLabel)}
+            onClick={() => exportSiigo(filteredOrders, csvLabel)}
             disabled={filteredOrders.length === 0}
             className="flex items-center gap-1.5 border border-[var(--color-border)] bg-white text-[var(--color-text-secondary)] px-3 py-2 rounded-lg text-sm font-medium hover:bg-[var(--color-surface-warm)] transition-colors duration-200 disabled:opacity-40"
-            title="Exportar CSV"
+            title="Exportar para Siigo (carga masiva FV)"
           >
             <Download className="h-4 w-4" />
-            CSV
+            Siigo
           </button>
           <button
             onClick={() => onNavigate('create')}
