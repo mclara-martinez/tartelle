@@ -32,6 +32,15 @@ export function ProductionView() {
     [products]
   )
 
+  const extraProductsByFlavor = useMemo(() => {
+    const groups: Record<string, typeof extraProducts> = {}
+    for (const p of extraProducts) {
+      groups[p.flavor] = groups[p.flavor] ?? []
+      groups[p.flavor].push(p)
+    }
+    return Object.entries(groups).sort(([a], [b]) => a.localeCompare(b))
+  }, [extraProducts])
+
   const extrasMap = useMemo(() => {
     const map: Record<string, { id: string; quantity: number }> = {}
     for (const e of extras) map[e.product_id] = { id: e.id, quantity: e.quantity }
@@ -195,10 +204,14 @@ export function ProductionView() {
             className="flex-1 min-w-0 text-sm border border-[var(--color-border)] rounded-lg px-2.5 py-1.5 bg-white text-[var(--color-text-primary)] focus:outline-none focus:ring-1 focus:ring-[var(--color-accent)]"
           >
             <option value="">Seleccionar producto...</option>
-            {extraProducts.map(p => (
-              <option key={p.id} value={p.id}>
-                {p.flavor} · {SIZE_LABELS[p.size]}
-              </option>
+            {extraProductsByFlavor.map(([flavor, ps]) => (
+              <optgroup key={flavor} label={flavor.charAt(0).toUpperCase() + flavor.slice(1)}>
+                {ps.map(p => (
+                  <option key={p.id} value={p.id}>
+                    {p.name}
+                  </option>
+                ))}
+              </optgroup>
             ))}
           </select>
           <input
