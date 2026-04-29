@@ -135,3 +135,14 @@ export interface ProductionPlanItem {
   created_at: string
   product?: Product
 }
+
+export type AppRole = 'admin' | 'kitchen' | 'driver'
+
+export interface AppUser {
+  id: string
+  email: string
+  role: AppRole
+  created_at: string
+  last_sign_in_at: string | null
+  banned_until: string | null
+}

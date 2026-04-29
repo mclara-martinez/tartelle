@@ -1,4 +1,4 @@
-import type { OrderChannel, OrderStatus, ProductSize, ProductCategory, PaymentStatus, PaymentMethod, PaymentBank } from './types'
+import type { OrderChannel, OrderStatus, ProductSize, ProductCategory, ProductCatalog, TaxType, PaymentStatus, PaymentMethod, PaymentBank, AppRole } from './types'
 
 export const DELIVERY_FEE = 8000
 
@@ -104,6 +104,25 @@ export const PAYMENT_BANK_LABELS: Record<PaymentBank, string> = {
 }
 
 export const LOW_STOCK_THRESHOLD = 2
+
+export const CATALOG_LABELS: Record<ProductCatalog, string> = {
+  retail:     'Retail',
+  eventos:    'Eventos',
+  ambos:      'Ambos',
+  cafe_velez: 'Café Vélez',
+}
+
+export const TAX_TYPE_LABELS: Record<NonNullable<TaxType>, string> = {
+  impoconsumo_8: 'Impoconsumo 8%',
+  iva_19:        'IVA 19%',
+  iva_0:         'IVA 0%',
+}
+
+export const ROLE_LABELS: Record<AppRole, string> = {
+  admin:   'Administrador',
+  kitchen: 'Cocina',
+  driver:  'Domiciliario',
+}
 
 /** Legacy compat — some components may still reference these */
 export const STATUS_DOT_COLORS: Record<OrderStatus, string> = Object.fromEntries(

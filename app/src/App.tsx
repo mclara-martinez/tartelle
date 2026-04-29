@@ -9,10 +9,11 @@ import { InventoryView } from './views/InventoryView'
 import { ProductionView } from './views/ProductionView'
 import { OrderCreateView } from './views/OrderCreateView'
 import { DomiciliarioView } from './views/DomiciliarioView'
+import { SettingsView } from './views/SettingsView'
 
-export type View = 'dashboard' | 'orders' | 'kitchen' | 'inventory' | 'production' | 'create' | 'domiciliario'
+export type View = 'dashboard' | 'orders' | 'kitchen' | 'inventory' | 'production' | 'create' | 'domiciliario' | 'settings'
 
-const VALID_VIEWS: View[] = ['dashboard', 'orders', 'kitchen', 'inventory', 'production', 'create', 'domiciliario']
+const VALID_VIEWS: View[] = ['dashboard', 'orders', 'kitchen', 'inventory', 'production', 'create', 'domiciliario', 'settings']
 
 function viewFromHash(): View {
   const hash = window.location.hash.replace('#', '')
@@ -87,6 +88,7 @@ function AppContent() {
       )}
       {safeView === 'inventory' && <InventoryView />}
       {safeView === 'production' && <ProductionView />}
+      {safeView === 'settings' && <SettingsView />}
     </Layout>
   )
 }
