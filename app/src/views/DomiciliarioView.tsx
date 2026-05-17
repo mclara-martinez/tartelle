@@ -2,30 +2,45 @@ import { useState } from 'react'
 import { useOrders, updateOrderStatus, updateOrderFields } from '../hooks/useOrders'
 import { Toast } from '../components/Toast'
 import { PhotoUpload } from '../components/PhotoUpload'
-import { today, formatDate } from '../lib/utils'
+import { today, tomorrow } from '../lib/utils'
 import { PAYMENT_STATUS_LABELS, PAYMENT_STATUS_COLORS } from '../lib/constants'
-import { MapPin, Phone, Package, CheckCircle, Truck, CreditCard, Clock, ChefHat } from 'lucide-react'
+import { MapPin, Phone, Package, CheckCircle, Truck, CreditCard, ChevronLeft, ChevronRight } from 'lucide-react'
+import { format, parseISO, addDays, subDays } from 'date-fns'
+import { es } from 'date-fns/locale'
 import type { Order } from '../lib/types'
 
-type DriverTab = 'programado' | 'para_recoger' | 'en_camino'
+type DriverTab = 'por_recoger' | 'entregando'
+
+function formatPickerDate(dateStr: string): string {
+  const t = today()
+  const tm = tomorrow()
+  if (dateStr === t) return 'Hoy'
+  if (dateStr === tm) return 'Mañana'
+  return format(parseISO(dateStr), "EEE d MMM", { locale: es })
+}
 
 export function DomiciliarioView() {
-  const { orders, loading, refetch } = useOrders(today())
+  const [selectedDate, setSelectedDate] = useState<string>(today())
+  const { orders, loading, refetch } = useOrders(selectedDate, selectedDate)
   const [toast, setToast] = useState<{ msg: string; type: 'success' | 'error' } | null>(null)
   const [updatingId, setUpdatingId] = useState<string | null>(null)
-  const [activeTab, setActiveTab] = useState<DriverTab>('para_recoger')
+  const [activeTab, setActiveTab] = useState<DriverTab>('por_recoger')
 
-  const allDeliveryOrders = orders.filter(
+  const deliveryOrders = orders.filter(
     o => o.delivery_type === 'delivery' &&
-    ['confirmed', 'in_production', 'ready', 'dispatched'].includes(o.status)
+    ['ready', 'dispatched'].includes(o.status)
   )
-  const programado = allDeliveryOrders.filter(o => ['confirmed', 'in_production'].includes(o.status))
-  const paraRecoger = allDeliveryOrders.filter(o => o.status === 'ready')
-  const enCamino = allDeliveryOrders.filter(o => o.status === 'dispatched')
+  const porRecoger = deliveryOrders.filter(o => o.status === 'ready')
+  const entregando = deliveryOrders.filter(o => o.status === 'dispatched')
 
-  const tabOrders = activeTab === 'programado' ? programado
-    : activeTab === 'para_recoger' ? paraRecoger
-    : enCamino
+  const tabOrders = activeTab === 'por_recoger' ? porRecoger : entregando
+
+  function prevDay() {
+    setSelectedDate(d => format(subDays(parseISO(d), 1), 'yyyy-MM-dd'))
+  }
+  function nextDay() {
+    setSelectedDate(d => format(addDays(parseISO(d), 1), 'yyyy-MM-dd'))
+  }
 
   async function handlePickup(order: Order) {
     setUpdatingId(order.id)
@@ -33,7 +48,7 @@ export function DomiciliarioView() {
       await updateOrderFields(order.id, { picked_up_at: new Date().toISOString() } as Partial<Order>)
       await updateOrderStatus(order.id, 'dispatched')
       setToast({ msg: 'Recogido', type: 'success' })
-      setActiveTab('en_camino')
+      setActiveTab('entregando')
       refetch()
     } catch {
       setToast({ msg: 'Error', type: 'error' })
@@ -65,54 +80,56 @@ export function DomiciliarioView() {
 
   if (loading) {
     return (
-      <div className="min-h-screen bg-gray-50 flex items-center justify-center">
-        <p className="text-gray-500">Cargando entregas...</p>
+      <div className="min-h-screen bg-[#111827] flex items-center justify-center">
+        <p className="text-[#9CA3AF]">Cargando entregas...</p>
       </div>
     )
   }
 
-  const tabLabel = activeTab === 'programado' ? `${programado.length} programado${programado.length !== 1 ? 's' : ''}`
-    : activeTab === 'para_recoger' ? `${paraRecoger.length} para recoger`
-    : `${enCamino.length} en camino`
-
   return (
-    <div className="min-h-screen bg-gray-50">
-      {/* Header */}
-      <div className="bg-white border-b border-gray-200 px-4 py-4">
-        <h1 className="text-lg font-bold text-gray-900">Tartelle — Entregas</h1>
-        <p className="text-sm text-gray-500">{formatDate(today())} · {tabLabel}</p>
+    <div className="min-h-screen bg-[#111827]">
+      <div className="bg-[#1F2937] border-b border-[#374151] px-4 py-4">
+        <h1 className="text-lg font-bold text-white">Tartelle — Entregas</h1>
 
-        {/* Tab toggle */}
-        <div className="mt-3 bg-gray-100 rounded-lg p-1 flex gap-1">
+        <div className="mt-3 flex items-center justify-between gap-2">
+          <button
+            onClick={prevDay}
+            className="p-2 rounded-lg bg-[#374151] text-white active:bg-[#4B5563]"
+            style={{ minHeight: '44px', minWidth: '44px' }}
+          >
+            <ChevronLeft size={20} />
+          </button>
+          <span className="text-base font-semibold text-white flex-1 text-center">
+            {formatPickerDate(selectedDate)}
+          </span>
+          <button
+            onClick={nextDay}
+            className="p-2 rounded-lg bg-[#374151] text-white active:bg-[#4B5563]"
+            style={{ minHeight: '44px', minWidth: '44px' }}
+          >
+            <ChevronRight size={20} />
+          </button>
+        </div>
+
+        <div className="mt-3 bg-[#374151] rounded-lg p-1 flex gap-1">
           <TabButton
-            label="Programado"
-            count={programado.length}
-            active={activeTab === 'programado'}
-            onClick={() => setActiveTab('programado')}
+            label="Por recoger"
+            count={porRecoger.length}
+            active={activeTab === 'por_recoger'}
+            onClick={() => setActiveTab('por_recoger')}
           />
           <TabButton
-            label="Para recoger"
-            count={paraRecoger.length}
-            active={activeTab === 'para_recoger'}
-            onClick={() => setActiveTab('para_recoger')}
-          />
-          <TabButton
-            label="En camino"
-            count={enCamino.length}
-            active={activeTab === 'en_camino'}
-            onClick={() => setActiveTab('en_camino')}
+            label="Entregando"
+            count={entregando.length}
+            active={activeTab === 'entregando'}
+            onClick={() => setActiveTab('entregando')}
           />
         </div>
       </div>
 
-      {/* Orders */}
       <div className="p-4 space-y-4">
         {tabOrders.length === 0 ? (
           <EmptyState tab={activeTab} />
-        ) : activeTab === 'programado' ? (
-          programado.map(order => (
-            <ScheduledCard key={order.id} order={order} />
-          ))
         ) : (
           tabOrders.map(order => (
             <DeliveryCard
@@ -142,14 +159,14 @@ function TabButton({ label, count, active, onClick }: {
     <button
       onClick={onClick}
       className={`flex-1 flex items-center justify-center gap-1.5 py-2 px-1 rounded-md text-xs font-semibold transition-all ${
-        active ? 'bg-white shadow-sm text-gray-900' : 'text-gray-500 active:text-gray-700'
+        active ? 'bg-[#1F2937] shadow-sm text-white' : 'text-[#9CA3AF] active:text-white'
       }`}
       style={{ minHeight: '36px' }}
     >
       <span>{label}</span>
       {count > 0 && (
         <span className={`text-xs font-bold px-1.5 py-0.5 rounded-full ${
-          active ? 'bg-gray-900 text-white' : 'bg-gray-300 text-gray-600'
+          active ? 'bg-white text-[#111827]' : 'bg-[#4B5563] text-[#D1D5DB]'
         }`}>
           {count}
         </span>
@@ -159,96 +176,18 @@ function TabButton({ label, count, active, onClick }: {
 }
 
 function EmptyState({ tab }: { tab: DriverTab }) {
-  if (tab === 'programado') return (
+  if (tab === 'por_recoger') return (
     <div className="text-center py-20">
-      <Clock size={48} className="mx-auto text-gray-300 mb-3" />
-      <p className="text-lg font-semibold text-gray-900">Nada programado aún</p>
-      <p className="text-sm text-gray-500 mt-1">Los pedidos confirmados aparecerán aquí</p>
-    </div>
-  )
-  if (tab === 'para_recoger') return (
-    <div className="text-center py-20">
-      <Package size={48} className="mx-auto text-gray-300 mb-3" />
-      <p className="text-lg font-semibold text-gray-900">Ningún pedido listo aún</p>
-      <p className="text-sm text-gray-500 mt-1">Cuando cocina marque un pedido como listo aparecerá aquí</p>
+      <Package size={48} className="mx-auto text-[#4B5563] mb-3" />
+      <p className="text-lg font-semibold text-white">Ningún pedido listo aún</p>
+      <p className="text-sm text-[#9CA3AF] mt-1">Cuando cocina marque un pedido como listo aparecerá aquí</p>
     </div>
   )
   return (
     <div className="text-center py-20">
       <CheckCircle size={48} className="mx-auto text-green-500 mb-3" />
-      <p className="text-lg font-semibold text-gray-900">Sin entregas en ruta</p>
-      <p className="text-sm text-gray-500 mt-1">Todas las entregas del día están completas</p>
-    </div>
-  )
-}
-
-function ScheduledCard({ order }: { order: Order }) {
-  const isInProduction = order.status === 'in_production'
-
-  return (
-    <div className="bg-white rounded-xl border border-gray-200 overflow-hidden shadow-sm opacity-75">
-      {/* Status badge + customer */}
-      <div className="px-4 pt-4 pb-3">
-        <div className="flex items-start justify-between gap-2">
-          <p className="text-base font-bold text-gray-700">{order.customer_name ?? 'Cliente'}</p>
-          <span className={`text-xs font-semibold px-2.5 py-1 rounded-full flex items-center gap-1 flex-shrink-0 ${
-            isInProduction
-              ? 'bg-purple-100 text-purple-700'
-              : 'bg-blue-100 text-blue-700'
-          }`}>
-            {isInProduction ? <ChefHat size={11} /> : <Clock size={11} />}
-            {isInProduction ? 'En producción' : 'Confirmado'}
-          </span>
-        </div>
-
-        {order.delivery_address && (
-          <a
-            href={`https://maps.google.com/?q=${encodeURIComponent(order.delivery_address)}`}
-            target="_blank"
-            rel="noopener noreferrer"
-            className="mt-2 flex items-start gap-2 text-blue-600 text-sm active:text-blue-800"
-          >
-            <MapPin size={16} className="flex-shrink-0 mt-0.5" />
-            <span className="underline">{order.delivery_address}</span>
-          </a>
-        )}
-
-        {order.customer_phone && (
-          <a
-            href={`tel:${order.customer_phone}`}
-            className="mt-1.5 flex items-center gap-2 text-blue-600 text-sm active:text-blue-800"
-          >
-            <Phone size={14} />
-            <span className="underline">{order.customer_phone}</span>
-          </a>
-        )}
-      </div>
-
-      {/* Items */}
-      <div className="px-4 pb-3 space-y-1">
-        {order.items?.map(item => (
-          <div key={item.id} className="flex items-center justify-between text-sm">
-            <span className="font-medium text-gray-700">
-              {item.quantity}x {item.product?.flavor}
-            </span>
-            <span className="text-gray-400 capitalize">{item.product?.size}</span>
-          </div>
-        ))}
-      </div>
-
-      {order.notes && (
-        <div className="mx-4 mb-3 bg-yellow-50 border border-yellow-200 rounded-lg px-3 py-2 text-sm text-yellow-800 flex items-start gap-2">
-          <Package size={14} className="flex-shrink-0 mt-0.5" />
-          {order.notes}
-        </div>
-      )}
-
-      {order.packaging_notes && (
-        <div className="mx-4 mb-3 bg-purple-50 border border-purple-200 rounded-lg px-3 py-2 text-sm text-purple-800 flex items-start gap-2">
-          <Package size={14} className="flex-shrink-0 mt-0.5" />
-          {order.packaging_notes}
-        </div>
-      )}
+      <p className="text-lg font-semibold text-white">Sin entregas en ruta</p>
+      <p className="text-sm text-[#9CA3AF] mt-1">Todas las entregas están completas</p>
     </div>
   )
 }
@@ -266,11 +205,10 @@ function DeliveryCard({ order, isUpdating, onPickup, onDeliver, onInvoicePhoto }
   const paymentColors = PAYMENT_STATUS_COLORS[order.payment_status ?? 'pending']
 
   return (
-    <div className={`bg-white rounded-xl border-2 overflow-hidden shadow-sm ${isReady ? 'border-green-400' : 'border-orange-300'}`}>
-      {/* Customer + payment */}
+    <div className={`bg-[#1F2937] rounded-xl border-2 overflow-hidden ${isReady ? 'border-green-500' : 'border-orange-400'}`}>
       <div className="px-4 pt-4 pb-3">
         <div className="flex items-start justify-between">
-          <p className="text-lg font-bold text-gray-900">{order.customer_name ?? 'Cliente'}</p>
+          <p className="text-lg font-bold text-white">{order.customer_name ?? 'Cliente'}</p>
           <span
             className="text-xs font-bold px-2.5 py-1 rounded-full flex items-center gap-1"
             style={{ backgroundColor: paymentColors.bg, color: paymentColors.text }}
@@ -285,7 +223,7 @@ function DeliveryCard({ order, isUpdating, onPickup, onDeliver, onInvoicePhoto }
             href={`https://maps.google.com/?q=${encodeURIComponent(order.delivery_address)}`}
             target="_blank"
             rel="noopener noreferrer"
-            className="mt-2 flex items-start gap-2 text-blue-600 text-sm active:text-blue-800"
+            className="mt-2 flex items-start gap-2 text-blue-400 text-sm active:text-blue-300"
           >
             <MapPin size={16} className="flex-shrink-0 mt-0.5" />
             <span className="underline">{order.delivery_address}</span>
@@ -295,7 +233,7 @@ function DeliveryCard({ order, isUpdating, onPickup, onDeliver, onInvoicePhoto }
         {order.customer_phone && (
           <a
             href={`tel:${order.customer_phone}`}
-            className="mt-1.5 flex items-center gap-2 text-blue-600 text-sm active:text-blue-800"
+            className="mt-1.5 flex items-center gap-2 text-blue-400 text-sm active:text-blue-300"
           >
             <Phone size={14} />
             <span className="underline">{order.customer_phone}</span>
@@ -303,27 +241,26 @@ function DeliveryCard({ order, isUpdating, onPickup, onDeliver, onInvoicePhoto }
         )}
       </div>
 
-      {/* Items */}
       <div className="px-4 pb-3 space-y-1">
         {order.items?.map(item => (
           <div key={item.id} className="flex items-center justify-between text-sm">
-            <span className="font-medium text-gray-900">
+            <span className="font-medium text-white">
               {item.quantity}x {item.product?.flavor}
             </span>
-            <span className="text-gray-500 capitalize">{item.product?.size}</span>
+            <span className="text-[#9CA3AF] capitalize">{item.product?.size}</span>
           </div>
         ))}
       </div>
 
       {order.notes && (
-        <div className="mx-4 mb-2 bg-yellow-50 border border-yellow-200 rounded-lg px-3 py-2 text-sm text-yellow-800 flex items-start gap-2">
+        <div className="mx-4 mb-2 bg-yellow-900/30 border border-yellow-700/50 rounded-lg px-3 py-2 text-sm text-yellow-300 flex items-start gap-2">
           <Package size={14} className="flex-shrink-0 mt-0.5" />
           {order.notes}
         </div>
       )}
 
       {order.packaging_notes && (
-        <div className="mx-4 mb-2 bg-purple-50 border border-purple-200 rounded-lg px-3 py-2 text-sm text-purple-800 flex items-start gap-2">
+        <div className="mx-4 mb-2 bg-purple-900/30 border border-purple-700/50 rounded-lg px-3 py-2 text-sm text-purple-300 flex items-start gap-2">
           <Package size={14} className="flex-shrink-0 mt-0.5" />
           {order.packaging_notes}
         </div>
@@ -341,8 +278,7 @@ function DeliveryCard({ order, isUpdating, onPickup, onDeliver, onInvoicePhoto }
         </div>
       )}
 
-      {/* Actions */}
-      <div className="border-t border-gray-100">
+      <div className="border-t border-[#374151]">
         {isReady && (
           <button
             onClick={onPickup}

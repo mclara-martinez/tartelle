@@ -1,18 +1,26 @@
-import { useState, useMemo } from 'react'
+import { useState, useMemo, useCallback } from 'react'
 import { useOrders } from '../hooks/useOrders'
 import { useInventory, adjustInventory } from '../hooks/useInventory'
 import { useProducts } from '../hooks/useProducts'
 import { useProductionExtras } from '../hooks/useProductionExtras'
 import { Toast } from '../components/Toast'
-import { formatDate, today, tomorrow } from '../lib/utils'
+import { today, tomorrow } from '../lib/utils'
 import { SIZE_LABELS } from '../lib/constants'
-import { CheckCircle, TrendingUp, ClipboardList as PageIcon, Plus, X, ShoppingBag } from 'lucide-react'
+import { CheckCircle, TrendingUp, ClipboardList as PageIcon, Plus, X, ShoppingBag, ChevronLeft, ChevronRight } from 'lucide-react'
+import { format, parseISO, addDays, subDays } from 'date-fns'
+import { es } from 'date-fns/locale'
 import type { ProductSize } from '../lib/types'
 
-type DateFilter = 'today' | 'tomorrow'
+function formatDateLabel(dateStr: string): string {
+  const t = today()
+  const tm = tomorrow()
+  if (dateStr === t) return 'Hoy'
+  if (dateStr === tm) return 'Mañana'
+  return format(parseISO(dateStr), "EEE d MMM yyyy", { locale: es })
+}
 
 export function ProductionView() {
-  const [dateFilter, setDateFilter] = useState<DateFilter>('today')
+  const [targetDate, setTargetDate] = useState<string>(today())
   const [toast, setToast] = useState<{ msg: string; type: 'success' | 'error' } | null>(null)
   const [producing, setProducing] = useState<string | null>(null)
 
@@ -21,7 +29,9 @@ export function ProductionView() {
   const [savingExtra, setSavingExtra] = useState(false)
   const [removingExtra, setRemovingExtra] = useState<string | null>(null)
 
-  const targetDate = dateFilter === 'today' ? today() : tomorrow()
+  const goToPrev = useCallback(() => setTargetDate(d => format(subDays(parseISO(d), 1), 'yyyy-MM-dd')), [])
+  const goToNext = useCallback(() => setTargetDate(d => format(addDays(parseISO(d), 1), 'yyyy-MM-dd')), [])
+  const goToToday = useCallback(() => setTargetDate(today()), [])
   const { orders, loading: loadingOrders } = useOrders(targetDate)
   const { inventory, loading: loadingInv, refetch: refetchInv } = useInventory()
   const { products } = useProducts()
@@ -148,24 +158,30 @@ export function ProductionView() {
         </div>
       </div>
 
-      {/* Date tabs */}
-      <div className="flex items-center gap-3">
-        <div className="flex bg-[var(--color-surface-warm)] p-0.5 rounded-lg">
-          {(['today', 'tomorrow'] as DateFilter[]).map(d => (
-            <button
-              key={d}
-              onClick={() => setDateFilter(d)}
-              className={`px-3 py-1.5 rounded-md text-sm font-medium transition-colors duration-200 ${
-                dateFilter === d
-                  ? 'bg-white text-[var(--color-text-primary)] shadow-sm'
-                  : 'text-[var(--color-text-secondary)] hover:text-[var(--color-text-primary)]'
-              }`}
-            >
-              {d === 'today' ? 'Hoy' : 'Manana'}
-            </button>
-          ))}
-        </div>
-        <span className="text-sm text-[var(--color-text-muted)]">{formatDate(targetDate)}</span>
+      <div className="flex items-center gap-2">
+        <button
+          onClick={goToPrev}
+          className="p-1.5 rounded-lg text-[var(--color-text-secondary)] hover:text-[var(--color-text-primary)] hover:bg-[var(--color-surface-warm)] transition-colors duration-150"
+        >
+          <ChevronLeft className="h-4 w-4" />
+        </button>
+        {targetDate !== today() && (
+          <button
+            onClick={goToToday}
+            className="text-xs font-medium px-2 py-1 rounded-md border border-[var(--color-border)] text-[var(--color-text-secondary)] hover:text-[var(--color-accent)] hover:border-[var(--color-accent)] transition-colors duration-150"
+          >
+            Hoy
+          </button>
+        )}
+        <span className="text-sm font-semibold text-[var(--color-text-primary)] capitalize min-w-[10rem] text-center">
+          {formatDateLabel(targetDate)}
+        </span>
+        <button
+          onClick={goToNext}
+          className="p-1.5 rounded-lg text-[var(--color-text-secondary)] hover:text-[var(--color-text-primary)] hover:bg-[var(--color-surface-warm)] transition-colors duration-150"
+        >
+          <ChevronRight className="h-4 w-4" />
+        </button>
       </div>
 
       {/* Extras del día */}

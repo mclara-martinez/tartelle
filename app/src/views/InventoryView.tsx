@@ -2,41 +2,36 @@ import { useInventory, adjustInventory } from '../hooks/useInventory'
 import { Toast } from '../components/Toast'
 import { formatCOP } from '../lib/utils'
 import { LOW_STOCK_THRESHOLD, SIZE_LABELS } from '../lib/constants'
-import { AlertTriangle, TrendingUp, TrendingDown, RefreshCw, Package as PageIcon } from 'lucide-react'
+import { AlertTriangle, RefreshCw, Package as PageIcon } from 'lucide-react'
 import { useState } from 'react'
 import type { ProductSize } from '../lib/types'
 
 export function InventoryView() {
   const { inventory, loading, error, refetch } = useInventory()
   const [toast, setToast] = useState<{ msg: string; type: 'success' | 'error' } | null>(null)
-  const [adjusting, setAdjusting] = useState<string | null>(null)
-  const [adjustQty, setAdjustQty] = useState<Record<string, number>>({})
+  const [saving, setSaving] = useState<string | null>(null)
+  const [inputValues, setInputValues] = useState<Record<string, string>>({})
 
-  async function handleAdjust(productId: string, change: number) {
-    setAdjusting(productId)
+  async function handleBlur(productId: string, currentQty: number) {
+    const raw = inputValues[productId]
+    if (raw === undefined) return
+    const newQty = Number(raw)
+    if (isNaN(newQty) || newQty === currentQty) {
+      setInputValues(prev => { const next = { ...prev }; delete next[productId]; return next })
+      return
+    }
+    const change = newQty - currentQty
+    setSaving(productId)
     try {
-      await adjustInventory(productId, change, 'adjustment', undefined, 'Ajuste manual')
+      await adjustInventory(productId, change, change > 0 ? 'production' : 'adjustment', undefined, 'Ajuste manual')
       refetch()
-      setAdjustQty(prev => ({ ...prev, [productId]: 0 }))
       setToast({ msg: 'Inventario actualizado', type: 'success' })
     } catch {
+      setInputValues(prev => ({ ...prev, [productId]: String(currentQty) }))
       setToast({ msg: 'Error al actualizar inventario', type: 'error' })
     }
-    setAdjusting(null)
-  }
-
-  async function handleProduction(productId: string, qty: number) {
-    if (qty <= 0) return
-    setAdjusting(productId)
-    try {
-      await adjustInventory(productId, qty, 'production')
-      refetch()
-      setAdjustQty(prev => ({ ...prev, [productId]: 0 }))
-      setToast({ msg: `+${qty} unidades agregadas`, type: 'success' })
-    } catch {
-      setToast({ msg: 'Error al actualizar inventario', type: 'error' })
-    }
-    setAdjusting(null)
+    setSaving(null)
+    setInputValues(prev => { const next = { ...prev }; delete next[productId]; return next })
   }
 
   const bySize = inventory.reduce<Record<string, typeof inventory>>((acc, item) => {
@@ -107,7 +102,10 @@ export function InventoryView() {
           </div>
           {bySize[size].map((item, i) => {
             const isLow = item.quantity <= LOW_STOCK_THRESHOLD
-            const qty = adjustQty[item.product_id] ?? 0
+            const isSaving = saving === item.product_id
+            const displayValue = inputValues[item.product_id] !== undefined
+              ? inputValues[item.product_id]
+              : String(item.quantity)
             return (
               <div key={item.id} className={`px-4 py-2.5 flex items-center gap-4 hover:bg-[var(--color-bg-hover)] transition-colors duration-200 ${
                 i > 0 ? 'border-t border-[var(--color-border-light)]' : ''
@@ -117,36 +115,21 @@ export function InventoryView() {
                   <p className="text-xs text-[var(--color-text-muted)]">{formatCOP(item.product?.base_price ?? 0)} / ud</p>
                 </div>
 
-                <div className={`text-center w-10 flex-shrink-0 ${isLow ? 'text-[var(--color-warning-text)]' : 'text-[var(--color-text-primary)]'}`}>
-                  <p className="text-lg font-bold leading-none tabular-nums">{item.quantity}</p>
-                  <p className="text-[10px] text-[var(--color-text-muted)] mt-0.5">uds</p>
-                </div>
-
-                <div className="flex items-center gap-1.5 flex-shrink-0">
+                <div className="flex items-center gap-2 flex-shrink-0">
                   <input
                     type="number"
                     min={0}
-                    value={qty || ''}
-                    onChange={e => setAdjustQty(prev => ({ ...prev, [item.product_id]: Number(e.target.value) }))}
-                    className="w-14 border border-[var(--color-border)] rounded-lg px-2 py-1.5 text-sm text-center bg-white focus:outline-none focus:border-[var(--color-accent)] focus:ring-2 focus:ring-[var(--color-accent)]/15 transition-colors duration-200"
-                    placeholder="0"
+                    value={displayValue}
+                    onChange={e => setInputValues(prev => ({ ...prev, [item.product_id]: e.target.value }))}
+                    onBlur={() => handleBlur(item.product_id, item.quantity)}
+                    disabled={isSaving}
+                    className={`w-16 border rounded-lg px-2 py-1.5 text-sm text-center bg-white focus:outline-none focus:border-[var(--color-accent)] focus:ring-2 focus:ring-[var(--color-accent)]/15 transition-colors duration-200 ${
+                      isLow ? 'border-[var(--color-warning-text)] text-[var(--color-warning-text)]' : 'border-[var(--color-border)] text-[var(--color-text-primary)]'
+                    } disabled:opacity-50`}
                   />
-                  <button
-                    onClick={() => handleProduction(item.product_id, qty)}
-                    disabled={qty <= 0 || adjusting === item.product_id}
-                    className="flex items-center gap-1 text-xs font-medium text-[var(--color-success-text)] border border-[var(--color-border)] px-2.5 py-1.5 rounded-lg hover:bg-[var(--color-success-bg)] disabled:opacity-50 disabled:cursor-not-allowed transition-colors duration-200"
-                  >
-                    <TrendingUp className="h-3 w-3" />
-                    Prod.
-                  </button>
-                  <button
-                    onClick={() => handleAdjust(item.product_id, -(qty))}
-                    disabled={qty <= 0 || adjusting === item.product_id}
-                    className="flex items-center gap-1 text-xs font-medium text-[var(--color-danger-text)] border border-[var(--color-border)] px-2.5 py-1.5 rounded-lg hover:bg-[var(--color-danger-bg)] disabled:opacity-50 disabled:cursor-not-allowed transition-colors duration-200"
-                  >
-                    <TrendingDown className="h-3 w-3" />
-                    Baja
-                  </button>
+                  {isSaving && (
+                    <span className="text-[11px] text-[var(--color-text-muted)]">guardando...</span>
+                  )}
                 </div>
               </div>
             )

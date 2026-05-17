@@ -4,9 +4,9 @@ import { useCustomerSearch, useRecentCustomers, createCustomer } from '../hooks/
 import { createOrder } from '../hooks/useOrders'
 import { Toast } from '../components/Toast'
 import { formatCOP, today, tomorrow } from '../lib/utils'
-import { DELIVERY_FEE, CHANNEL_LABELS, SIZE_LABELS, CATEGORY_LABELS, PRODUCT_CATEGORY_ORDER, PAYMENT_METHOD_LABELS, PAYMENT_BANK_LABELS } from '../lib/constants'
+import { DELIVERY_FEE, CHANNEL_LABELS, SIZE_LABELS, CATEGORY_LABELS, PRODUCT_CATEGORY_ORDER, PAYMENT_METHOD_LABELS } from '../lib/constants'
 import { PhotoUpload } from '../components/PhotoUpload'
-import type { Order, OrderChannel, DeliveryType, Product, ProductCategory, PaymentMethod, PaymentBank } from '../lib/types'
+import type { Order, OrderChannel, DeliveryType, Product, ProductCategory, PaymentMethod } from '../lib/types'
 import { X, Plus, Minus, Search, Bike, Store, ArrowLeft, ShoppingBag, User, Trash2, Package } from 'lucide-react'
 
 interface CartItem {
@@ -36,10 +36,9 @@ export function OrderCreateView({ onClose }: Props) {
   const [channel, setChannel] = useState<OrderChannel>('walk_in')
   const [deliveryType, setDeliveryType] = useState<DeliveryType>('pickup')
   const [deliveryAddress, setDeliveryAddress] = useState('')
-  const [deliveryDate, setDeliveryDate] = useState<'today' | 'tomorrow'>('today')
+  const [deliveryDate, setDeliveryDate] = useState<string>(tomorrow())
   const [notes, setNotes] = useState('')
   const [paymentMethod, setPaymentMethod] = useState<PaymentMethod | null>(null)
-  const [paymentBank, setPaymentBank] = useState<PaymentBank | null>(null)
   const [paymentReceiptUrl, setPaymentReceiptUrl] = useState<string | null>(null)
   const [packagingNotes, setPackagingNotes] = useState('')
   const [tempOrderId] = useState(() => crypto.randomUUID())
@@ -152,7 +151,7 @@ export function OrderCreateView({ onClose }: Props) {
           customer_phone: customerPhone.trim() || null,
           channel,
           status: 'pending',
-          delivery_date: deliveryDate === 'today' ? today() : tomorrow(),
+          delivery_date: deliveryDate,
           delivery_type: deliveryType,
           delivery_address: deliveryType === 'delivery' ? deliveryAddress.trim() || null : null,
           subtotal,
@@ -162,7 +161,7 @@ export function OrderCreateView({ onClose }: Props) {
           notes: notes.trim() || null,
           payment_status: paymentReceiptUrl ? 'paid' : 'pending',
           payment_method: paymentMethod,
-          payment_bank: paymentMethod === 'transfer' ? paymentBank : null,
+          payment_bank: null,
           card_type: null,
           payment_receipt_url: paymentReceiptUrl,
           billing_name: billingName.trim() || null,
@@ -450,24 +449,13 @@ export function OrderCreateView({ onClose }: Props) {
               </div>
               <div>
                 <label className="text-xs font-medium text-[var(--color-text-muted)] uppercase tracking-wider block mb-1.5">Fecha</label>
-                <div className="flex gap-1">
-                  <button
-                    onClick={() => setDeliveryDate('today')}
-                    className={`flex-1 py-2 rounded-lg text-xs font-medium border transition-colors ${
-                      deliveryDate === 'today' ? 'border-[var(--color-accent)] bg-[var(--color-accent-light)] text-[var(--color-accent)]' : 'border-[var(--color-border)] text-[var(--color-text-secondary)]'
-                    }`}
-                  >
-                    Hoy
-                  </button>
-                  <button
-                    onClick={() => setDeliveryDate('tomorrow')}
-                    className={`flex-1 py-2 rounded-lg text-xs font-medium border transition-colors ${
-                      deliveryDate === 'tomorrow' ? 'border-[var(--color-accent)] bg-[var(--color-accent-light)] text-[var(--color-accent)]' : 'border-[var(--color-border)] text-[var(--color-text-secondary)]'
-                    }`}
-                  >
-                    Manana
-                  </button>
-                </div>
+                <input
+                  type="date"
+                  value={deliveryDate}
+                  min={today()}
+                  onChange={e => setDeliveryDate(e.target.value)}
+                  className="w-full border border-[var(--color-border)] rounded-lg px-3 py-2 text-xs font-medium focus:outline-none focus:border-[var(--color-accent)] bg-white text-[var(--color-text-primary)]"
+                />
               </div>
             </div>
 
@@ -506,7 +494,7 @@ export function OrderCreateView({ onClose }: Props) {
                 {(Object.entries(PAYMENT_METHOD_LABELS) as [PaymentMethod, string][]).map(([pm, label]) => (
                   <button
                     key={pm}
-                    onClick={() => { setPaymentMethod(pm); setPaymentBank(null); setPaymentReceiptUrl(null) }}
+                    onClick={() => { setPaymentMethod(pm); setPaymentReceiptUrl(null) }}
                     className={`px-3 py-1.5 rounded-lg text-xs font-medium border transition-colors ${
                       paymentMethod === pm ? 'border-[var(--color-accent)] bg-[var(--color-accent-light)] text-[var(--color-accent)]' : 'border-[var(--color-border)] text-[var(--color-text-secondary)] hover:border-[var(--color-text-muted)]'
                     }`}
@@ -517,33 +505,15 @@ export function OrderCreateView({ onClose }: Props) {
               </div>
             </div>
 
-            {/* Bank selector (transfer only) */}
             {paymentMethod === 'transfer' && (
               <div>
-                <label className="text-xs font-medium text-[var(--color-text-muted)] uppercase tracking-wider block mb-1.5">Banco</label>
-                <div className="flex flex-wrap gap-1.5">
-                  {(Object.entries(PAYMENT_BANK_LABELS) as [PaymentBank, string][]).map(([bank, label]) => (
-                    <button
-                      key={bank}
-                      onClick={() => setPaymentBank(bank)}
-                      className={`px-3 py-1.5 rounded-lg text-xs font-medium border transition-colors ${
-                        paymentBank === bank ? 'border-[var(--color-accent)] bg-[var(--color-accent-light)] text-[var(--color-accent)]' : 'border-[var(--color-border)] text-[var(--color-text-secondary)] hover:border-[var(--color-text-muted)]'
-                      }`}
-                    >
-                      {label}
-                    </button>
-                  ))}
-                </div>
-                {/* Receipt upload */}
-                <div className="mt-2">
-                  <PhotoUpload
-                    orderId={tempOrderId}
-                    type="receipt"
-                    existingPath={paymentReceiptUrl}
-                    onUpload={setPaymentReceiptUrl}
-                    label="Comprobante"
-                  />
-                </div>
+                <PhotoUpload
+                  orderId={tempOrderId}
+                  type="receipt"
+                  existingPath={paymentReceiptUrl}
+                  onUpload={setPaymentReceiptUrl}
+                  label="Comprobante"
+                />
               </div>
             )}
 
