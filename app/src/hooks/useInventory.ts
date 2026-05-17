@@ -1,6 +1,8 @@
 import { useState, useEffect, useCallback, useRef } from 'react'
 import { supabase } from '../lib/supabase'
-import type { InventoryFinished, InventoryReason } from '../lib/types'
+import type { InventoryFinished, InventoryLog, InventoryReason, Product } from '../lib/types'
+
+export type ProductionLogEntry = InventoryLog & { product: Product | null }
 
 export function useInventory() {
   const [inventory, setInventory] = useState<InventoryFinished[]>([])
@@ -42,6 +44,43 @@ export function useInventory() {
   }, [fetchInventory])
 
   return { inventory, loading, error, refetch: fetchInventory }
+}
+
+export function useProductionToday() {
+  const [entries, setEntries] = useState<ProductionLogEntry[]>([])
+  const [loading, setLoading] = useState(true)
+  const debounceRef = useRef<ReturnType<typeof setTimeout> | null>(null)
+
+  const fetch = useCallback(async () => {
+    setLoading(true)
+    const startOfToday = new Date()
+    startOfToday.setHours(0, 0, 0, 0)
+    const { data } = await supabase
+      .from('inventory_log')
+      .select('*, product:products(id, sku, name, flavor, size, category, base_price, tax_type, requires_advance_order, catalog, active, created_at)')
+      .eq('reason', 'production')
+      .gte('created_at', startOfToday.toISOString())
+      .order('created_at', { ascending: false })
+    setEntries((data as ProductionLogEntry[]) ?? [])
+    setLoading(false)
+  }, [])
+
+  useEffect(() => {
+    fetch()
+    const channel = supabase
+      .channel(`production-log-today-${Math.random().toString(36).slice(2)}`)
+      .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'inventory_log' }, () => {
+        if (debounceRef.current) clearTimeout(debounceRef.current)
+        debounceRef.current = setTimeout(() => fetch(), 400)
+      })
+      .subscribe()
+    return () => {
+      if (debounceRef.current) clearTimeout(debounceRef.current)
+      supabase.removeChannel(channel)
+    }
+  }, [fetch])
+
+  return { entries, loading }
 }
 
 export async function adjustInventory(

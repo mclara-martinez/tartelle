@@ -11,12 +11,12 @@ export const CHANNEL_LABELS: Record<OrderChannel, string> = {
 }
 
 export const STATUS_LABELS: Record<OrderStatus, string> = {
-  pending: 'Pendiente',
-  confirmed: 'Confirmado',
-  in_production: 'En producción',
+  in_production: 'En cocina',
   ready: 'Listo',
   dispatched: 'En camino',
   delivered: 'Entregado',
+  pending: 'Pendiente',
+  confirmed: 'Confirmado',
   cancelled: 'Cancelado',
 }
 
@@ -56,12 +56,12 @@ export const PRODUCT_CATEGORY_ORDER: ProductCategory[] = [
 ]
 
 export const ORDER_STATUS_FLOW: OrderStatus[] = [
-  'pending', 'confirmed', 'in_production', 'ready', 'dispatched', 'delivered',
+  'in_production', 'ready', 'dispatched', 'delivered',
 ]
 
 export const NEXT_STATUS_ACTION: Partial<Record<OrderStatus, { next: OrderStatus; label: string }>> = {
-  pending:       { next: 'confirmed',     label: 'Confirmar' },
-  confirmed:     { next: 'in_production', label: 'A producción' },
+  pending:       { next: 'in_production', label: 'A cocina' },
+  confirmed:     { next: 'in_production', label: 'A cocina' },
   in_production: { next: 'ready',         label: 'Marcar listo' },
   ready:         { next: 'dispatched',    label: 'Despachar' },
   dispatched:    { next: 'delivered',     label: 'Entregado' },
@@ -69,11 +69,9 @@ export const NEXT_STATUS_ACTION: Partial<Record<OrderStatus, { next: OrderStatus
 
 /** Kanban columns — only active statuses, no delivered/cancelled */
 export const KANBAN_COLUMNS: { status: OrderStatus; label: string }[] = [
-  { status: 'pending',       label: 'Pendiente' },
-  { status: 'confirmed',     label: 'Confirmado' },
-  { status: 'in_production', label: 'En producción' },
+  { status: 'in_production', label: 'En cocina' },
   { status: 'ready',         label: 'Listo' },
-  { status: 'dispatched',    label: 'Despachado' },
+  { status: 'dispatched',    label: 'En camino' },
 ]
 
 export const PAYMENT_STATUS_LABELS: Record<PaymentStatus, string> = {

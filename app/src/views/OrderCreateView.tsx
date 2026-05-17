@@ -150,7 +150,7 @@ export function OrderCreateView({ onClose }: Props) {
           customer_name: customerName.trim() || 'Cliente',
           customer_phone: customerPhone.trim() || null,
           channel,
-          status: 'pending',
+          status: 'in_production',
           delivery_date: deliveryDate,
           delivery_type: deliveryType,
           delivery_address: deliveryType === 'delivery' ? deliveryAddress.trim() || null : null,

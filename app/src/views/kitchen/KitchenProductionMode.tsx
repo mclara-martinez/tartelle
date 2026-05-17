@@ -1,6 +1,6 @@
 import { useState, useMemo } from 'react'
 import { useOrders } from '../../hooks/useOrders'
-import { useInventory, adjustInventory } from '../../hooks/useInventory'
+import { useInventory, useProductionToday, adjustInventory } from '../../hooks/useInventory'
 import { useProducts } from '../../hooks/useProducts'
 import { Toast } from '../../components/Toast'
 import { today } from '../../lib/utils'
@@ -12,11 +12,11 @@ export function KitchenProductionMode() {
   const { orders } = useOrders(today())
   const { inventory, refetch: refetchInv } = useInventory()
   const { products } = useProducts()
+  const { entries: producedToday } = useProductionToday()
   const [toast, setToast] = useState<{ msg: string; type: 'success' | 'error' } | null>(null)
   const [producing, setProducing] = useState<string | null>(null)
   const [showAddForm, setShowAddForm] = useState(false)
 
-  // Totalize order items by product
   const productNeeds = useMemo(() => {
     const needs: Record<string, { productId: string; flavor: string; size: ProductSize; needed: number }> = {}
     for (const order of orders) {
@@ -71,7 +71,6 @@ export function KitchenProductionMode() {
 
   return (
     <div className="p-4 space-y-4">
-      {/* Header with add button */}
       <div className="flex items-center justify-between">
         <p className="text-gray-400 text-sm">{toProduceCount} producto{toProduceCount !== 1 ? 's' : ''} por producir</p>
         <button
@@ -83,7 +82,6 @@ export function KitchenProductionMode() {
         </button>
       </div>
 
-      {/* Add to production form */}
       {showAddForm && (
         <AddProductionForm
           products={products}
@@ -95,44 +93,77 @@ export function KitchenProductionMode() {
         />
       )}
 
-      {/* Totalized production list */}
-      {toProduceCount === 0 ? (
-        <div className="flex flex-col items-center justify-center py-20 text-center">
-          <CheckCircle size={64} className="text-green-500 mb-4" />
-          <p className="text-white text-2xl font-bold">Sin produccion pendiente</p>
-          <p className="text-gray-400 text-lg mt-1">Todo el stock esta cubierto</p>
-        </div>
-      ) : (
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+        {/* Por producir */}
         <div className="space-y-3">
-          {Object.entries(toProduceByFlavor).map(([flavor, items]) => (
-            <div key={flavor} className="bg-[#1F2937] rounded-xl overflow-hidden border border-[#374151]">
-              <div className="px-5 pt-4 pb-3 border-b border-[#374151]">
-                <p className="text-white text-xl font-bold capitalize">{flavor}</p>
-              </div>
+          <p className="text-white text-base font-bold">Por producir</p>
+          {toProduceCount === 0 ? (
+            <div className="flex flex-col items-center justify-center py-12 text-center bg-[#1F2937] rounded-xl border border-[#374151]">
+              <CheckCircle size={48} className="text-green-500 mb-3" />
+              <p className="text-white text-lg font-bold">Sin produccion pendiente</p>
+              <p className="text-gray-400 text-sm mt-1">Todo el stock esta cubierto</p>
+            </div>
+          ) : (
+            <div className="space-y-3">
+              {Object.entries(toProduceByFlavor).map(([flavor, items]) => (
+                <div key={flavor} className="bg-[#1F2937] rounded-xl overflow-hidden border border-[#374151]">
+                  <div className="px-5 pt-4 pb-3 border-b border-[#374151]">
+                    <p className="text-white text-xl font-bold capitalize">{flavor}</p>
+                  </div>
+                  <div className="divide-y divide-[#374151]">
+                    {items.map(item => (
+                      <div key={item.productId} className="flex items-center justify-between gap-4 px-5 py-4">
+                        <div className="flex-1 min-w-0">
+                          <p className="text-gray-300 text-base font-medium">{SIZE_LABELS[item.size]}</p>
+                          <p className="text-gray-400 text-sm mt-0.5">
+                            {item.needed} necesarias · {item.stock} en stock
+                          </p>
+                        </div>
+                        <button
+                          onClick={() => handleProduce(item.productId, item.deficit)}
+                          disabled={producing === item.productId}
+                          className="flex items-center gap-2 px-5 py-3 bg-green-600 text-white rounded-xl text-base font-bold hover:bg-green-700 disabled:opacity-50 transition-colors min-h-[48px] flex-shrink-0"
+                        >
+                          <TrendingUp size={18} />
+                          +{item.deficit}
+                        </button>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              ))}
+            </div>
+          )}
+        </div>
+
+        {/* Ya producido hoy */}
+        <div className="space-y-3">
+          <p className="text-white text-base font-bold">Ya producido hoy</p>
+          {producedToday.length === 0 ? (
+            <div className="flex flex-col items-center justify-center py-12 text-center bg-[#1F2937] rounded-xl border border-[#374151]">
+              <p className="text-gray-400 text-sm">Nada producido aun hoy</p>
+            </div>
+          ) : (
+            <div className="bg-[#1F2937] rounded-xl overflow-hidden border border-[#374151]">
               <div className="divide-y divide-[#374151]">
-                {items.map(item => (
-                  <div key={item.productId} className="flex items-center justify-between gap-4 px-5 py-4">
+                {producedToday.map(entry => (
+                  <div key={entry.id} className="flex items-center justify-between gap-4 px-5 py-4">
                     <div className="flex-1 min-w-0">
-                      <p className="text-gray-300 text-base font-medium">{SIZE_LABELS[item.size]}</p>
+                      <p className="text-gray-300 text-base font-medium truncate">
+                        {entry.product?.name ?? entry.product_id}
+                      </p>
                       <p className="text-gray-400 text-sm mt-0.5">
-                        {item.needed} necesarias · {item.stock} en stock
+                        {new Date(entry.created_at).toLocaleTimeString('es-CO', { hour: '2-digit', minute: '2-digit' })}
                       </p>
                     </div>
-                    <button
-                      onClick={() => handleProduce(item.productId, item.deficit)}
-                      disabled={producing === item.productId}
-                      className="flex items-center gap-2 px-5 py-3 bg-green-600 text-white rounded-xl text-base font-bold hover:bg-green-700 disabled:opacity-50 transition-colors min-h-[48px] flex-shrink-0"
-                    >
-                      <TrendingUp size={18} />
-                      +{item.deficit}
-                    </button>
+                    <span className="text-green-400 text-lg font-bold flex-shrink-0">+{entry.change}</span>
                   </div>
                 ))}
               </div>
             </div>
-          ))}
+          )}
         </div>
-      )}
+      </div>
 
       {toast && <Toast message={toast.msg} type={toast.type} onClose={() => setToast(null)} />}
     </div>
@@ -148,14 +179,8 @@ function AddProductionForm({ products, onAdd, onClose }: {
   const [qty, setQty] = useState(1)
   const [submitting, setSubmitting] = useState(false)
 
-  // Group by flavor
-  const grouped = useMemo(() => {
-    const g: Record<string, Product[]> = {}
-    for (const p of products) {
-      g[p.flavor] = g[p.flavor] ?? []
-      g[p.flavor].push(p)
-    }
-    return g
+  const productList = useMemo(() => {
+    return [...products].sort((a, b) => a.name.localeCompare(b.name))
   }, [products])
 
   async function handleSubmit() {
@@ -172,26 +197,19 @@ function AddProductionForm({ products, onAdd, onClose }: {
         <button onClick={onClose} className="p-2 text-gray-400 hover:text-white"><X size={18} /></button>
       </div>
 
-      <div className="space-y-3 max-h-[300px] overflow-y-auto mb-4">
-        {Object.entries(grouped).map(([flavor, prods]) => (
-          <div key={flavor}>
-            <p className="text-gray-400 text-xs uppercase tracking-wider mb-1 capitalize">{flavor}</p>
-            <div className="flex flex-wrap gap-2">
-              {prods.map(p => (
-                <button
-                  key={p.id}
-                  onClick={() => setSelectedProduct(p.id)}
-                  className={`px-4 py-2.5 rounded-lg text-sm font-medium transition-colors min-h-[44px] ${
-                    selectedProduct === p.id
-                      ? 'bg-[#7C3AED] text-white'
-                      : 'bg-[#374151] text-gray-300 hover:bg-[#4B5563]'
-                  }`}
-                >
-                  {SIZE_LABELS[p.size]}
-                </button>
-              ))}
-            </div>
-          </div>
+      <div className="space-y-1 max-h-[300px] overflow-y-auto mb-4">
+        {productList.map(p => (
+          <button
+            key={p.id}
+            onClick={() => setSelectedProduct(p.id)}
+            className={`w-full text-left px-4 py-2.5 rounded-lg text-sm font-medium transition-colors min-h-[44px] ${
+              selectedProduct === p.id
+                ? 'bg-[#7C3AED] text-white'
+                : 'bg-[#374151] text-gray-300 hover:bg-[#4B5563]'
+            }`}
+          >
+            {p.name}
+          </button>
         ))}
       </div>
 

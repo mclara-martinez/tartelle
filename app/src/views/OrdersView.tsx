@@ -1,14 +1,14 @@
-import { useState } from 'react'
+import { useState, useRef, useEffect } from 'react'
 import { useOrders, updateOrderStatus } from '../hooks/useOrders'
 import { StatusBadge } from '../components/StatusBadge'
 import { OrderDrawer } from '../components/OrderDrawer'
 import { KanbanBoard } from '../components/KanbanBoard'
 import { Toast } from '../components/Toast'
 import { formatCOP, formatDate, today, tomorrow } from '../lib/utils'
-import { CHANNEL_LABELS, NEXT_STATUS_ACTION } from '../lib/constants'
+import { CHANNEL_LABELS, ORDER_STATUS_FLOW, STATUS_LABELS } from '../lib/constants'
 import type { Order, OrderStatus } from '../lib/types'
 import type { View } from '../App'
-import { Plus, List, Columns3, Bike, Store, ChevronRight, Search, X, ShoppingBag as PageIcon, Download, Calendar } from 'lucide-react'
+import { Plus, List, Columns3, Bike, Store, Check, MessageSquare, Search, X, ShoppingBag as PageIcon, Download, Calendar } from 'lucide-react'
 
 type DatePreset = 'today' | 'tomorrow' | 'range'
 type ViewMode = 'list' | 'kanban'
@@ -115,6 +115,19 @@ export function OrdersView({ onNavigate, selectedOrderId, onSelectOrder }: Props
   const [viewMode, setViewMode] = useState<ViewMode>('list')
   const [searchQuery, setSearchQuery] = useState('')
   const [toast, setToast] = useState<{ msg: string; type: 'success' | 'error' } | null>(null)
+  const [openDropdown, setOpenDropdown] = useState<string | null>(null)
+  const dropdownRef = useRef<HTMLDivElement | null>(null)
+
+  useEffect(() => {
+    if (!openDropdown) return
+    function handleClick(e: MouseEvent) {
+      if (dropdownRef.current && !dropdownRef.current.contains(e.target as Node)) {
+        setOpenDropdown(null)
+      }
+    }
+    document.addEventListener('mousedown', handleClick)
+    return () => document.removeEventListener('mousedown', handleClick)
+  }, [openDropdown])
 
   const startDate = preset === 'today' ? today() : preset === 'tomorrow' ? tomorrow() : rangeStart
   const endDate = preset === 'today' ? today() : preset === 'tomorrow' ? tomorrow() : rangeEnd
@@ -271,89 +284,149 @@ export function OrdersView({ onNavigate, selectedOrderId, onSelectOrder }: Props
         <>
           {/* Desktop table */}
           <div className="hidden md:block bg-white rounded-lg border border-[var(--color-border)] overflow-hidden">
-            <div className="grid grid-cols-[1fr_90px_80px_90px_120px_50px] px-4 py-2.5 border-b border-[var(--color-border)] text-left font-medium text-[var(--color-text-muted)]">
+            <div className="grid grid-cols-[1fr_80px_90px_140px_24px] px-4 py-2.5 border-b border-[var(--color-border)] text-left font-medium text-[var(--color-text-muted)]">
               <span className="text-sm">Cliente</span>
-              <span className="text-sm">Canal</span>
               <span className="text-sm">Entrega</span>
               <span className="text-sm text-right">Total</span>
               <span className="text-sm">Estado</span>
               <span></span>
             </div>
-            {filteredOrders.map((order, i) => {
-              const action = NEXT_STATUS_ACTION[order.status]
-              const isTerminal = order.status === 'delivered' || order.status === 'cancelled'
-              return (
-                <div
-                  key={order.id}
-                  className={`grid grid-cols-[1fr_90px_80px_90px_120px_50px] px-4 py-2.5 items-center group hover:bg-[var(--color-bg-hover)] transition-colors duration-200 cursor-pointer ${
-                    i > 0 ? 'border-t border-[var(--color-border-light)]' : ''
-                  }`}
-                  onClick={() => onSelectOrder(order.id)}
-                >
+            {filteredOrders.map((order, i) => (
+              <div
+                key={order.id}
+                className={`grid grid-cols-[1fr_80px_90px_140px_24px] px-4 py-2.5 items-center hover:bg-[var(--color-bg-hover)] transition-colors duration-200 cursor-pointer ${
+                  i > 0 ? 'border-t border-[var(--color-border-light)]' : ''
+                }`}
+                onClick={() => onSelectOrder(order.id)}
+              >
+                <div className="min-w-0 flex items-center gap-2">
                   <div className="min-w-0">
                     <p className="text-sm font-medium truncate">{order.customer_name ?? 'Cliente'}</p>
                     <p className="text-xs text-[var(--color-text-muted)] truncate mt-0.5">
-                      {order.items?.map(i => `${i.quantity}x ${i.product?.flavor}`).join(', ')}
+                      {order.items?.map(it => `${it.quantity}x ${it.product?.flavor}`).join(', ')}
                     </p>
                   </div>
-                  <span className="text-xs text-[var(--color-text-secondary)]">{CHANNEL_LABELS[order.channel]}</span>
-                  <span className="text-xs text-[var(--color-text-secondary)] inline-flex items-center gap-1">
-                    {order.delivery_type === 'delivery' ? <Bike className="h-3 w-3" /> : <Store className="h-3 w-3" />}
-                    {order.delivery_type === 'delivery' ? 'Dom.' : 'Local'}
-                  </span>
-                  <span className="text-sm font-medium text-right tabular-nums">{formatCOP(order.total)}</span>
-                  <StatusBadge status={order.status} size="sm" />
-                  {!isTerminal && action && (
-                    <button
-                      onClick={(e) => { e.stopPropagation(); handleStatusChange(order.id, action.next) }}
-                      className="opacity-0 group-hover:opacity-100 text-[var(--color-accent)] hover:bg-[var(--color-accent-light)] p-1 rounded-md transition-all"
-                      title={action.label}
-                    >
-                      <ChevronRight className="h-4 w-4" />
-                    </button>
+                </div>
+                <span className="text-xs text-[var(--color-text-secondary)] inline-flex items-center gap-1">
+                  {order.delivery_type === 'delivery' ? <Bike className="h-3 w-3" /> : <Store className="h-3 w-3" />}
+                  {order.delivery_type === 'delivery' ? 'Dom.' : 'Local'}
+                </span>
+                <span className="text-sm font-medium text-right tabular-nums">{formatCOP(order.total)}</span>
+                <div className="relative" ref={openDropdown === order.id ? dropdownRef : null}>
+                  <button
+                    onClick={(e) => { e.stopPropagation(); setOpenDropdown(openDropdown === order.id ? null : order.id) }}
+                    className="min-h-[36px] flex items-center"
+                  >
+                    <StatusBadge status={order.status} size="sm" />
+                  </button>
+                  {openDropdown === order.id && (
+                    <div className="absolute left-0 z-10 mt-1 bg-white border border-[var(--color-border)] rounded-lg shadow-md py-1 min-w-[150px]">
+                      {ORDER_STATUS_FLOW.map(s => (
+                        <button
+                          key={s}
+                          onClick={(e) => { e.stopPropagation(); handleStatusChange(order.id, s); setOpenDropdown(null) }}
+                          className="w-full text-left px-3 py-2 text-sm hover:bg-[var(--color-bg-hover)] flex items-center gap-2 transition-colors duration-150"
+                        >
+                          <span className="w-4 flex-shrink-0">
+                            {order.status === s && <Check className="h-3.5 w-3.5 text-[var(--color-accent)]" />}
+                          </span>
+                          {STATUS_LABELS[s]}
+                        </button>
+                      ))}
+                      <div className="border-t border-[var(--color-border-light)] mt-1 pt-1">
+                        <button
+                          onClick={(e) => { e.stopPropagation(); handleStatusChange(order.id, 'cancelled'); setOpenDropdown(null) }}
+                          className="w-full text-left px-3 py-2 text-sm hover:bg-[var(--color-bg-hover)] flex items-center gap-2 text-[var(--color-danger-text)] transition-colors duration-150"
+                        >
+                          <span className="w-4 flex-shrink-0">
+                            {order.status === 'cancelled' && <Check className="h-3.5 w-3.5" />}
+                          </span>
+                          Cancelado
+                        </button>
+                      </div>
+                    </div>
                   )}
                 </div>
-              )
-            })}
+                <div className="flex items-center justify-end">
+                  {(order.notes || order.packaging_notes) && (
+                    <span
+                      title={[order.notes, order.packaging_notes].filter(Boolean).join(' | ')}
+                      className="cursor-help text-[var(--color-warning-text)]"
+                    >
+                      <MessageSquare className="h-4 w-4" />
+                    </span>
+                  )}
+                </div>
+              </div>
+            ))}
           </div>
 
           {/* Mobile cards */}
           <div className="md:hidden space-y-2">
-            {filteredOrders.map(order => {
-              const action = NEXT_STATUS_ACTION[order.status]
-              const isTerminal = order.status === 'delivered' || order.status === 'cancelled'
-              return (
-                <div
-                  key={order.id}
-                  className="bg-white rounded-lg border border-[var(--color-border)] p-4 cursor-pointer active:bg-[var(--color-bg-active)]"
-                  onClick={() => onSelectOrder(order.id)}
-                >
-                  <div className="flex items-start justify-between gap-2">
-                    <div className="min-w-0 flex-1">
+            {filteredOrders.map(order => (
+              <div
+                key={order.id}
+                className="bg-white rounded-lg border border-[var(--color-border)] p-4 cursor-pointer active:bg-[var(--color-bg-active)]"
+                onClick={() => onSelectOrder(order.id)}
+              >
+                <div className="flex items-start justify-between gap-2">
+                  <div className="min-w-0 flex-1">
+                    <div className="flex items-center gap-1.5">
                       <p className="text-sm font-medium">{order.customer_name ?? 'Cliente'}</p>
-                      <p className="text-xs text-[var(--color-text-muted)] mt-0.5">
-                        {CHANNEL_LABELS[order.channel]} · {order.items?.map(i => `${i.quantity}x ${i.product?.flavor}`).join(', ')}
-                      </p>
+                      {(order.notes || order.packaging_notes) && (
+                        <span
+                          title={[order.notes, order.packaging_notes].filter(Boolean).join(' | ')}
+                          className="cursor-help text-[var(--color-warning-text)]"
+                        >
+                          <MessageSquare className="h-3.5 w-3.5" />
+                        </span>
+                      )}
                     </div>
-                    <div className="flex flex-col items-end gap-1.5 flex-shrink-0">
-                      <StatusBadge status={order.status} size="sm" />
-                      <p className="text-sm font-semibold tabular-nums">{formatCOP(order.total)}</p>
-                    </div>
+                    <p className="text-xs text-[var(--color-text-muted)] mt-0.5">
+                      {CHANNEL_LABELS[order.channel]} · {order.items?.map(it => `${it.quantity}x ${it.product?.flavor}`).join(', ')}
+                    </p>
                   </div>
-                  {!isTerminal && action && (
-                    <div className="mt-2.5 pt-2.5 border-t border-[var(--color-border-light)]">
+                  <div className="flex flex-col items-end gap-1.5 flex-shrink-0">
+                    <div className="relative" ref={openDropdown === order.id ? dropdownRef : null}>
                       <button
-                        onClick={(e) => { e.stopPropagation(); handleStatusChange(order.id, action.next) }}
-                        className="flex items-center gap-1 text-xs font-medium text-[var(--color-accent)] min-h-[44px] px-1"
+                        onClick={(e) => { e.stopPropagation(); setOpenDropdown(openDropdown === order.id ? null : order.id) }}
+                        className="min-h-[44px] flex items-center"
                       >
-                        <ChevronRight className="h-3.5 w-3.5" />
-                        {action.label}
+                        <StatusBadge status={order.status} size="sm" />
                       </button>
+                      {openDropdown === order.id && (
+                        <div className="absolute right-0 z-10 mt-1 bg-white border border-[var(--color-border)] rounded-lg shadow-md py-1 min-w-[150px]">
+                          {ORDER_STATUS_FLOW.map(s => (
+                            <button
+                              key={s}
+                              onClick={(e) => { e.stopPropagation(); handleStatusChange(order.id, s); setOpenDropdown(null) }}
+                              className="w-full text-left px-3 py-2 text-sm hover:bg-[var(--color-bg-hover)] flex items-center gap-2 transition-colors duration-150"
+                            >
+                              <span className="w-4 flex-shrink-0">
+                                {order.status === s && <Check className="h-3.5 w-3.5 text-[var(--color-accent)]" />}
+                              </span>
+                              {STATUS_LABELS[s]}
+                            </button>
+                          ))}
+                          <div className="border-t border-[var(--color-border-light)] mt-1 pt-1">
+                            <button
+                              onClick={(e) => { e.stopPropagation(); handleStatusChange(order.id, 'cancelled'); setOpenDropdown(null) }}
+                              className="w-full text-left px-3 py-2 text-sm hover:bg-[var(--color-bg-hover)] flex items-center gap-2 text-[var(--color-danger-text)] transition-colors duration-150"
+                            >
+                              <span className="w-4 flex-shrink-0">
+                                {order.status === 'cancelled' && <Check className="h-3.5 w-3.5" />}
+                              </span>
+                              Cancelado
+                            </button>
+                          </div>
+                        </div>
+                      )}
                     </div>
-                  )}
+                    <p className="text-sm font-semibold tabular-nums">{formatCOP(order.total)}</p>
+                  </div>
                 </div>
-              )
-            })}
+              </div>
+            ))}
           </div>
         </>
       )}
