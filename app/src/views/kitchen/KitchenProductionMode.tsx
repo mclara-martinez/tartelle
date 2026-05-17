@@ -4,9 +4,19 @@ import { useInventory, useProductionToday, adjustInventory } from '../../hooks/u
 import { useProducts } from '../../hooks/useProducts'
 import { Toast } from '../../components/Toast'
 import { today } from '../../lib/utils'
-import { SIZE_LABELS } from '../../lib/constants'
-import { CheckCircle, TrendingUp, Plus, X } from 'lucide-react'
+import { SIZE_LABELS, LOW_STOCK_THRESHOLD } from '../../lib/constants'
+import { CheckCircle, TrendingUp, Plus, X, AlertTriangle } from 'lucide-react'
 import type { Product, ProductSize } from '../../lib/types'
+
+const RAPPI_CONFIRMED_KEY = 'rappi_off_confirmed'
+const TWO_HOURS_MS = 2 * 60 * 60 * 1000
+
+function shouldShowRappiModal(lowStockCount: number): boolean {
+  if (lowStockCount === 0) return false
+  const stored = localStorage.getItem(RAPPI_CONFIRMED_KEY)
+  if (!stored) return true
+  return Date.now() - Number(stored) > TWO_HOURS_MS
+}
 
 export function KitchenProductionMode() {
   const { orders } = useOrders(today())
@@ -16,6 +26,19 @@ export function KitchenProductionMode() {
   const [toast, setToast] = useState<{ msg: string; type: 'success' | 'error' } | null>(null)
   const [producing, setProducing] = useState<string | null>(null)
   const [showAddForm, setShowAddForm] = useState(false)
+  const [rappiDismissed, setRappiDismissed] = useState(false)
+
+  const lowStockItems = useMemo(
+    () => inventory.filter(i => i.quantity <= LOW_STOCK_THRESHOLD),
+    [inventory]
+  )
+
+  const showRappiModal = !rappiDismissed && shouldShowRappiModal(lowStockItems.length)
+
+  function handleRappiConfirm() {
+    localStorage.setItem(RAPPI_CONFIRMED_KEY, String(Date.now()))
+    setRappiDismissed(true)
+  }
 
   const productNeeds = useMemo(() => {
     const needs: Record<string, { productId: string; flavor: string; size: ProductSize; needed: number }> = {}
@@ -166,6 +189,36 @@ export function KitchenProductionMode() {
       </div>
 
       {toast && <Toast message={toast.msg} type={toast.type} onClose={() => setToast(null)} />}
+
+      {showRappiModal && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm px-4">
+          <div className="bg-[#1F2937] border border-[#374151] rounded-2xl p-6 max-w-sm w-full mx-auto">
+            <div className="flex items-center gap-3 mb-4">
+              <AlertTriangle className="h-6 w-6 text-orange-400 flex-shrink-0" />
+              <h2 className="text-orange-400 text-xl font-bold">Stock bajo</h2>
+            </div>
+            <p className="text-gray-300 text-sm mb-4">Los siguientes productos tienen stock bajo:</p>
+            <ul className="space-y-2 mb-6">
+              {lowStockItems.map(item => (
+                <li key={item.id} className="flex items-center justify-between gap-3">
+                  <span className="text-gray-200 text-sm">{item.product?.name ?? item.product_id}</span>
+                  <span className={`text-xs font-bold px-2 py-0.5 rounded tabular-nums ${
+                    item.quantity === 0 ? 'bg-red-900 text-red-300' : 'bg-orange-900 text-orange-300'
+                  }`}>
+                    {item.quantity === 0 ? 'Sin stock' : `${item.quantity} uds`}
+                  </span>
+                </li>
+              ))}
+            </ul>
+            <button
+              onClick={handleRappiConfirm}
+              className="w-full bg-green-600 hover:bg-green-700 text-white py-3 px-6 rounded-xl font-bold text-lg transition-colors min-h-[48px]"
+            >
+              Ya apagué Rappi ✓
+            </button>
+          </div>
+        </div>
+      )}
     </div>
   )
 }

@@ -1,9 +1,8 @@
 import { useOrders } from '../hooks/useOrders'
-import { useInventory } from '../hooks/useInventory'
 import { StatusBadge } from '../components/StatusBadge'
 import { formatCOP, formatDate, today, tomorrow } from '../lib/utils'
-import { CHANNEL_LABELS, LOW_STOCK_THRESHOLD, SIZE_LABELS } from '../lib/constants'
-import { AlertTriangle, TrendingUp, Package, Clock, Bike, Store, ShoppingBag, ArrowRight, LayoutDashboard, ChefHat, WifiOff } from 'lucide-react'
+import { CHANNEL_LABELS } from '../lib/constants'
+import { TrendingUp, Package, Clock, Bike, Store, ShoppingBag, ArrowRight, LayoutDashboard } from 'lucide-react'
 import type { View } from '../App'
 
 interface Props {
@@ -14,24 +13,12 @@ interface Props {
 export function DashboardView({ onNavigate, onSelectOrder }: Props) {
   const { orders: todayOrders, loading: loadingToday } = useOrders(today())
   const { orders: tomorrowOrders, loading: loadingTomorrow } = useOrders(tomorrow())
-  const { inventory, loading: loadingInv } = useInventory()
 
-  const lowStock = inventory.filter(
-    i => i.quantity <= LOW_STOCK_THRESHOLD && i.product?.size !== 'other'
-  )
-
-  // Group low-stock items by flavor
-  const lowStockByFlavor = lowStock.reduce<Record<string, typeof lowStock>>((acc, item) => {
-    const flavor = item.product?.flavor ?? 'Otro'
-    acc[flavor] = acc[flavor] ?? []
-    acc[flavor].push(item)
-    return acc
-  }, {})
   const todayRevenue = todayOrders.reduce((sum, o) => sum + o.total, 0)
   const activeOrders = todayOrders.filter(o => !['delivered', 'cancelled'].includes(o.status))
   const readyOrders = todayOrders.filter(o => o.status === 'ready')
 
-  if (loadingToday || loadingTomorrow || loadingInv) {
+  if (loadingToday || loadingTomorrow) {
     return <div className="text-[var(--color-text-muted)] text-sm pt-10">Cargando...</div>
   }
 
@@ -45,57 +32,6 @@ export function DashboardView({ onNavigate, onSelectOrder }: Props) {
           <p className="text-sm text-[var(--color-text-muted)]">{formatDate(today())}</p>
         </div>
       </div>
-
-      {/* Low stock alerts */}
-      {lowStock.length > 0 && (
-        <div className="bg-white rounded-lg border border-[var(--color-warning-border,#FDE68A)] overflow-hidden">
-          <div className="flex items-center gap-2 px-4 py-2.5 border-b border-[var(--color-warning-border,#FDE68A)] bg-[var(--color-warning-bg)]">
-            <AlertTriangle className="h-4 w-4 text-[var(--color-warning-text)] flex-shrink-0" />
-            <p className="text-sm font-semibold text-[var(--color-text-primary)]">
-              Stock bajo — {lowStock.length} producto{lowStock.length !== 1 ? 's' : ''}
-            </p>
-          </div>
-          <div className="divide-y divide-[var(--color-border-light)]">
-            {Object.entries(lowStockByFlavor).map(([flavor, items]) => (
-              <div key={flavor} className="px-4 py-3">
-                <p className="text-xs font-semibold text-[var(--color-text-muted)] uppercase tracking-wider mb-2 capitalize">{flavor}</p>
-                <div className="space-y-1.5">
-                  {items.map(item => (
-                    <div key={item.id} className="flex items-center justify-between gap-3">
-                      <div className="flex items-center gap-2 min-w-0">
-                        <span className="text-sm text-[var(--color-text-secondary)]">
-                          {SIZE_LABELS[item.product?.size ?? 'other']}
-                        </span>
-                        <span className={`text-xs font-bold px-1.5 py-0.5 rounded tabular-nums ${
-                          item.quantity === 0
-                            ? 'bg-red-100 text-red-700'
-                            : 'bg-[var(--color-warning-bg)] text-[var(--color-warning-text)]'
-                        }`}>
-                          {item.quantity === 0 ? 'Sin stock' : `${item.quantity} uds`}
-                        </span>
-                      </div>
-                      <div className="flex items-center gap-2 flex-shrink-0">
-                        <button
-                          onClick={() => onNavigate('kitchen')}
-                          className="flex items-center gap-1 text-xs font-medium text-[var(--color-accent)] hover:bg-[var(--color-accent-light)] px-2 py-1 rounded-md transition-colors"
-                          title="Ir a cocina a producir"
-                        >
-                          <ChefHat className="h-3.5 w-3.5" />
-                          Producir
-                        </button>
-                        <span className="flex items-center gap-1 text-xs font-medium text-red-600 bg-red-50 px-2 py-1 rounded-md">
-                          <WifiOff className="h-3.5 w-3.5" />
-                          Apagar Rappi
-                        </span>
-                      </div>
-                    </div>
-                  ))}
-                </div>
-              </div>
-            ))}
-          </div>
-        </div>
-      )}
 
       {/* Score cards — RestoFlow: grid-cols-2 lg:grid-cols-4 gap-3, p-4 */}
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
