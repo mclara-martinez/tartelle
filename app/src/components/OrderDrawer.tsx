@@ -41,7 +41,7 @@ export function OrderDrawer({ orderId, onClose, onStatusChange }: Props) {
 
   async function handleStatusChange(status: OrderStatus) {
     try {
-      await updateOrderStatus(orderId, status)
+      await updateOrderStatus(orderId, status, order ?? undefined)
       setOrder(prev => prev ? { ...prev, status } : prev)
       setToast({ msg: `Estado: ${STATUS_LABELS[status]}`, type: 'success' })
       onStatusChange?.()

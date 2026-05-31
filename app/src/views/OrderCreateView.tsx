@@ -1,7 +1,7 @@
 import { useState, useMemo } from 'react'
 import { useProducts } from '../hooks/useProducts'
 import { useCustomerSearch, useRecentCustomers, createCustomer } from '../hooks/useCustomers'
-import { createOrder } from '../hooks/useOrders'
+import { createOrder, validateOrderStock } from '../hooks/useOrders'
 import { Toast } from '../components/Toast'
 import { formatCOP, today, tomorrow } from '../lib/utils'
 import { DELIVERY_FEE, CHANNEL_LABELS, SIZE_LABELS, CATEGORY_LABELS, PRODUCT_CATEGORY_ORDER, PAYMENT_METHOD_LABELS } from '../lib/constants'
@@ -133,6 +133,22 @@ export function OrderCreateView({ onClose }: Props) {
     if (cart.length === 0) return
     setSubmitting(true)
     try {
+      const blocked = await validateOrderStock(
+        cart.map(i => ({
+          product_id: i.product.id,
+          requires_advance_order: i.product.requires_advance_order,
+          flavor: i.product.flavor,
+          size: i.product.size,
+        })),
+        deliveryDate
+      )
+      if (blocked.length > 0) {
+        const names = blocked.map(i => `${i.flavor} ${i.size}`).join(', ')
+        setToast({ msg: `Sin stock para hoy: ${names}. Fecha mínima: mañana`, type: 'error' })
+        setSubmitting(false)
+        return
+      }
+
       // Create customer if new
       let cId = customerId
       if (!cId && customerName.trim()) {
@@ -150,7 +166,7 @@ export function OrderCreateView({ onClose }: Props) {
           customer_name: customerName.trim() || 'Cliente',
           customer_phone: customerPhone.trim() || null,
           channel,
-          status: 'in_production',
+          status: 'confirmed',
           delivery_date: deliveryDate,
           delivery_type: deliveryType,
           delivery_address: deliveryType === 'delivery' ? deliveryAddress.trim() || null : null,

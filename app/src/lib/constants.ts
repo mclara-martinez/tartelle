@@ -3,25 +3,24 @@ import type { OrderChannel, OrderStatus, ProductSize, ProductCategory, ProductCa
 export const DELIVERY_FEE = 8000
 
 export const CHANNEL_LABELS: Record<OrderChannel, string> = {
-  whatsapp: 'WhatsApp',
-  rappi: 'Rappi',
+  whatsapp:  'WhatsApp',
+  rappi:     'Rappi',
+  didi:      'Didi',
   instagram: 'Instagram',
-  walk_in: 'Local',
-  b2b: 'Restaurante',
+  walk_in:   'Local',
+  b2b:       'Restaurante',
 }
 
 export const STATUS_LABELS: Record<OrderStatus, string> = {
+  confirmed:     'Confirmado',
   in_production: 'En cocina',
-  ready: 'Listo',
-  dispatched: 'En camino',
-  delivered: 'Entregado',
-  pending: 'Pendiente',
-  confirmed: 'Confirmado',
-  cancelled: 'Cancelado',
+  ready:         'Listo',
+  dispatched:    'En camino',
+  delivered:     'Entregado',
+  cancelled:     'Cancelado',
 }
 
 export const STATUS_COLORS: Record<OrderStatus, { bg: string; text: string; dot: string }> = {
-  pending:       { bg: 'var(--color-status-pending-bg)',    text: 'var(--color-status-pending)',    dot: '#F59E0B' },
   confirmed:     { bg: 'var(--color-status-confirmed-bg)',  text: 'var(--color-status-confirmed)',  dot: '#3B82F6' },
   in_production: { bg: 'var(--color-status-production-bg)', text: 'var(--color-status-production)', dot: '#8B5CF6' },
   ready:         { bg: 'var(--color-status-ready-bg)',       text: 'var(--color-status-ready)',       dot: '#10B981' },
@@ -56,11 +55,10 @@ export const PRODUCT_CATEGORY_ORDER: ProductCategory[] = [
 ]
 
 export const ORDER_STATUS_FLOW: OrderStatus[] = [
-  'in_production', 'ready', 'dispatched', 'delivered',
+  'confirmed', 'in_production', 'ready', 'dispatched', 'delivered',
 ]
 
 export const NEXT_STATUS_ACTION: Partial<Record<OrderStatus, { next: OrderStatus; label: string }>> = {
-  pending:       { next: 'in_production', label: 'A cocina' },
   confirmed:     { next: 'in_production', label: 'A cocina' },
   in_production: { next: 'ready',         label: 'Marcar listo' },
   ready:         { next: 'dispatched',    label: 'Despachar' },
@@ -69,6 +67,7 @@ export const NEXT_STATUS_ACTION: Partial<Record<OrderStatus, { next: OrderStatus
 
 /** Kanban columns — only active statuses, no delivered/cancelled */
 export const KANBAN_COLUMNS: { status: OrderStatus; label: string }[] = [
+  { status: 'confirmed',     label: 'Confirmados' },
   { status: 'in_production', label: 'En cocina' },
   { status: 'ready',         label: 'Listo' },
   { status: 'dispatched',    label: 'En camino' },
@@ -122,7 +121,6 @@ export const ROLE_LABELS: Record<AppRole, string> = {
   driver:  'Domiciliario',
 }
 
-/** Legacy compat — some components may still reference these */
 export const STATUS_DOT_COLORS: Record<OrderStatus, string> = Object.fromEntries(
   Object.entries(STATUS_COLORS).map(([k, v]) => [k, v.dot])
 ) as Record<OrderStatus, string>

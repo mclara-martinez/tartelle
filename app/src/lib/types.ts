@@ -1,6 +1,6 @@
 export type CustomerType = 'b2c' | 'b2b' | 'pos'
-export type OrderChannel = 'whatsapp' | 'rappi' | 'instagram' | 'walk_in' | 'b2b'
-export type OrderStatus = 'pending' | 'confirmed' | 'in_production' | 'ready' | 'dispatched' | 'delivered' | 'cancelled'
+export type OrderChannel = 'whatsapp' | 'rappi' | 'didi' | 'instagram' | 'walk_in' | 'b2b'
+export type OrderStatus = 'confirmed' | 'in_production' | 'ready' | 'dispatched' | 'delivered' | 'cancelled'
 export type DeliveryType = 'pickup' | 'delivery'
 export type ProductSize = 'grande' | 'mediana' | 'mini' | 'porcion' | 'other'
 export type ProductCategory = 'tarta' | 'bites' | 'cucheareable' | 'vela' | 'torta' | 'galleta' | 'brownie' | 'pan' | 'otro' | 'complemento'

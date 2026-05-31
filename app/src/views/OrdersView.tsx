@@ -141,8 +141,9 @@ export function OrdersView({ onNavigate, selectedOrderId, onSelectOrder }: Props
   const csvLabel = preset === 'range' ? `${rangeStart}_${rangeEnd}` : preset === 'today' ? today() : tomorrow()
 
   async function handleStatusChange(orderId: string, status: OrderStatus) {
+    const order = filteredOrders.find(o => o.id === orderId)
     try {
-      await updateOrderStatus(orderId, status)
+      await updateOrderStatus(orderId, status, order)
       setToast({ msg: 'Estado actualizado', type: 'success' })
       refetch()
     } catch {

@@ -2,6 +2,23 @@ import { useState, useEffect, useCallback, useRef } from 'react'
 import { supabase } from '../lib/supabase'
 import type { Order } from '../lib/types'
 import { today } from '../lib/utils'
+import { adjustInventory } from './useInventory'
+
+export async function validateOrderStock(
+  items: Array<{ product_id: string; requires_advance_order: boolean; flavor: string; size: string }>,
+  deliveryDate: string
+): Promise<Array<{ product_id: string; flavor: string; size: string }>> {
+  const advanceItems = items.filter(i => i.requires_advance_order && deliveryDate === today())
+  if (advanceItems.length === 0) return []
+
+  const { data } = await supabase
+    .from('inventory_finished')
+    .select('product_id, quantity')
+    .in('product_id', advanceItems.map(i => i.product_id))
+
+  const stockMap = Object.fromEntries((data ?? []).map((s: { product_id: string; quantity: number }) => [s.product_id, s.quantity]))
+  return advanceItems.filter(i => (stockMap[i.product_id] ?? 0) === 0)
+}
 
 export function useOrders(startDate?: string, endDate?: string) {
   const [orders, setOrders] = useState<Order[]>([])
@@ -57,12 +74,34 @@ export function useOrders(startDate?: string, endDate?: string) {
   return { orders, loading, error, refetch: fetchOrders }
 }
 
-export async function updateOrderStatus(orderId: string, status: Order['status']) {
+const INVENTORY_COMMITTED_STATUSES: Order['status'][] = ['in_production', 'ready', 'dispatched', 'delivered']
+
+export async function updateOrderStatus(
+  orderId: string,
+  status: Order['status'],
+  order?: Order
+) {
   const { error } = await supabase
     .from('orders')
     .update({ status })
     .eq('id', orderId)
   if (error) throw new Error(error.message)
+
+  if (order?.items?.length) {
+    if (status === 'in_production') {
+      await Promise.all(
+        order.items.map(item =>
+          adjustInventory(item.product_id, -item.quantity, 'sale', orderId)
+        )
+      )
+    } else if (status === 'cancelled' && INVENTORY_COMMITTED_STATUSES.includes(order.status)) {
+      await Promise.all(
+        order.items.map(item =>
+          adjustInventory(item.product_id, item.quantity, 'adjustment', orderId, 'Cancelación de pedido')
+        )
+      )
+    }
+  }
 }
 
 export async function updateOrderFields(orderId: string, fields: Partial<Order>) {

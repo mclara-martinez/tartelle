@@ -1,9 +1,10 @@
 import { useState } from 'react'
-import { ArrowLeft, ClipboardList, Truck } from 'lucide-react'
+import { ArrowLeft, ClipboardList, Truck, ShoppingBag } from 'lucide-react'
 import { KitchenProductionMode } from './kitchen/KitchenProductionMode'
 import { KitchenDispatchMode } from './kitchen/KitchenDispatchMode'
+import { KitchenSalesMode } from './kitchen/KitchenSalesMode'
 
-type KitchenMode = 'production' | 'dispatch'
+type KitchenMode = 'production' | 'dispatch' | 'sales'
 
 interface Props {
   onBack: () => void
@@ -47,12 +48,23 @@ export function KitchenView({ onBack }: Props) {
             <Truck size={16} />
             Despacho
           </button>
+          <button
+            onClick={() => setMode('sales')}
+            className={`flex items-center gap-2 px-4 py-2 rounded-md text-sm font-medium transition-colors min-h-[40px] ${
+              mode === 'sales'
+                ? 'bg-[#D97706] text-white'
+                : 'text-gray-400 hover:text-white'
+            }`}
+          >
+            <ShoppingBag size={16} />
+            Ventas
+          </button>
         </div>
       </div>
 
       {/* Content */}
       <div className="flex-1 overflow-y-auto">
-        {mode === 'production' ? <KitchenProductionMode /> : <KitchenDispatchMode />}
+        {mode === 'production' ? <KitchenProductionMode /> : mode === 'dispatch' ? <KitchenDispatchMode /> : <KitchenSalesMode />}
       </div>
     </div>
   )
