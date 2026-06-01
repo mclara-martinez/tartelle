@@ -192,13 +192,15 @@ export function KitchenProductionMode() {
 
       {showRappiModal && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm px-4">
-          <div className="bg-[#1F2937] border border-[#374151] rounded-2xl p-6 max-w-sm w-full mx-auto">
-            <div className="flex items-center gap-3 mb-4">
-              <AlertTriangle className="h-6 w-6 text-orange-400 flex-shrink-0" />
-              <h2 className="text-orange-400 text-xl font-bold">Stock bajo</h2>
+          <div className="bg-[#1F2937] border border-[#374151] rounded-2xl w-full max-w-md mx-auto max-h-[80vh] flex flex-col">
+            <div className="px-6 pt-6 pb-4 flex-shrink-0">
+              <div className="flex items-center gap-3 mb-3">
+                <AlertTriangle className="h-6 w-6 text-orange-400 flex-shrink-0" />
+                <h2 className="text-orange-400 text-xl font-bold">Stock bajo</h2>
+              </div>
+              <p className="text-gray-300 text-sm">Los siguientes productos tienen stock bajo:</p>
             </div>
-            <p className="text-gray-300 text-sm mb-4">Los siguientes productos tienen stock bajo:</p>
-            <ul className="space-y-2 mb-6">
+            <ul className="flex-1 overflow-y-auto min-h-0 px-6 space-y-2">
               {lowStockItems.map(item => (
                 <li key={item.id} className="flex items-center justify-between gap-3">
                   <span className="text-gray-200 text-sm">{item.product?.name ?? item.product_id}</span>
@@ -210,12 +212,14 @@ export function KitchenProductionMode() {
                 </li>
               ))}
             </ul>
-            <button
-              onClick={handleRappiConfirm}
-              className="w-full bg-green-600 hover:bg-green-700 text-white py-3 px-6 rounded-xl font-bold text-lg transition-colors min-h-[48px]"
-            >
-              Ya apagué Rappi ✓
-            </button>
+            <div className="px-6 py-5 flex-shrink-0 border-t border-[#374151]">
+              <button
+                onClick={handleRappiConfirm}
+                className="w-full bg-green-600 hover:bg-green-700 text-white py-3 px-6 rounded-xl font-bold text-lg transition-colors min-h-[48px]"
+              >
+                Ya apagué Rappi ✓
+              </button>
+            </div>
           </div>
         </div>
       )}

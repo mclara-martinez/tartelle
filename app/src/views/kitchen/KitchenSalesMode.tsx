@@ -4,9 +4,9 @@ import { createOrder } from '../../hooks/useOrders'
 import { adjustInventory } from '../../hooks/useInventory'
 import { Toast } from '../../components/Toast'
 import { formatCOP, today } from '../../lib/utils'
-import { SIZE_LABELS } from '../../lib/constants'
+import { SIZE_LABELS, CATEGORY_LABELS, PRODUCT_CATEGORY_ORDER } from '../../lib/constants'
 import { ChevronLeft, Minus, Plus, Check } from 'lucide-react'
-import type { Order, Product } from '../../lib/types'
+import type { Order, Product, ProductCategory } from '../../lib/types'
 
 type Step = 1 | 2 | 3
 
@@ -19,10 +19,23 @@ export function KitchenSalesMode() {
   const [submitting, setSubmitting] = useState(false)
   const [toast, setToast] = useState<{ msg: string; type: 'success' | 'error' } | null>(null)
 
-  const productList = useMemo(
-    () => [...products].sort((a, b) => a.flavor.localeCompare(b.flavor) || a.size.localeCompare(b.size)),
-    [products]
-  )
+  const productsByCategory = useMemo(() => {
+    const grouped: Record<string, Product[]> = {}
+    for (const p of products) {
+      const cat = p.category ?? 'otro'
+      grouped[cat] ??= []
+      grouped[cat].push(p)
+    }
+    for (const cat of Object.keys(grouped)) {
+      grouped[cat].sort((a, b) => a.flavor.localeCompare(b.flavor) || a.size.localeCompare(b.size))
+    }
+    return grouped
+  }, [products])
+
+  function productLabel(p: Product): string {
+    if (p.size === 'other') return p.flavor
+    return `${p.flavor} · ${SIZE_LABELS[p.size]}`
+  }
 
   function reset() {
     setStep(1)
@@ -125,22 +138,29 @@ export function KitchenSalesMode() {
 
           <p className="text-gray-400 text-sm">Selecciona producto</p>
 
-          <div className="space-y-1 max-h-[340px] overflow-y-auto">
-            {productList.map(p => (
-              <button
-                key={p.id}
-                onClick={() => selectProduct(p)}
-                className={`w-full text-left px-4 py-3 rounded-xl text-sm font-medium transition-colors min-h-[52px] flex items-center justify-between ${
-                  selectedProduct?.id === p.id
-                    ? 'bg-[#D97706] text-white'
-                    : 'bg-[#1F2937] text-gray-300 hover:bg-[#374151]'
-                }`}
-              >
-                <span className="capitalize">{p.flavor} — {SIZE_LABELS[p.size]}</span>
-                <span className={selectedProduct?.id === p.id ? 'text-white' : 'text-gray-500'}>
-                  {formatCOP(p.base_price)}
-                </span>
-              </button>
+          <div className="max-h-[340px] overflow-y-auto space-y-1">
+            {PRODUCT_CATEGORY_ORDER.filter(cat => productsByCategory[cat]?.length).map(cat => (
+              <div key={cat}>
+                <p className="text-gray-500 text-xs font-semibold uppercase tracking-wider px-1 pt-3 pb-1 first:pt-0">
+                  {CATEGORY_LABELS[cat as ProductCategory] ?? cat}
+                </p>
+                {productsByCategory[cat].map(p => (
+                  <button
+                    key={p.id}
+                    onClick={() => selectProduct(p)}
+                    className={`w-full text-left px-4 py-3 rounded-xl text-sm font-medium transition-colors min-h-[52px] flex items-center justify-between ${
+                      selectedProduct?.id === p.id
+                        ? 'bg-[#D97706] text-white'
+                        : 'bg-[#1F2937] text-gray-300 hover:bg-[#374151]'
+                    }`}
+                  >
+                    <span className="capitalize">{productLabel(p)}</span>
+                    <span className={selectedProduct?.id === p.id ? 'text-white' : 'text-gray-500'}>
+                      {formatCOP(p.base_price)}
+                    </span>
+                  </button>
+                ))}
+              </div>
             ))}
           </div>
 
