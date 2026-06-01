@@ -4,7 +4,7 @@ import { createOrder } from '../../hooks/useOrders'
 import { adjustInventory } from '../../hooks/useInventory'
 import { Toast } from '../../components/Toast'
 import { formatCOP, today } from '../../lib/utils'
-import { SIZE_LABELS, CATEGORY_LABELS, PRODUCT_CATEGORY_ORDER } from '../../lib/constants'
+import { SIZE_LABELS, CATEGORY_LABELS, PRODUCT_CATEGORY_ORDER, CHANNEL_LABELS } from '../../lib/constants'
 import { ChevronLeft, Minus, Plus, Check } from 'lucide-react'
 import type { Order, Product, ProductCategory } from '../../lib/types'
 
@@ -13,7 +13,7 @@ type Step = 1 | 2 | 3
 export function KitchenSalesMode() {
   const { products } = useProducts()
   const [step, setStep] = useState<Step>(1)
-  const [channel, setChannel] = useState<'rappi' | 'didi' | null>(null)
+  const [channel, setChannel] = useState<'rappi' | 'didi' | 'walk_in' | null>(null)
   const [selectedProduct, setSelectedProduct] = useState<Product | null>(null)
   const [quantity, setQuantity] = useState(1)
   const [submitting, setSubmitting] = useState(false)
@@ -44,7 +44,7 @@ export function KitchenSalesMode() {
     setQuantity(1)
   }
 
-  function selectChannel(ch: 'rappi' | 'didi') {
+  function selectChannel(ch: 'rappi' | 'didi' | 'walk_in') {
     setChannel(ch)
     setStep(2)
   }
@@ -62,7 +62,7 @@ export function KitchenSalesMode() {
       const newOrder = await createOrder(
         {
           customer_id: null,
-          customer_name: channel === 'rappi' ? 'Rappi' : 'Didi',
+          customer_name: channel === 'walk_in' ? 'Venta local' : channel === 'rappi' ? 'Rappi' : 'Didi',
           customer_phone: null,
           channel,
           status: 'dispatched',
@@ -75,7 +75,7 @@ export function KitchenSalesMode() {
           total: subtotal,
           notes: null,
           payment_status: 'paid',
-          payment_method: 'rappi',
+          payment_method: channel === 'walk_in' ? 'cash' : 'rappi',
           payment_bank: null,
           card_type: null,
           payment_receipt_url: null,
@@ -106,7 +106,7 @@ export function KitchenSalesMode() {
       {step === 1 && (
         <div className="space-y-4">
           <p className="text-gray-400 text-sm">Selecciona el canal</p>
-          <div className="grid grid-cols-2 gap-4">
+          <div className="grid grid-cols-3 gap-4">
             <button
               onClick={() => selectChannel('rappi')}
               className="bg-[#FF441B] text-white rounded-2xl py-10 text-2xl font-bold hover:opacity-90 transition-opacity min-h-[120px]"
@@ -118,6 +118,12 @@ export function KitchenSalesMode() {
               className="bg-[#FF6600] text-white rounded-2xl py-10 text-2xl font-bold hover:opacity-90 transition-opacity min-h-[120px]"
             >
               Didi
+            </button>
+            <button
+              onClick={() => selectChannel('walk_in')}
+              className="bg-[#0D9488] text-white rounded-2xl py-10 text-2xl font-bold hover:opacity-90 transition-opacity min-h-[120px]"
+            >
+              Presencial
             </button>
           </div>
         </div>
@@ -133,7 +139,7 @@ export function KitchenSalesMode() {
             >
               <ChevronLeft size={20} />
             </button>
-            <p className="text-white font-bold text-lg capitalize">{channel}</p>
+            <p className="text-white font-bold text-lg">{channel ? CHANNEL_LABELS[channel] : ''}</p>
           </div>
 
           <p className="text-gray-400 text-sm">Selecciona producto</p>
@@ -214,10 +220,10 @@ export function KitchenSalesMode() {
             <div className="flex items-center gap-2">
               <span
                 className={`text-white text-sm font-bold px-3 py-1 rounded-full ${
-                  channel === 'rappi' ? 'bg-[#FF441B]' : 'bg-[#FF6600]'
+                  channel === 'rappi' ? 'bg-[#FF441B]' : channel === 'didi' ? 'bg-[#FF6600]' : 'bg-[#0D9488]'
                 }`}
               >
-                {channel === 'rappi' ? 'Rappi' : 'Didi'}
+                {channel ? CHANNEL_LABELS[channel] : ''}
               </span>
             </div>
 
