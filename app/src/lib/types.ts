@@ -73,6 +73,7 @@ export interface Order {
   delivered_at: string | null
   dispatch_photo_url: string | null
   invoice_photo_url: string | null
+  estimated_delivery_time: string | null
   created_at: string
   updated_at: string
   items?: OrderItem[]
@@ -105,6 +106,8 @@ export interface InventoryLog {
   reason: InventoryReason
   reference_id: string | null
   notes: string | null
+  user_id: string | null
+  user_email: string | null
   created_at: string
 }
 
@@ -137,6 +140,25 @@ export interface ProductionPlanItem {
 }
 
 export type AppRole = 'admin' | 'kitchen' | 'driver'
+
+export interface DayClosureDetail {
+  product_id: string
+  product_name: string
+  produced: number
+  sold: number
+  system_stock: number
+  declared_surplus: number
+}
+
+export interface DayClosure {
+  id: string
+  date: string
+  user_id: string | null
+  closed_at: string
+  is_adjusted: boolean
+  details: DayClosureDetail[]
+  created_at: string
+}
 
 export interface AppUser {
   id: string

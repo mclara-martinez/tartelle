@@ -41,6 +41,7 @@ export function OrderCreateView({ onClose }: Props) {
   const [paymentMethod, setPaymentMethod] = useState<PaymentMethod | null>(null)
   const [paymentReceiptUrl, setPaymentReceiptUrl] = useState<string | null>(null)
   const [packagingNotes, setPackagingNotes] = useState('')
+  const [estimatedDeliveryTime, setEstimatedDeliveryTime] = useState('')
   const [tempOrderId] = useState(() => crypto.randomUUID())
   const [submitting, setSubmitting] = useState(false)
   const [toast, setToast] = useState<{ msg: string; type: 'success' | 'error' } | null>(null)
@@ -184,6 +185,7 @@ export function OrderCreateView({ onClose }: Props) {
           billing_id_number: billingIdNumber.trim() || null,
           billing_email: billingEmail.trim() || null,
           packaging_notes: packagingNotes.trim() || null,
+          estimated_delivery_time: deliveryType === 'delivery' && estimatedDeliveryTime ? estimatedDeliveryTime : null,
         } as Omit<Order, 'id' | 'created_at' | 'updated_at'>,
         cart.map(item => ({
           product_id: item.product.id,
@@ -476,13 +478,26 @@ export function OrderCreateView({ onClose }: Props) {
             </div>
 
             {deliveryType === 'delivery' && (
-              <input
-                type="text"
-                placeholder="Direccion de entrega"
-                value={deliveryAddress}
-                onChange={e => setDeliveryAddress(e.target.value)}
-                className="w-full border border-[var(--color-border)] rounded-lg px-3 py-2 text-sm focus:outline-none focus:border-[var(--color-accent)]"
-              />
+              <>
+                <input
+                  type="text"
+                  placeholder="Direccion de entrega"
+                  value={deliveryAddress}
+                  onChange={e => setDeliveryAddress(e.target.value)}
+                  className="w-full border border-[var(--color-border)] rounded-lg px-3 py-2 text-sm focus:outline-none focus:border-[var(--color-accent)]"
+                />
+                <div>
+                  <label className="text-xs font-medium text-[var(--color-text-muted)] uppercase tracking-wider block mb-1.5">
+                    Hora estimada de entrega
+                  </label>
+                  <input
+                    type="time"
+                    value={estimatedDeliveryTime}
+                    onChange={e => setEstimatedDeliveryTime(e.target.value)}
+                    className="w-full border border-[var(--color-border)] rounded-lg px-3 py-2 text-sm focus:outline-none focus:border-[var(--color-accent)] bg-white text-[var(--color-text-primary)]"
+                  />
+                </div>
+              </>
             )}
 
             {/* Channel */}

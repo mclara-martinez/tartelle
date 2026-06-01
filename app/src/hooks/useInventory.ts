@@ -90,6 +90,8 @@ export async function adjustInventory(
   referenceId?: string,
   notes?: string
 ) {
+  const { data: { user } } = await supabase.auth.getUser()
+
   // Update inventory_finished
   const { data: current, error: fetchErr } = await supabase
     .from('inventory_finished')
@@ -115,6 +117,8 @@ export async function adjustInventory(
     reason,
     reference_id: referenceId ?? null,
     notes: notes ?? null,
+    user_id: user?.id ?? null,
+    user_email: user?.email ?? null,
   })
 
   if (logErr) throw new Error(logErr.message)

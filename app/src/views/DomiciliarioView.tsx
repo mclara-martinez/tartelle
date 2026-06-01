@@ -4,7 +4,7 @@ import { Toast } from '../components/Toast'
 import { PhotoUpload } from '../components/PhotoUpload'
 import { today, tomorrow } from '../lib/utils'
 import { PAYMENT_STATUS_LABELS, PAYMENT_STATUS_COLORS } from '../lib/constants'
-import { MapPin, Phone, Package, CheckCircle, Truck, CreditCard, ChevronLeft, ChevronRight } from 'lucide-react'
+import { MapPin, Phone, Package, CheckCircle, Truck, CreditCard, ChevronLeft, ChevronRight, Clock } from 'lucide-react'
 import { format, parseISO, addDays, subDays } from 'date-fns'
 import { es } from 'date-fns/locale'
 import type { Order } from '../lib/types'
@@ -33,7 +33,13 @@ export function DomiciliarioView() {
   const porRecoger = deliveryOrders.filter(o => o.status === 'ready')
   const entregando = deliveryOrders.filter(o => o.status === 'dispatched')
 
-  const tabOrders = activeTab === 'por_recoger' ? porRecoger : entregando
+  const rawTabOrders = activeTab === 'por_recoger' ? porRecoger : entregando
+  const tabOrders = [...rawTabOrders].sort((a, b) => {
+    if (!a.estimated_delivery_time && !b.estimated_delivery_time) return 0
+    if (!a.estimated_delivery_time) return 1
+    if (!b.estimated_delivery_time) return -1
+    return a.estimated_delivery_time.localeCompare(b.estimated_delivery_time)
+  })
 
   function prevDay() {
     setSelectedDate(d => format(subDays(parseISO(d), 1), 'yyyy-MM-dd'))
@@ -208,7 +214,15 @@ function DeliveryCard({ order, isUpdating, onPickup, onDeliver, onInvoicePhoto }
     <div className={`bg-[#1F2937] rounded-xl border-2 overflow-hidden ${isReady ? 'border-green-500' : 'border-orange-400'}`}>
       <div className="px-4 pt-4 pb-3">
         <div className="flex items-start justify-between">
-          <p className="text-lg font-bold text-white">{order.customer_name ?? 'Cliente'}</p>
+          <div>
+            <p className="text-lg font-bold text-white">{order.customer_name ?? 'Cliente'}</p>
+            {order.estimated_delivery_time && (
+              <p className="text-sm text-[#9CA3AF] mt-0.5 flex items-center gap-1">
+                <Clock size={12} />
+                {order.estimated_delivery_time.slice(0, 5)}
+              </p>
+            )}
+          </div>
           <span
             className="text-xs font-bold px-2.5 py-1 rounded-full flex items-center gap-1"
             style={{ backgroundColor: paymentColors.bg, color: paymentColors.text }}

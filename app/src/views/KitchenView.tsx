@@ -1,10 +1,11 @@
 import { useState } from 'react'
-import { ArrowLeft, ClipboardList, Truck, ShoppingBag } from 'lucide-react'
+import { ArrowLeft, ClipboardList, Truck, ShoppingBag, Lock } from 'lucide-react'
 import { KitchenProductionMode } from './kitchen/KitchenProductionMode'
 import { KitchenDispatchMode } from './kitchen/KitchenDispatchMode'
 import { KitchenSalesMode } from './kitchen/KitchenSalesMode'
+import { DayClosureView } from './DayClosureView'
 
-type KitchenMode = 'production' | 'dispatch' | 'sales'
+type KitchenMode = 'production' | 'dispatch' | 'sales' | 'closure'
 
 interface Props {
   onBack: () => void
@@ -59,12 +60,26 @@ export function KitchenView({ onBack }: Props) {
             <ShoppingBag size={16} />
             Ventas
           </button>
+          <button
+            onClick={() => setMode('closure')}
+            className={`flex items-center gap-2 px-4 py-2 rounded-md text-sm font-medium transition-colors min-h-[40px] ${
+              mode === 'closure'
+                ? 'bg-[#374151] text-white ring-1 ring-white/20'
+                : 'text-gray-400 hover:text-white'
+            }`}
+          >
+            <Lock size={16} />
+            Cierre
+          </button>
         </div>
       </div>
 
       {/* Content */}
       <div className="flex-1 overflow-y-auto">
-        {mode === 'production' ? <KitchenProductionMode /> : mode === 'dispatch' ? <KitchenDispatchMode /> : <KitchenSalesMode />}
+        {mode === 'production' ? <KitchenProductionMode />
+          : mode === 'dispatch' ? <KitchenDispatchMode />
+          : mode === 'sales' ? <KitchenSalesMode />
+          : <div className="bg-[var(--color-bg)] min-h-full p-4"><DayClosureView /></div>}
       </div>
     </div>
   )

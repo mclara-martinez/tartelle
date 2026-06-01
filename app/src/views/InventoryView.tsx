@@ -11,27 +11,37 @@ export function InventoryView() {
   const [toast, setToast] = useState<{ msg: string; type: 'success' | 'error' } | null>(null)
   const [saving, setSaving] = useState<string | null>(null)
   const [inputValues, setInputValues] = useState<Record<string, string>>({})
+  const [reasonValues, setReasonValues] = useState<Record<string, string>>({})
 
-  async function handleBlur(productId: string, currentQty: number) {
+  function handleNumberChange(productId: string, value: string) {
+    setInputValues(prev => ({ ...prev, [productId]: value }))
+  }
+
+  function handleCancel(productId: string) {
+    setInputValues(prev => { const next = { ...prev }; delete next[productId]; return next })
+    setReasonValues(prev => { const next = { ...prev }; delete next[productId]; return next })
+  }
+
+  async function handleSave(productId: string, currentQty: number) {
     const raw = inputValues[productId]
-    if (raw === undefined) return
+    const reason = reasonValues[productId]?.trim()
+    if (raw === undefined || !reason) return
     const newQty = Number(raw)
     if (isNaN(newQty) || newQty === currentQty) {
-      setInputValues(prev => { const next = { ...prev }; delete next[productId]; return next })
+      handleCancel(productId)
       return
     }
     const change = newQty - currentQty
     setSaving(productId)
     try {
-      await adjustInventory(productId, change, change > 0 ? 'production' : 'adjustment', undefined, 'Ajuste manual')
+      await adjustInventory(productId, change, change > 0 ? 'production' : 'adjustment', undefined, reason)
       refetch()
       setToast({ msg: 'Inventario actualizado', type: 'success' })
     } catch {
-      setInputValues(prev => ({ ...prev, [productId]: String(currentQty) }))
       setToast({ msg: 'Error al actualizar inventario', type: 'error' })
     }
     setSaving(null)
-    setInputValues(prev => { const next = { ...prev }; delete next[productId]; return next })
+    handleCancel(productId)
   }
 
   const bySize = inventory.reduce<Record<string, typeof inventory>>((acc, item) => {
@@ -103,34 +113,64 @@ export function InventoryView() {
           {bySize[size].map((item, i) => {
             const isLow = item.quantity <= LOW_STOCK_THRESHOLD
             const isSaving = saving === item.product_id
-            const displayValue = inputValues[item.product_id] !== undefined
-              ? inputValues[item.product_id]
-              : String(item.quantity)
+            const isPendingEdit = inputValues[item.product_id] !== undefined
+            const displayValue = isPendingEdit ? inputValues[item.product_id] : String(item.quantity)
+            const reason = reasonValues[item.product_id] ?? ''
+            const canSave = reason.trim().length > 0 &&
+              !isNaN(Number(displayValue)) &&
+              Number(displayValue) !== item.quantity
+
             return (
-              <div key={item.id} className={`px-4 py-2.5 flex items-center gap-4 hover:bg-[var(--color-bg-hover)] transition-colors duration-200 ${
-                i > 0 ? 'border-t border-[var(--color-border-light)]' : ''
-              }`}>
-                <div className="flex-1 min-w-0">
-                  <p className="text-sm font-medium capitalize">{item.product?.flavor}</p>
-                  <p className="text-xs text-[var(--color-text-muted)]">{formatCOP(item.product?.base_price ?? 0)} / ud</p>
+              <div key={item.id} className={`${i > 0 ? 'border-t border-[var(--color-border-light)]' : ''}`}>
+                <div className="px-4 py-2.5 flex items-center gap-4 hover:bg-[var(--color-bg-hover)] transition-colors duration-200">
+                  <div className="flex-1 min-w-0">
+                    <p className="text-sm font-medium capitalize">{item.product?.flavor}</p>
+                    <p className="text-xs text-[var(--color-text-muted)]">{formatCOP(item.product?.base_price ?? 0)} / ud</p>
+                  </div>
+
+                  <div className="flex items-center gap-2 flex-shrink-0">
+                    <input
+                      type="number"
+                      min={0}
+                      value={displayValue}
+                      onChange={e => handleNumberChange(item.product_id, e.target.value)}
+                      disabled={isSaving}
+                      className={`w-16 border rounded-lg px-2 py-1.5 text-sm text-center bg-white focus:outline-none focus:border-[var(--color-accent)] focus:ring-2 focus:ring-[var(--color-accent)]/15 transition-colors duration-200 ${
+                        isLow ? 'border-[var(--color-warning-text)] text-[var(--color-warning-text)]' : 'border-[var(--color-border)] text-[var(--color-text-primary)]'
+                      } disabled:opacity-50`}
+                    />
+                    {isSaving && (
+                      <span className="text-[11px] text-[var(--color-text-muted)]">guardando...</span>
+                    )}
+                  </div>
                 </div>
 
-                <div className="flex items-center gap-2 flex-shrink-0">
-                  <input
-                    type="number"
-                    min={0}
-                    value={displayValue}
-                    onChange={e => setInputValues(prev => ({ ...prev, [item.product_id]: e.target.value }))}
-                    onBlur={() => handleBlur(item.product_id, item.quantity)}
-                    disabled={isSaving}
-                    className={`w-16 border rounded-lg px-2 py-1.5 text-sm text-center bg-white focus:outline-none focus:border-[var(--color-accent)] focus:ring-2 focus:ring-[var(--color-accent)]/15 transition-colors duration-200 ${
-                      isLow ? 'border-[var(--color-warning-text)] text-[var(--color-warning-text)]' : 'border-[var(--color-border)] text-[var(--color-text-primary)]'
-                    } disabled:opacity-50`}
-                  />
-                  {isSaving && (
-                    <span className="text-[11px] text-[var(--color-text-muted)]">guardando...</span>
-                  )}
-                </div>
+                {isPendingEdit && !isSaving && (
+                  <div className="px-4 pb-3 flex flex-col gap-2">
+                    <input
+                      type="text"
+                      placeholder="Motivo del ajuste (requerido)"
+                      value={reason}
+                      onChange={e => setReasonValues(prev => ({ ...prev, [item.product_id]: e.target.value }))}
+                      className="w-full border border-[var(--color-border)] rounded-lg px-3 py-1.5 text-sm focus:outline-none focus:border-[var(--color-accent)] focus:ring-2 focus:ring-[var(--color-accent)]/15"
+                    />
+                    <div className="flex gap-2">
+                      <button
+                        onClick={() => handleSave(item.product_id, item.quantity)}
+                        disabled={!canSave}
+                        className="flex-1 py-1.5 rounded-lg text-sm font-medium bg-[var(--color-accent)] text-white hover:bg-[var(--color-teal-dark)] disabled:opacity-40 disabled:cursor-not-allowed transition-colors"
+                      >
+                        Guardar
+                      </button>
+                      <button
+                        onClick={() => handleCancel(item.product_id)}
+                        className="px-4 py-1.5 rounded-lg text-sm font-medium border border-[var(--color-border)] text-[var(--color-text-secondary)] hover:bg-[var(--color-bg)] transition-colors"
+                      >
+                        Cancelar
+                      </button>
+                    </div>
+                  </div>
+                )}
               </div>
             )
           })}

@@ -10,10 +10,13 @@ import { ProductionView } from './views/ProductionView'
 import { OrderCreateView } from './views/OrderCreateView'
 import { DomiciliarioView } from './views/DomiciliarioView'
 import { SettingsView } from './views/SettingsView'
+import { DayClosureView } from './views/DayClosureView'
+import { PhotosView } from './views/PhotosView'
+import { InventoryLogView } from './views/InventoryLogView'
 
-export type View = 'dashboard' | 'orders' | 'kitchen' | 'inventory' | 'production' | 'create' | 'domiciliario' | 'settings'
+export type View = 'dashboard' | 'orders' | 'kitchen' | 'inventory' | 'production' | 'create' | 'domiciliario' | 'settings' | 'day-closure' | 'photos' | 'inventory-log'
 
-const VALID_VIEWS: View[] = ['dashboard', 'orders', 'kitchen', 'inventory', 'production', 'create', 'domiciliario', 'settings']
+const VALID_VIEWS: View[] = ['dashboard', 'orders', 'kitchen', 'inventory', 'production', 'create', 'domiciliario', 'settings', 'day-closure', 'photos', 'inventory-log']
 
 function viewFromHash(): View {
   const hash = window.location.hash.replace('#', '')
@@ -89,6 +92,9 @@ function AppContent() {
       {safeView === 'production' && <ProductionView />}
       {safeView === 'domiciliario' && <DomiciliarioView />}
       {safeView === 'settings' && <SettingsView />}
+      {safeView === 'day-closure' && <DayClosureView />}
+      {safeView === 'photos' && <PhotosView />}
+      {safeView === 'inventory-log' && <InventoryLogView />}
     </Layout>
   )
 }

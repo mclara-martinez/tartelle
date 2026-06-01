@@ -1,5 +1,5 @@
 import { useState } from 'react'
-import { ShoppingBag, LayoutDashboard, ChefHat, Package, ClipboardList, Settings, Menu, X, LogOut, Truck } from 'lucide-react'
+import { ShoppingBag, LayoutDashboard, ChefHat, Package, ClipboardList, Settings, Menu, X, LogOut, Truck, Lock, Camera, ScrollText } from 'lucide-react'
 import type { View } from '../App'
 import { useAuth } from '../context/AuthContext'
 
@@ -18,6 +18,9 @@ const NAV = [
   { id: 'kitchen' as View, label: 'Cocina', icon: ChefHat },
   { id: 'domiciliario' as View, label: 'Domiciliario', icon: Truck },
   { id: 'settings' as View, label: 'Ajustes', icon: Settings },
+  { id: 'day-closure' as View, label: 'Cierre', icon: Lock },
+  { id: 'photos' as View, label: 'Fotos', icon: Camera },
+  { id: 'inventory-log' as View, label: 'Movimientos', icon: ScrollText },
 ]
 
 function SidebarContent({ current, onNavigate, onSignOut, onItemClick }: {
