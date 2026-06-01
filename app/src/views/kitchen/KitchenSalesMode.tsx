@@ -1,23 +1,33 @@
 import { useState, useMemo } from 'react'
 import { useProducts } from '../../hooks/useProducts'
 import { createOrder } from '../../hooks/useOrders'
-import { adjustInventory } from '../../hooks/useInventory'
+import { adjustInventory, useInventory } from '../../hooks/useInventory'
 import { Toast } from '../../components/Toast'
 import { formatCOP, today } from '../../lib/utils'
-import { SIZE_LABELS, CATEGORY_LABELS, PRODUCT_CATEGORY_ORDER, CHANNEL_LABELS } from '../../lib/constants'
-import { ChevronLeft, Minus, Plus, Check } from 'lucide-react'
+import { SIZE_LABELS, CATEGORY_LABELS, PRODUCT_CATEGORY_ORDER, CHANNEL_LABELS, LOW_STOCK_THRESHOLD } from '../../lib/constants'
+import { ChevronLeft, Minus, Plus, Check, AlertTriangle } from 'lucide-react'
 import type { Order, Product, ProductCategory } from '../../lib/types'
 
 type Step = 1 | 2 | 3
 
 export function KitchenSalesMode() {
   const { products } = useProducts()
+  const { inventory, loading: inventoryLoading } = useInventory()
   const [step, setStep] = useState<Step>(1)
   const [channel, setChannel] = useState<'rappi' | 'didi' | 'walk_in' | null>(null)
   const [selectedProduct, setSelectedProduct] = useState<Product | null>(null)
   const [quantity, setQuantity] = useState(1)
   const [submitting, setSubmitting] = useState(false)
   const [toast, setToast] = useState<{ msg: string; type: 'success' | 'error' } | null>(null)
+
+  const sortedInventory = useMemo(() => {
+    return [...inventory].sort((a, b) => {
+      const aLow = a.quantity <= LOW_STOCK_THRESHOLD ? 0 : 1
+      const bLow = b.quantity <= LOW_STOCK_THRESHOLD ? 0 : 1
+      if (aLow !== bLow) return aLow - bLow
+      return (a.product?.flavor ?? '').localeCompare(b.product?.flavor ?? '')
+    })
+  }, [inventory])
 
   const productsByCategory = useMemo(() => {
     const grouped: Record<string, Product[]> = {}
@@ -255,6 +265,42 @@ export function KitchenSalesMode() {
           </button>
         </div>
       )}
+
+      {/* Inventario PT en tiempo real */}
+      <div className="mt-6 space-y-2">
+        <p className="text-gray-400 text-sm font-medium">Stock actual</p>
+        <div className="bg-[#1F2937] rounded-xl overflow-hidden border border-[#374151]">
+          {inventoryLoading ? (
+            <p className="text-gray-500 text-sm px-4 py-3">Cargando...</p>
+          ) : (
+            <div className="divide-y divide-[#374151]">
+              {sortedInventory.map(item => {
+                const isLow  = item.quantity <= LOW_STOCK_THRESHOLD
+                const isZero = item.quantity === 0
+                return (
+                  <div
+                    key={item.id}
+                    className={`flex items-center justify-between px-4 py-2.5 ${isLow ? 'bg-red-900/20' : ''}`}
+                  >
+                    <div className="flex items-center gap-2 min-w-0">
+                      {isLow && <AlertTriangle size={13} className="text-red-400 flex-shrink-0" />}
+                      <span className={`text-sm truncate capitalize ${isLow ? 'text-red-300' : 'text-gray-300'}`}>
+                        {item.product?.flavor}
+                        {item.product ? ` · ${SIZE_LABELS[item.product.size]}` : ''}
+                      </span>
+                    </div>
+                    <span className={`text-sm font-bold tabular-nums flex-shrink-0 ml-3 ${
+                      isZero ? 'text-red-400' : isLow ? 'text-orange-400' : 'text-gray-400'
+                    }`}>
+                      {isZero ? 'Sin stock' : `${item.quantity} uds`}
+                    </span>
+                  </div>
+                )
+              })}
+            </div>
+          )}
+        </div>
+      </div>
 
       {toast && <Toast message={toast.msg} type={toast.type} onClose={() => setToast(null)} />}
     </div>

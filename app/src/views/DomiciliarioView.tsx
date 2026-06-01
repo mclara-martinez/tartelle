@@ -4,7 +4,7 @@ import { Toast } from '../components/Toast'
 import { PhotoUpload } from '../components/PhotoUpload'
 import { today, tomorrow } from '../lib/utils'
 import { PAYMENT_STATUS_LABELS, PAYMENT_STATUS_COLORS } from '../lib/constants'
-import { MapPin, Phone, Package, CheckCircle, Truck, CreditCard, ChevronLeft, ChevronRight, Clock } from 'lucide-react'
+import { MapPin, Phone, Package, CheckCircle, Truck, CreditCard, ChevronLeft, ChevronRight, Clock, AlertTriangle } from 'lucide-react'
 import { format, parseISO, addDays, subDays } from 'date-fns'
 import { es } from 'date-fns/locale'
 import type { Order } from '../lib/types'
@@ -84,6 +84,18 @@ export function DomiciliarioView() {
     }
   }
 
+  async function handleMarkInvoiceDelivered(order: Order) {
+    setUpdatingId(order.id)
+    try {
+      await updateOrderFields(order.id, { invoice_delivered_physically: true } as Partial<Order>)
+      setToast({ msg: 'Factura confirmada', type: 'success' })
+      refetch()
+    } catch {
+      setToast({ msg: 'Error', type: 'error' })
+    }
+    setUpdatingId(null)
+  }
+
   if (loading) {
     return (
       <div className="min-h-screen bg-[#111827] flex items-center justify-center">
@@ -145,6 +157,7 @@ export function DomiciliarioView() {
               onPickup={() => handlePickup(order)}
               onDeliver={() => handleDeliver(order)}
               onInvoicePhoto={path => handleInvoicePhoto(order.id, path)}
+              onMarkInvoiceDelivered={() => handleMarkInvoiceDelivered(order)}
             />
           ))
         )}
@@ -198,16 +211,19 @@ function EmptyState({ tab }: { tab: DriverTab }) {
   )
 }
 
-function DeliveryCard({ order, isUpdating, onPickup, onDeliver, onInvoicePhoto }: {
+function DeliveryCard({ order, isUpdating, onPickup, onDeliver, onInvoicePhoto, onMarkInvoiceDelivered }: {
   order: Order
   isUpdating: boolean
   onPickup: () => void
   onDeliver: () => void
   onInvoicePhoto: (path: string) => void
+  onMarkInvoiceDelivered: () => void
 }) {
-  const isReady = order.status === 'ready'
+  const isReady      = order.status === 'ready'
   const isDispatched = order.status === 'dispatched'
-  const isB2B = order.customer?.type === 'b2b' || order.channel === 'b2b'
+  const isB2B        = order.customer?.type === 'b2b' || order.channel === 'b2b'
+  const invoiceSatisfied = !isB2B || !isReady ||
+    !!order.invoice_photo_url || order.invoice_delivered_physically
   const paymentColors = PAYMENT_STATUS_COLORS[order.payment_status ?? 'pending']
 
   return (
@@ -280,6 +296,41 @@ function DeliveryCard({ order, isUpdating, onPickup, onDeliver, onInvoicePhoto }
         </div>
       )}
 
+      {isB2B && isReady && (
+        <div className="mx-4 mb-3 rounded-xl border px-4 py-3 space-y-2.5"
+          style={{ backgroundColor: invoiceSatisfied ? 'rgba(20,83,45,0.2)' : 'rgba(124,45,18,0.25)', borderColor: invoiceSatisfied ? 'rgba(22,163,74,0.4)' : 'rgba(234,88,12,0.4)' }}
+        >
+          {invoiceSatisfied ? (
+            <p className="text-green-400 text-sm font-medium flex items-center gap-2">
+              <CheckCircle size={15} />
+              Factura OK
+            </p>
+          ) : (
+            <>
+              <p className="text-orange-300 text-sm font-semibold flex items-center gap-2">
+                <AlertTriangle size={15} />
+                Factura pendiente
+              </p>
+              <div className="flex items-center gap-2">
+                <PhotoUpload
+                  orderId={order.id}
+                  type="invoice"
+                  existingPath={order.invoice_photo_url}
+                  onUpload={onInvoicePhoto}
+                  label="Foto factura"
+                />
+                <button
+                  onClick={onMarkInvoiceDelivered}
+                  className="flex-1 py-2 px-3 bg-[#374151] text-gray-300 rounded-lg text-sm font-medium hover:bg-[#4B5563] active:bg-[#4B5563] transition-colors min-h-[44px]"
+                >
+                  Entregada en físico
+                </button>
+              </div>
+            </>
+          )}
+        </div>
+      )}
+
       {isB2B && isDispatched && (
         <div className="px-4 pb-3">
           <PhotoUpload
@@ -287,7 +338,7 @@ function DeliveryCard({ order, isUpdating, onPickup, onDeliver, onInvoicePhoto }
             type="invoice"
             existingPath={order.invoice_photo_url}
             onUpload={onInvoicePhoto}
-            label="Foto factura firmada"
+            label="Re-subir factura"
           />
         </div>
       )}
@@ -296,7 +347,7 @@ function DeliveryCard({ order, isUpdating, onPickup, onDeliver, onInvoicePhoto }
         {isReady && (
           <button
             onClick={onPickup}
-            disabled={isUpdating}
+            disabled={isUpdating || !invoiceSatisfied}
             className="w-full py-4 text-base font-bold flex items-center justify-center gap-2 bg-green-600 text-white active:bg-green-700 disabled:opacity-50 transition-colors"
             style={{ minHeight: '56px' }}
           >

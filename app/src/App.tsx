@@ -13,10 +13,11 @@ import { SettingsView } from './views/SettingsView'
 import { DayClosureView } from './views/DayClosureView'
 import { PhotosView } from './views/PhotosView'
 import { InventoryLogView } from './views/InventoryLogView'
+import { KitchenLogView } from './views/KitchenLogView'
 
-export type View = 'dashboard' | 'orders' | 'kitchen' | 'inventory' | 'production' | 'create' | 'domiciliario' | 'settings' | 'day-closure' | 'photos' | 'inventory-log'
+export type View = 'dashboard' | 'orders' | 'kitchen' | 'inventory' | 'production' | 'create' | 'domiciliario' | 'settings' | 'day-closure' | 'photos' | 'inventory-log' | 'kitchen-log'
 
-const VALID_VIEWS: View[] = ['dashboard', 'orders', 'kitchen', 'inventory', 'production', 'create', 'domiciliario', 'settings', 'day-closure', 'photos', 'inventory-log']
+const VALID_VIEWS: View[] = ['dashboard', 'orders', 'kitchen', 'inventory', 'production', 'create', 'domiciliario', 'settings', 'day-closure', 'photos', 'inventory-log', 'kitchen-log']
 
 function viewFromHash(): View {
   const hash = window.location.hash.replace('#', '')
@@ -95,6 +96,7 @@ function AppContent() {
       {safeView === 'day-closure' && <DayClosureView />}
       {safeView === 'photos' && <PhotosView />}
       {safeView === 'inventory-log' && <InventoryLogView />}
+      {safeView === 'kitchen-log' && <KitchenLogView />}
     </Layout>
   )
 }

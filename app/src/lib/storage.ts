@@ -58,3 +58,14 @@ export async function getSignedPhotoUrl(path: string): Promise<string> {
   if (error || !data?.signedUrl) throw new Error(error?.message ?? 'Failed to get signed URL')
   return data.signedUrl
 }
+
+/** Upload a quality batch photo. Path: quality/{productId}-{ts}.jpg */
+export async function uploadQualityPhoto(file: File, productId: string): Promise<string> {
+  const compressed = await compressImage(file)
+  const path = `quality/${productId}-${Date.now()}.jpg`
+  const { error } = await supabase.storage
+    .from(BUCKET)
+    .upload(path, compressed, { contentType: 'image/jpeg', upsert: false })
+  if (error) throw new Error(error.message)
+  return path
+}

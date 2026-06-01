@@ -73,6 +73,7 @@ export interface Order {
   delivered_at: string | null
   dispatch_photo_url: string | null
   invoice_photo_url: string | null
+  invoice_delivered_physically: boolean
   estimated_delivery_time: string | null
   created_at: string
   updated_at: string
@@ -158,6 +159,20 @@ export interface DayClosure {
   is_adjusted: boolean
   details: DayClosureDetail[]
   created_at: string
+}
+
+export interface QualityLog {
+  id: string
+  product_id: string
+  date: string
+  user_id: string | null
+  user_email: string | null
+  items_fallidos: string[]
+  observacion: string | null
+  order_id: string | null
+  photo_path: string | null
+  created_at: string
+  product?: Product
 }
 
 export interface AppUser {
