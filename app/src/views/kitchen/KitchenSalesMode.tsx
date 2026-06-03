@@ -5,20 +5,23 @@ import { adjustInventory, useInventory } from '../../hooks/useInventory'
 import { Toast } from '../../components/Toast'
 import { formatCOP, today } from '../../lib/utils'
 import { SIZE_LABELS, CATEGORY_LABELS, PRODUCT_CATEGORY_ORDER, CHANNEL_LABELS, LOW_STOCK_THRESHOLD } from '../../lib/constants'
-import { ChevronLeft, Minus, Plus, Check, AlertTriangle } from 'lucide-react'
+import { ChevronLeft, Minus, Plus, Check, AlertTriangle, Trash2 } from 'lucide-react'
 import type { Order, Product, ProductCategory } from '../../lib/types'
 
 type Step = 1 | 2 | 3
+interface CartItem { product: Product; quantity: number }
 
 export function KitchenSalesMode() {
   const { products } = useProducts()
   const { inventory, loading: inventoryLoading } = useInventory()
   const [step, setStep] = useState<Step>(1)
   const [channel, setChannel] = useState<'rappi' | 'didi' | 'walk_in' | null>(null)
-  const [selectedProduct, setSelectedProduct] = useState<Product | null>(null)
-  const [quantity, setQuantity] = useState(1)
+  const [cart, setCart] = useState<CartItem[]>([])
   const [submitting, setSubmitting] = useState(false)
   const [toast, setToast] = useState<{ msg: string; type: 'success' | 'error' } | null>(null)
+
+  const cartTotal = cart.reduce((s, i) => s + i.product.base_price * i.quantity, 0)
+  const cartCount = cart.reduce((s, i) => s + i.quantity, 0)
 
   const sortedInventory = useMemo(() => {
     return [...inventory].sort((a, b) => {
@@ -50,8 +53,7 @@ export function KitchenSalesMode() {
   function reset() {
     setStep(1)
     setChannel(null)
-    setSelectedProduct(null)
-    setQuantity(1)
+    setCart([])
   }
 
   function selectChannel(ch: 'rappi' | 'didi' | 'walk_in') {
@@ -59,16 +61,25 @@ export function KitchenSalesMode() {
     setStep(2)
   }
 
-  function selectProduct(p: Product) {
-    setSelectedProduct(p)
-    setQuantity(1)
+  function addToCart(p: Product) {
+    setCart(prev => {
+      const existing = prev.find(i => i.product.id === p.id)
+      if (existing) return prev.map(i => i.product.id === p.id ? { ...i, quantity: i.quantity + 1 } : i)
+      return [...prev, { product: p, quantity: 1 }]
+    })
+  }
+
+  function updateQty(productId: string, delta: number) {
+    setCart(prev => prev
+      .map(i => i.product.id === productId ? { ...i, quantity: i.quantity + delta } : i)
+      .filter(i => i.quantity > 0)
+    )
   }
 
   async function handleConfirm() {
-    if (!selectedProduct || !channel) return
+    if (cart.length === 0 || !channel) return
     setSubmitting(true)
     try {
-      const subtotal = selectedProduct.base_price * quantity
       const newOrder = await createOrder(
         {
           customer_id: null,
@@ -79,10 +90,10 @@ export function KitchenSalesMode() {
           delivery_date: today(),
           delivery_type: 'pickup',
           delivery_address: null,
-          subtotal,
+          subtotal: cartTotal,
           delivery_fee: 0,
           discount: 0,
-          total: subtotal,
+          total: cartTotal,
           notes: null,
           payment_status: 'paid',
           payment_method: channel === 'walk_in' ? 'cash' : 'rappi',
@@ -99,9 +110,11 @@ export function KitchenSalesMode() {
           dispatch_photo_url: null,
           invoice_photo_url: null,
         } as Omit<Order, 'id' | 'created_at' | 'updated_at'>,
-        [{ product_id: selectedProduct.id, quantity, unit_price: selectedProduct.base_price }]
+        cart.map(i => ({ product_id: i.product.id, quantity: i.quantity, unit_price: i.product.base_price }))
       )
-      await adjustInventory(selectedProduct.id, -quantity, 'sale', newOrder.id)
+      for (const i of cart) {
+        await adjustInventory(i.product.id, -i.quantity, 'sale', newOrder.id)
+      }
       setToast({ msg: 'Pedido registrado ✓', type: 'success' })
       reset()
     } catch {
@@ -160,53 +173,72 @@ export function KitchenSalesMode() {
                 <p className="text-gray-500 text-xs font-semibold uppercase tracking-wider px-1 pt-3 pb-1 first:pt-0">
                   {CATEGORY_LABELS[cat as ProductCategory] ?? cat}
                 </p>
-                {productsByCategory[cat].map(p => (
-                  <button
-                    key={p.id}
-                    onClick={() => selectProduct(p)}
-                    className={`w-full text-left px-4 py-3 rounded-xl text-sm font-medium transition-colors min-h-[52px] flex items-center justify-between ${
-                      selectedProduct?.id === p.id
-                        ? 'bg-[#D97706] text-white'
-                        : 'bg-[#1F2937] text-gray-300 hover:bg-[#374151]'
-                    }`}
-                  >
-                    <span className="capitalize">{productLabel(p)}</span>
-                    <span className={selectedProduct?.id === p.id ? 'text-white' : 'text-gray-500'}>
-                      {formatCOP(p.base_price)}
-                    </span>
-                  </button>
-                ))}
+                {productsByCategory[cat].map(p => {
+                  const inCart = cart.find(i => i.product.id === p.id)
+                  return (
+                    <button
+                      key={p.id}
+                      onClick={() => addToCart(p)}
+                      className={`w-full text-left px-4 py-3 rounded-xl text-sm font-medium transition-colors min-h-[52px] flex items-center justify-between gap-2 ${
+                        inCart
+                          ? 'bg-[#D97706] text-white'
+                          : 'bg-[#1F2937] text-gray-300 hover:bg-[#374151]'
+                      }`}
+                    >
+                      <span className="capitalize flex items-center gap-2">
+                        {inCart && (
+                          <span className="bg-white/25 text-white rounded-full min-w-5 h-5 px-1.5 text-xs font-bold flex items-center justify-center tabular-nums">
+                            {inCart.quantity}
+                          </span>
+                        )}
+                        {productLabel(p)}
+                      </span>
+                      <span className={inCart ? 'text-white' : 'text-gray-500'}>
+                        {formatCOP(p.base_price)}
+                      </span>
+                    </button>
+                  )
+                })}
               </div>
             ))}
           </div>
 
-          {selectedProduct && (
-            <div className="bg-[#1F2937] rounded-xl p-4 space-y-4 border border-[#374151]">
-              <div className="flex items-center justify-between gap-4">
-                <p className="text-white font-semibold capitalize">
-                  {selectedProduct.flavor} — {SIZE_LABELS[selectedProduct.size]}
-                </p>
-                <div className="flex items-center gap-2 bg-[#374151] rounded-lg">
-                  <button
-                    onClick={() => setQuantity(q => Math.max(1, q - 1))}
-                    className="px-4 py-2.5 text-white text-lg font-bold min-h-[44px]"
-                  >
-                    <Minus size={16} />
-                  </button>
-                  <span className="text-white text-xl font-bold w-10 text-center tabular-nums">{quantity}</span>
-                  <button
-                    onClick={() => setQuantity(q => q + 1)}
-                    className="px-4 py-2.5 text-white text-lg font-bold min-h-[44px]"
-                  >
-                    <Plus size={16} />
-                  </button>
+          {cart.length > 0 && (
+            <div className="bg-[#1F2937] rounded-xl p-4 space-y-3 border border-[#374151]">
+              {cart.map(item => (
+                <div key={item.product.id} className="flex items-center justify-between gap-3">
+                  <div className="min-w-0 flex-1">
+                    <p className="text-white font-semibold capitalize truncate">
+                      {item.product.flavor} — {SIZE_LABELS[item.product.size]}
+                    </p>
+                    <p className="text-gray-400 text-xs tabular-nums">
+                      {formatCOP(item.product.base_price * item.quantity)}
+                    </p>
+                  </div>
+                  <div className="flex items-center gap-2 bg-[#374151] rounded-lg flex-shrink-0">
+                    <button
+                      onClick={() => updateQty(item.product.id, -1)}
+                      className="px-3 py-2.5 text-white min-h-[44px]"
+                      aria-label={item.quantity === 1 ? 'Quitar producto' : 'Restar'}
+                    >
+                      {item.quantity === 1 ? <Trash2 size={16} className="text-red-400" /> : <Minus size={16} />}
+                    </button>
+                    <span className="text-white text-lg font-bold w-7 text-center tabular-nums">{item.quantity}</span>
+                    <button
+                      onClick={() => updateQty(item.product.id, 1)}
+                      className="px-3 py-2.5 text-white min-h-[44px]"
+                      aria-label="Sumar"
+                    >
+                      <Plus size={16} />
+                    </button>
+                  </div>
                 </div>
-              </div>
+              ))}
               <button
                 onClick={() => setStep(3)}
                 className="w-full py-3 bg-[#D97706] text-white rounded-xl font-bold text-lg hover:bg-[#B45309] transition-colors min-h-[48px]"
               >
-                Continuar
+                Continuar · {formatCOP(cartTotal)}
               </button>
             </div>
           )}
@@ -214,7 +246,7 @@ export function KitchenSalesMode() {
       )}
 
       {/* Step 3 — Confirmar */}
-      {step === 3 && selectedProduct && (
+      {step === 3 && cart.length > 0 && (
         <div className="space-y-4">
           <div className="flex items-center gap-3">
             <button
@@ -235,22 +267,30 @@ export function KitchenSalesMode() {
               >
                 {channel ? CHANNEL_LABELS[channel] : ''}
               </span>
+              <span className="text-gray-400 text-sm">{cartCount} ítem{cartCount !== 1 ? 's' : ''}</span>
             </div>
 
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-white text-xl font-bold capitalize">
-                  {selectedProduct.flavor}
-                </p>
-                <p className="text-gray-400 text-sm">{SIZE_LABELS[selectedProduct.size]}</p>
-              </div>
-              <span className="text-white text-2xl font-bold tabular-nums">{quantity}</span>
+            <div className="space-y-2.5">
+              {cart.map(item => (
+                <div key={item.product.id} className="flex items-center justify-between gap-3">
+                  <div className="min-w-0">
+                    <p className="text-white text-base font-bold capitalize truncate">{item.product.flavor}</p>
+                    <p className="text-gray-400 text-sm">{SIZE_LABELS[item.product.size]}</p>
+                  </div>
+                  <div className="flex items-center gap-3 flex-shrink-0">
+                    <span className="text-white text-lg font-bold tabular-nums">×{item.quantity}</span>
+                    <span className="text-gray-300 text-sm tabular-nums w-24 text-right">
+                      {formatCOP(item.product.base_price * item.quantity)}
+                    </span>
+                  </div>
+                </div>
+              ))}
             </div>
 
             <div className="border-t border-[#374151] pt-3 flex justify-between items-center">
               <span className="text-gray-400 text-sm">Total</span>
               <span className="text-white text-xl font-bold tabular-nums">
-                {formatCOP(selectedProduct.base_price * quantity)}
+                {formatCOP(cartTotal)}
               </span>
             </div>
           </div>

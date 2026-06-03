@@ -7,7 +7,7 @@ import { insertQualityLog } from '../../hooks/useQualityLog'
 import { insertComponentLog, useComponentLogs } from '../../hooks/useComponentLog'
 import { uploadQualityPhoto } from '../../lib/storage'
 import { today } from '../../lib/utils'
-import { SIZE_LABELS, LOW_STOCK_THRESHOLD } from '../../lib/constants'
+import { LOW_STOCK_THRESHOLD } from '../../lib/constants'
 import { CheckCircle, TrendingUp, Plus, X, AlertTriangle, Camera } from 'lucide-react'
 import type { Product, ProductSize } from '../../lib/types'
 
@@ -50,14 +50,14 @@ export function KitchenProductionMode() {
   }
 
   const productNeeds = useMemo(() => {
-    const needs: Record<string, { productId: string; flavor: string; size: ProductSize; needed: number }> = {}
+    const needs: Record<string, { productId: string; flavor: string; size: ProductSize; name: string; needed: number }> = {}
     for (const order of orders) {
       if (['cancelled', 'delivered', 'dispatched'].includes(order.status)) continue
       for (const item of order.items ?? []) {
         if (!item.product) continue
         const key = item.product_id
         if (!needs[key]) {
-          needs[key] = { productId: item.product_id, flavor: item.product.flavor, size: item.product.size, needed: 0 }
+          needs[key] = { productId: item.product_id, flavor: item.product.flavor, size: item.product.size, name: item.product.name, needed: 0 }
         }
         needs[key].needed += item.quantity
       }
@@ -72,7 +72,7 @@ export function KitchenProductionMode() {
   }, [inventory])
 
   const toProduceByFlavor = useMemo(() => {
-    const g: Record<string, Array<{ productId: string; flavor: string; size: ProductSize; needed: number; stock: number; deficit: number }>> = {}
+    const g: Record<string, Array<{ productId: string; flavor: string; size: ProductSize; name: string; needed: number; stock: number; deficit: number }>> = {}
     for (const item of productNeeds) {
       const stock = inventoryMap[item.productId] ?? 0
       const deficit = Math.max(0, item.needed - stock)
@@ -146,7 +146,7 @@ export function KitchenProductionMode() {
                     {items.map(item => (
                       <div key={item.productId} className="flex items-center justify-between gap-4 px-5 py-4">
                         <div className="flex-1 min-w-0">
-                          <p className="text-gray-300 text-base font-medium">{SIZE_LABELS[item.size]}</p>
+                          <p className="text-gray-300 text-base font-medium">{item.name}</p>
                           <p className="text-gray-400 text-sm mt-0.5">
                             {item.needed} necesarias · {item.stock} en stock
                           </p>

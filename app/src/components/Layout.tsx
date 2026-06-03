@@ -49,7 +49,7 @@ function SidebarContent({ current, onNavigate, onSignOut, onItemClick }: {
       </div>
 
       {/* Nav — generous spacing between items like RestoFlow */}
-      <nav className="flex-1 px-3 py-3 space-y-2" aria-label="Navegacion principal">
+      <nav className="flex-1 min-h-0 overflow-y-auto px-3 py-3 space-y-1" aria-label="Navegacion principal">
         {NAV.map(({ id, label, icon: Icon }) => {
           const active = current === id
           return (

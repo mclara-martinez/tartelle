@@ -29,6 +29,7 @@ export function OrderCreateView({ onClose }: Props) {
   const [customerId, setCustomerId] = useState<string | null>(null)
   const [customerDiscount, setCustomerDiscount] = useState(0)
   const [billingName, setBillingName] = useState('')
+  const [billingNameTouched, setBillingNameTouched] = useState(false)
   const [billingIdNumber, setBillingIdNumber] = useState('')
   const [billingEmail, setBillingEmail] = useState('')
   const [customerSearch, setCustomerSearch] = useState('')
@@ -124,6 +125,7 @@ export function OrderCreateView({ onClose }: Props) {
     setCustomerPhone(c.phone ?? '')
     setCustomerDiscount(c.discount_pct)
     setBillingName(c.razon_social || c.name || '')
+    setBillingNameTouched(true)
     setBillingIdNumber(c.nit || c.cedula || '')
     setBillingEmail(c.email || '')
     setShowCustomerSearch(false)
@@ -144,8 +146,7 @@ export function OrderCreateView({ onClose }: Props) {
         deliveryDate
       )
       if (blocked.length > 0) {
-        const names = blocked.map(i => `${i.flavor} ${i.size}`).join(', ')
-        setToast({ msg: `Sin stock para hoy: ${names}. Fecha mínima: mañana`, type: 'error' })
+        setToast({ msg: 'No disponible para hoy. Elige otra fecha de entrega.', type: 'error' })
         setSubmitting(false)
         return
       }
@@ -153,10 +154,17 @@ export function OrderCreateView({ onClose }: Props) {
       // Create customer if new
       let cId = customerId
       if (!cId && customerName.trim()) {
+        const isB2B = channel === 'b2b'
+        const idNumber = billingIdNumber.trim() || null
+        const razonSocial = billingName.trim() && billingName.trim() !== customerName.trim() ? billingName.trim() : null
         const newCustomer = await createCustomer({
           name: customerName.trim(),
           phone: customerPhone.trim() || null,
           email: billingEmail.trim() || null,
+          cedula: isB2B ? null : idNumber,
+          nit: isB2B ? idNumber : null,
+          razon_social: razonSocial,
+          type: isB2B ? 'b2b' : 'b2c',
         })
         cId = newCustomer?.id ?? null
       }
@@ -358,7 +366,11 @@ export function OrderCreateView({ onClose }: Props) {
                       type="text"
                       placeholder="Nombre"
                       value={customerName}
-                      onChange={e => { setCustomerName(e.target.value); setCustomerId(null) }}
+                      onChange={e => {
+                        setCustomerName(e.target.value)
+                        setCustomerId(null)
+                        if (!billingNameTouched) setBillingName(e.target.value)
+                      }}
                       className="flex-1 border border-[var(--color-border)] rounded-lg px-3 py-2 text-sm focus:outline-none focus:border-[var(--color-accent)]"
                     />
                     <button
@@ -371,7 +383,7 @@ export function OrderCreateView({ onClose }: Props) {
                   </div>
                   <input
                     type="tel"
-                    placeholder="Telefono (opcional)"
+                    placeholder="Teléfono"
                     value={customerPhone}
                     onChange={e => setCustomerPhone(e.target.value)}
                     className="w-full border border-[var(--color-border)] rounded-lg px-3 py-2 text-sm focus:outline-none focus:border-[var(--color-accent)]"
@@ -388,7 +400,7 @@ export function OrderCreateView({ onClose }: Props) {
                   type="text"
                   placeholder="Nombre completo o razón social"
                   value={billingName}
-                  onChange={e => setBillingName(e.target.value)}
+                  onChange={e => { setBillingName(e.target.value); setBillingNameTouched(true) }}
                   className="w-full border border-[var(--color-border)] rounded-lg px-3 py-2 text-sm focus:outline-none focus:border-[var(--color-accent)]"
                 />
                 <input
