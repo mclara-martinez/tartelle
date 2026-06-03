@@ -6,7 +6,7 @@ import { Toast } from '../components/Toast'
 import { formatCOP, today, tomorrow } from '../lib/utils'
 import { DELIVERY_FEE, CHANNEL_LABELS, SIZE_LABELS, CATEGORY_LABELS, PRODUCT_CATEGORY_ORDER, PAYMENT_METHOD_LABELS } from '../lib/constants'
 import { PhotoUpload } from '../components/PhotoUpload'
-import type { Order, OrderChannel, DeliveryType, Product, ProductCategory, PaymentMethod } from '../lib/types'
+import type { Order, OrderChannel, DeliveryType, Product, ProductCategory, ProductSize, PaymentMethod } from '../lib/types'
 import { X, Plus, Minus, Search, Bike, Store, ArrowLeft, ShoppingBag, User, Trash2, Package } from 'lucide-react'
 
 interface CartItem {
@@ -68,33 +68,25 @@ export function OrderCreateView({ onClose }: Props) {
 
   const [selectedSizes, setSelectedSizes] = useState<Record<string, string>>({})
 
-  function getActiveSize(cat: string): string {
-    if (selectedSizes[cat]) return selectedSizes[cat]
+  // Canonical size order (from SIZE_LABELS insertion order), used to order size tabs per category
+  const SIZE_ORDER = Object.keys(SIZE_LABELS)
+
+  function orderedSizes(cat: string): string[] {
     const sizeGroups = productsByCategory[cat] ?? {}
-    for (const s of ['grande', 'mediana', 'mini', 'porcion'] as const) {
-      if (sizeGroups[s]?.length) return s
-    }
-    return 'other'
+    return SIZE_ORDER.filter(s => sizeGroups[s]?.length)
   }
 
-  function productCardLabel(p: Product, hasNamedSizes: boolean, cat: string): string {
-    if (hasNamedSizes) return p.flavor
-    if (cat === 'complemento') return p.name.replace(/^VELA\s*/i, '').toLowerCase()
-    return p.flavor
+  function getActiveSize(cat: string): string {
+    const sizes = orderedSizes(cat)
+    const selected = selectedSizes[cat]
+    if (selected && sizes.includes(selected)) return selected
+    return sizes[0] ?? 'other'
   }
 
-  function productSubLabel(p: Product, cat: string): string | null {
-    const n = p.name.toUpperCase()
-    if (cat === 'bites') {
-      if (n.includes('X4')) return 'x4'
-      if (n.includes('UNIDAD')) return 'unidad'
-    }
-    if (cat === 'galleta') {
-      if (n.includes('X35')) return 'x35'
-      if (n.includes('X8')) return 'x8'
-      if (n.includes('X4')) return 'x4'
-    }
-    return null
+  function productCardLabel(p: Product, cat: string): string {
+    if (cat === 'complementos') return (p.flavor?.trim() || p.name).replace(/^VELA\s*/i, '').toLowerCase()
+    if (p.flavor && p.flavor.trim()) return p.flavor
+    return p.name
   }
 
   const subtotal = cart.reduce((sum, item) => sum + item.product.base_price * item.quantity, 0)
@@ -250,10 +242,10 @@ export function OrderCreateView({ onClose }: Props) {
               <div className="space-y-6">
               {PRODUCT_CATEGORY_ORDER.filter(cat => productsByCategory[cat]).map(cat => {
                 const sizeGroups = productsByCategory[cat]
-                const namedSizes = (['grande', 'mediana', 'mini', 'porcion'] as const).filter(s => sizeGroups[s]?.length)
-                const hasNamedSizes = namedSizes.length > 0
+                const sizes = orderedSizes(cat)
+                const showSizeTabs = sizes.length > 1
                 const activeSize = getActiveSize(cat)
-                const displayProducts = sizeGroups[activeSize] ?? sizeGroups['other'] ?? []
+                const displayProducts = sizeGroups[activeSize] ?? []
 
                 return (
                   <div key={cat}>
@@ -261,9 +253,9 @@ export function OrderCreateView({ onClose }: Props) {
                       {CATEGORY_LABELS[cat as ProductCategory] ?? cat}
                     </h3>
 
-                    {hasNamedSizes && (
-                      <div className="flex gap-1 mb-3">
-                        {namedSizes.map(size => (
+                    {showSizeTabs && (
+                      <div className="flex gap-1 mb-3 flex-wrap">
+                        {sizes.map(size => (
                           <button
                             key={size}
                             onClick={() => setSelectedSizes(prev => ({ ...prev, [cat]: size }))}
@@ -273,7 +265,7 @@ export function OrderCreateView({ onClose }: Props) {
                                 : 'border-[var(--color-border)] text-[var(--color-text-secondary)] hover:border-[var(--color-text-muted)]'
                             }`}
                           >
-                            {SIZE_LABELS[size]}
+                            {SIZE_LABELS[size as ProductSize] ?? size}
                           </button>
                         ))}
                       </div>
@@ -282,8 +274,7 @@ export function OrderCreateView({ onClose }: Props) {
                     <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-2">
                       {displayProducts.map(product => {
                         const inCart = cart.find(i => i.product.id === product.id)
-                        const label = productCardLabel(product, hasNamedSizes, cat)
-                        const sub = productSubLabel(product, cat)
+                        const label = productCardLabel(product, cat)
                         return (
                           <button
                             key={product.id}
@@ -295,7 +286,6 @@ export function OrderCreateView({ onClose }: Props) {
                             }`}
                           >
                             <p className="text-sm font-medium capitalize leading-tight">{label}</p>
-                            {sub && <p className="text-[11px] text-[var(--color-text-muted)]">{sub}</p>}
                             <p className="text-sm font-semibold mt-1">{formatCOP(product.base_price)}</p>
                             {inCart && (
                               <span className="absolute -top-1.5 -right-1.5 w-5 h-5 bg-[var(--color-accent)] text-white rounded-full text-[11px] font-bold flex items-center justify-center">
