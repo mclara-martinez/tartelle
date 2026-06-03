@@ -28,7 +28,8 @@ export function KitchenDispatchMode() {
   async function handleAction(orderId: string, status: OrderStatus) {
     setUpdatingId(orderId)
     try {
-      await updateOrderStatus(orderId, status)
+      const order = orders.find(o => o.id === orderId)
+      await updateOrderStatus(orderId, status, order)
       setToast({ msg: STATUS_LABELS[status], type: 'success' })
       refetch()
     } catch {

@@ -74,8 +74,6 @@ export function useOrders(startDate?: string, endDate?: string) {
   return { orders, loading, error, refetch: fetchOrders }
 }
 
-const INVENTORY_COMMITTED_STATUSES: Order['status'][] = ['in_production', 'ready', 'dispatched', 'delivered']
-
 export async function updateOrderStatus(
   orderId: string,
   status: Order['status'],
@@ -88,13 +86,19 @@ export async function updateOrderStatus(
   if (error) throw new Error(error.message)
 
   if (order?.items?.length) {
-    if (status === 'in_production') {
+    if (status === 'ready') {
+      await Promise.all(
+        order.items.map(item =>
+          adjustInventory(item.product_id, item.quantity, 'production', orderId)
+        )
+      )
+    } else if (status === 'dispatched') {
       await Promise.all(
         order.items.map(item =>
           adjustInventory(item.product_id, -item.quantity, 'sale', orderId)
         )
       )
-    } else if (status === 'cancelled' && INVENTORY_COMMITTED_STATUSES.includes(order.status)) {
+    } else if (status === 'cancelled' && (order.status === 'dispatched' || order.status === 'delivered')) {
       await Promise.all(
         order.items.map(item =>
           adjustInventory(item.product_id, item.quantity, 'adjustment', orderId, 'Cancelación de pedido')
