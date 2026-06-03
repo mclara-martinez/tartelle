@@ -30,28 +30,39 @@ export const STATUS_COLORS: Record<OrderStatus, { bg: string; text: string; dot:
 }
 
 export const SIZE_LABELS: Record<ProductSize, string> = {
-  grande: 'Grande',
+  grande:  'Grande',
   mediana: 'Mediana',
-  mini: 'Mini',
+  mini:    'Mini',
   porcion: 'Porción',
-  other: 'Otro',
+  other:   'Otro',
+  unidad:  'Unidad',
+  x4:      'x4',
+  x8:      'x8',
+  x12:     'x12',
+  x16:     'x16',
+  x20:     'x20',
+  x35:     'x35',
+  x41:     'x41',
+  x49:     'x49',
+  '320g':  '320g',
+  NA:      'N/A',
 }
 
 export const CATEGORY_LABELS: Record<ProductCategory, string> = {
-  tarta: 'Tartas',
-  bites: 'Bites',
-  cucheareable: 'Cuchareables',
-  vela: 'Complementos',
-  torta: 'Torta en Capacillo',
-  galleta: 'Galletas',
-  brownie: 'Brownies',
-  pan: 'Pan',
-  otro: 'Otros',
-  complemento: 'Complementos',
+  tartas:        'Tartas',
+  bites:         'Bites',
+  cucheareables: 'Cuchareables',
+  tortas:        'Torta en Capacillo',
+  galletas:      'Galletas',
+  brownies:      'Brownies',
+  complementos:  'Complementos',
+  duos:          'Dúos',
+  naisha:        'Naisha',
+  catering:      'Catering',
 }
 
 export const PRODUCT_CATEGORY_ORDER: ProductCategory[] = [
-  'tarta', 'bites', 'torta', 'cucheareable', 'galleta', 'complemento', 'otro', 'brownie',
+  'tartas', 'bites', 'tortas', 'cucheareables', 'galletas', 'complementos', 'duos', 'brownies', 'naisha', 'catering',
 ]
 
 export const ORDER_STATUS_FLOW: OrderStatus[] = [
