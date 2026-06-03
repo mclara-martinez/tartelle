@@ -75,7 +75,7 @@ export function KitchenSalesMode() {
           customer_name: channel === 'walk_in' ? 'Venta local' : channel === 'rappi' ? 'Rappi' : 'Didi',
           customer_phone: null,
           channel,
-          status: 'dispatched',
+          status: 'delivered',
           delivery_date: today(),
           delivery_type: 'pickup',
           delivery_address: null,

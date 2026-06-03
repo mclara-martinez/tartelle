@@ -112,14 +112,22 @@ function DispatchCard({ order, isUpdating, onAction, onPhotoUpload }: {
               )}
             </div>
           </div>
-          {/* Payment badge */}
-          <span
-            className="text-xs font-bold px-2.5 py-1 rounded-full flex items-center gap-1 flex-shrink-0"
-            style={{ backgroundColor: paymentColors.bg, color: paymentColors.text }}
-          >
-            <CreditCard size={11} />
-            {PAYMENT_STATUS_LABELS[order.payment_status ?? 'pending']}
-          </span>
+          {/* Estado del pedido (primario) + pago (secundario) */}
+          <div className="flex flex-col items-end gap-1.5 flex-shrink-0">
+            <span
+              className="text-xs font-bold px-2.5 py-1 rounded-full text-white"
+              style={{ backgroundColor: borderColor }}
+            >
+              {STATUS_LABELS[order.status]}
+            </span>
+            <span
+              className="text-[11px] font-medium px-2 py-0.5 rounded-full flex items-center gap-1"
+              style={{ backgroundColor: paymentColors.bg, color: paymentColors.text }}
+            >
+              <CreditCard size={10} />
+              Pago: {PAYMENT_STATUS_LABELS[order.payment_status ?? 'pending']}
+            </span>
+          </div>
         </div>
 
         {/* Address */}

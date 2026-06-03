@@ -1,7 +1,7 @@
 import { useState, useEffect, useCallback } from 'react'
 import { supabase } from '../lib/supabase'
 import { useProducts } from '../hooks/useProducts'
-import { today } from '../lib/utils'
+import { today, dayRangeISO } from '../lib/utils'
 import { ScrollText, ChevronLeft, ChevronRight } from 'lucide-react'
 import { format, parseISO } from 'date-fns'
 import { es } from 'date-fns/locale'
@@ -49,16 +49,13 @@ export function InventoryLogView() {
   const load = useCallback(async () => {
     setLoading(true)
 
-    const start = new Date(dateFilter)
-    start.setHours(0, 0, 0, 0)
-    const end = new Date(dateFilter)
-    end.setHours(23, 59, 59, 999)
+    const { start, end } = dayRangeISO(dateFilter)
 
     let query = supabase
       .from('inventory_log')
       .select('id, product_id, change, reason, notes, user_email, created_at, product:products(id, flavor, size)', { count: 'exact' })
-      .gte('created_at', start.toISOString())
-      .lte('created_at', end.toISOString())
+      .gte('created_at', start)
+      .lte('created_at', end)
       .order('created_at', { ascending: false })
       .range(page * PAGE_SIZE, (page + 1) * PAGE_SIZE - 1)
 

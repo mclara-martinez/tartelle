@@ -18,6 +18,7 @@ export function OrderDrawer({ orderId, onClose, onStatusChange }: Props) {
   const [order, setOrder] = useState<Order | null>(null)
   const [loading, setLoading] = useState(true)
   const [toast, setToast] = useState<{ msg: string; type: 'success' | 'error' } | null>(null)
+  const [submitting, setSubmitting] = useState(false)
 
   useEffect(() => {
     async function fetch() {
@@ -40,13 +41,19 @@ export function OrderDrawer({ orderId, onClose, onStatusChange }: Props) {
   }, [onClose])
 
   async function handleStatusChange(status: OrderStatus) {
+    if (submitting || !order) return
+    const prevStatus = order.status
+    setSubmitting(true)
+    setOrder(prev => prev ? { ...prev, status } : prev)
     try {
-      await updateOrderStatus(orderId, status, order ?? undefined)
-      setOrder(prev => prev ? { ...prev, status } : prev)
+      await updateOrderStatus(orderId, status, order)
       setToast({ msg: `Estado: ${STATUS_LABELS[status]}`, type: 'success' })
       onStatusChange?.()
     } catch {
       setToast({ msg: 'Error al actualizar', type: 'error' })
+      setOrder(prev => prev ? { ...prev, status: prevStatus } : prev)
+    } finally {
+      setSubmitting(false)
     }
   }
 
@@ -191,15 +198,17 @@ export function OrderDrawer({ orderId, onClose, onStatusChange }: Props) {
             {action && (
               <button
                 onClick={() => handleStatusChange(action.next)}
-                className="flex-1 flex items-center justify-center gap-2 bg-[var(--color-accent)] text-white py-2.5 rounded-lg text-sm font-medium hover:bg-[var(--color-accent-hover)] transition-colors duration-200"
+                disabled={submitting}
+                className="flex-1 flex items-center justify-center gap-2 bg-[var(--color-accent)] text-white py-2.5 rounded-lg text-sm font-medium hover:bg-[var(--color-accent-hover)] transition-colors duration-200 disabled:opacity-50"
               >
                 <ChevronRight className="h-4 w-4" />
-                {action.label}
+                {submitting ? 'Actualizando...' : action.label}
               </button>
             )}
             <button
               onClick={() => handleStatusChange('cancelled')}
-              className="flex items-center justify-center gap-1.5 px-4 py-2.5 border border-[var(--color-border)] rounded-lg text-sm text-[var(--color-text-muted)] hover:border-[var(--color-danger-text)] hover:text-[var(--color-danger-text)] transition-colors duration-200"
+              disabled={submitting}
+              className="flex items-center justify-center gap-1.5 px-4 py-2.5 border border-[var(--color-border)] rounded-lg text-sm text-[var(--color-text-muted)] hover:border-[var(--color-danger-text)] hover:text-[var(--color-danger-text)] transition-colors duration-200 disabled:opacity-50"
             >
               <Ban className="h-3.5 w-3.5" />
               Cancelar

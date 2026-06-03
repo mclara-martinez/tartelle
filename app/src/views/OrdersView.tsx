@@ -116,6 +116,8 @@ export function OrdersView({ onNavigate, selectedOrderId, onSelectOrder }: Props
   const [searchQuery, setSearchQuery] = useState('')
   const [toast, setToast] = useState<{ msg: string; type: 'success' | 'error' } | null>(null)
   const [openDropdown, setOpenDropdown] = useState<string | null>(null)
+  const [optimisticStatus, setOptimisticStatus] = useState<Record<string, OrderStatus>>({})
+  const [updatingId, setUpdatingId] = useState<string | null>(null)
   const dropdownRef = useRef<HTMLDivElement | null>(null)
 
   useEffect(() => {
@@ -141,13 +143,19 @@ export function OrdersView({ onNavigate, selectedOrderId, onSelectOrder }: Props
   const csvLabel = preset === 'range' ? `${rangeStart}_${rangeEnd}` : preset === 'today' ? today() : tomorrow()
 
   async function handleStatusChange(orderId: string, status: OrderStatus) {
+    if (updatingId === orderId) return
     const order = filteredOrders.find(o => o.id === orderId)
+    setOptimisticStatus(prev => ({ ...prev, [orderId]: status }))
+    setUpdatingId(orderId)
     try {
       await updateOrderStatus(orderId, status, order)
       setToast({ msg: 'Estado actualizado', type: 'success' })
-      refetch()
+      await refetch()
     } catch {
       setToast({ msg: 'Error al actualizar', type: 'error' })
+      setOptimisticStatus(prev => { const n = { ...prev }; delete n[orderId]; return n })
+    } finally {
+      setUpdatingId(null)
     }
   }
 
@@ -284,7 +292,7 @@ export function OrdersView({ onNavigate, selectedOrderId, onSelectOrder }: Props
       ) : (
         <>
           {/* Desktop table */}
-          <div className="hidden md:block bg-white rounded-lg border border-[var(--color-border)] overflow-hidden">
+          <div className="hidden md:block bg-white rounded-lg border border-[var(--color-border)]">
             <div className="grid grid-cols-[1fr_80px_90px_140px_24px] px-4 py-2.5 border-b border-[var(--color-border)] text-left font-medium text-[var(--color-text-muted)]">
               <span className="text-sm">Cliente</span>
               <span className="text-sm">Entrega</span>
@@ -318,7 +326,7 @@ export function OrdersView({ onNavigate, selectedOrderId, onSelectOrder }: Props
                     onClick={(e) => { e.stopPropagation(); setOpenDropdown(openDropdown === order.id ? null : order.id) }}
                     className="min-h-[36px] flex items-center"
                   >
-                    <StatusBadge status={order.status} size="sm" />
+                    <StatusBadge status={optimisticStatus[order.id] ?? order.status} size="sm" />
                   </button>
                   {openDropdown === order.id && (
                     <div className="absolute left-0 z-10 mt-1 bg-white border border-[var(--color-border)] rounded-lg shadow-md py-1 min-w-[150px]">
@@ -329,7 +337,7 @@ export function OrdersView({ onNavigate, selectedOrderId, onSelectOrder }: Props
                           className="w-full text-left px-3 py-2 text-sm hover:bg-[var(--color-bg-hover)] flex items-center gap-2 transition-colors duration-150"
                         >
                           <span className="w-4 flex-shrink-0">
-                            {order.status === s && <Check className="h-3.5 w-3.5 text-[var(--color-accent)]" />}
+                            {(optimisticStatus[order.id] ?? order.status) === s && <Check className="h-3.5 w-3.5 text-[var(--color-accent)]" />}
                           </span>
                           {STATUS_LABELS[s]}
                         </button>
@@ -340,7 +348,7 @@ export function OrdersView({ onNavigate, selectedOrderId, onSelectOrder }: Props
                           className="w-full text-left px-3 py-2 text-sm hover:bg-[var(--color-bg-hover)] flex items-center gap-2 text-[var(--color-danger-text)] transition-colors duration-150"
                         >
                           <span className="w-4 flex-shrink-0">
-                            {order.status === 'cancelled' && <Check className="h-3.5 w-3.5" />}
+                            {(optimisticStatus[order.id] ?? order.status) === 'cancelled' && <Check className="h-3.5 w-3.5" />}
                           </span>
                           Cancelado
                         </button>
@@ -393,7 +401,7 @@ export function OrdersView({ onNavigate, selectedOrderId, onSelectOrder }: Props
                         onClick={(e) => { e.stopPropagation(); setOpenDropdown(openDropdown === order.id ? null : order.id) }}
                         className="min-h-[44px] flex items-center"
                       >
-                        <StatusBadge status={order.status} size="sm" />
+                        <StatusBadge status={optimisticStatus[order.id] ?? order.status} size="sm" />
                       </button>
                       {openDropdown === order.id && (
                         <div className="absolute right-0 z-10 mt-1 bg-white border border-[var(--color-border)] rounded-lg shadow-md py-1 min-w-[150px]">
@@ -404,7 +412,7 @@ export function OrdersView({ onNavigate, selectedOrderId, onSelectOrder }: Props
                               className="w-full text-left px-3 py-2 text-sm hover:bg-[var(--color-bg-hover)] flex items-center gap-2 transition-colors duration-150"
                             >
                               <span className="w-4 flex-shrink-0">
-                                {order.status === s && <Check className="h-3.5 w-3.5 text-[var(--color-accent)]" />}
+                                {(optimisticStatus[order.id] ?? order.status) === s && <Check className="h-3.5 w-3.5 text-[var(--color-accent)]" />}
                               </span>
                               {STATUS_LABELS[s]}
                             </button>
@@ -415,7 +423,7 @@ export function OrdersView({ onNavigate, selectedOrderId, onSelectOrder }: Props
                               className="w-full text-left px-3 py-2 text-sm hover:bg-[var(--color-bg-hover)] flex items-center gap-2 text-[var(--color-danger-text)] transition-colors duration-150"
                             >
                               <span className="w-4 flex-shrink-0">
-                                {order.status === 'cancelled' && <Check className="h-3.5 w-3.5" />}
+                                {(optimisticStatus[order.id] ?? order.status) === 'cancelled' && <Check className="h-3.5 w-3.5" />}
                               </span>
                               Cancelado
                             </button>

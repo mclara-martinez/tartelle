@@ -28,6 +28,16 @@ export function tomorrow(): string {
   return format(d, 'yyyy-MM-dd')
 }
 
+// Rango [inicio, fin] de un día de Bogotá (UTC−5 fijo, sin DST) para un 'yyyy-MM-dd',
+// devuelto en ISO/UTC para consultas por created_at. El offset explícito hace que sea
+// independiente del timezone del proceso (el servidor puede correr en UTC).
+export function dayRangeISO(date: string): { start: string; end: string } {
+  return {
+    start: new Date(`${date}T00:00:00.000-05:00`).toISOString(),
+    end: new Date(`${date}T23:59:59.999-05:00`).toISOString(),
+  }
+}
+
 export function cn(...classes: (string | undefined | false | null)[]): string {
   return classes.filter(Boolean).join(' ')
 }

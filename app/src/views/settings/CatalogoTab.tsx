@@ -4,7 +4,7 @@ import { useAdminProducts, type ProductInput } from '../../hooks/useAdminProduct
 import { Toast } from '../../components/Toast'
 import { formatCOP } from '../../lib/utils'
 import {
-  CATALOG_LABELS, TAX_TYPE_LABELS, SIZE_LABELS, CATEGORY_LABELS,
+  CATALOG_LABELS, TAX_TYPE_LABELS, SIZE_LABELS, CATEGORY_LABELS, PRODUCT_CATEGORY_ORDER,
 } from '../../lib/constants'
 import type { Product, ProductCatalog, ProductSize, ProductCategory, TaxType } from '../../lib/types'
 
@@ -39,7 +39,7 @@ const ACTIVE_OPTIONS = [
 ]
 
 const SIZE_VALUES: ProductSize[] = ['grande', 'mediana', 'mini', 'porcion', 'other']
-const CATEGORY_VALUES: ProductCategory[] = ['tarta', 'bites', 'cucheareable', 'vela', 'torta', 'galleta', 'brownie', 'pan', 'otro', 'complemento']
+const CATEGORY_VALUES: ProductCategory[] = PRODUCT_CATEGORY_ORDER
 const TAX_VALUES: Array<NonNullable<TaxType>> = ['impoconsumo_8', 'iva_19', 'iva_0']
 
 const EMPTY_FORM: ProductInput = {

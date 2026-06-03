@@ -1,7 +1,7 @@
 import { useState, useEffect, useCallback } from 'react'
 import { supabase } from '../lib/supabase'
 import type { DayClosure } from '../lib/types'
-import { today } from '../lib/utils'
+import { today, dayRangeISO } from '../lib/utils'
 import { SIZE_LABELS } from '../lib/constants'
 import type { ProductSize } from '../lib/types'
 
@@ -29,16 +29,13 @@ export function useDayClosure(date: string = today()) {
       .maybeSingle()
 
     // 2. Today's inventory_log — only production and sale entries
-    const start = new Date(date)
-    start.setHours(0, 0, 0, 0)
-    const end = new Date(date)
-    end.setHours(23, 59, 59, 999)
+    const { start, end } = dayRangeISO(date)
 
     const { data: logs } = await supabase
       .from('inventory_log')
       .select('product_id, change, reason, product:products(id, flavor, size, active)')
-      .gte('created_at', start.toISOString())
-      .lte('created_at', end.toISOString())
+      .gte('created_at', start)
+      .lte('created_at', end)
       .in('reason', ['production', 'sale'])
 
     // 3. Current inventory_finished
