@@ -1,5 +1,5 @@
 import { useState, useMemo, useRef } from 'react'
-import { useOrders } from '../../hooks/useOrders'
+import { useOrders, updateOrderStatus } from '../../hooks/useOrders'
 import { useInventory, useProductionToday, adjustInventory } from '../../hooks/useInventory'
 import { useProducts } from '../../hooks/useProducts'
 import { Toast } from '../../components/Toast'
@@ -8,8 +8,8 @@ import { insertComponentLog, useComponentLogs } from '../../hooks/useComponentLo
 import { uploadQualityPhoto } from '../../lib/storage'
 import { today } from '../../lib/utils'
 import { LOW_STOCK_THRESHOLD } from '../../lib/constants'
-import { CheckCircle, TrendingUp, Plus, X, AlertTriangle, Camera } from 'lucide-react'
-import type { Product, ProductSize } from '../../lib/types'
+import { CheckCircle, Plus, X, AlertTriangle, Camera } from 'lucide-react'
+import type { Product, ProductSize, Order } from '../../lib/types'
 
 const QUALITY_ITEMS = ['Textura', 'Color', 'Presentación', 'Sin defectos visibles']
 type PendingProduce = { productId: string; qty: number } | null
@@ -31,7 +31,8 @@ export function KitchenProductionMode() {
   const { entries: producedToday } = useProductionToday()
   const { logs: componentLogs, refetch: refetchComponents } = useComponentLogs(today())
   const [toast, setToast] = useState<{ msg: string; type: 'success' | 'error' } | null>(null)
-  const [producing, setProducing] = useState<string | null>(null)
+  const [markingReady, setMarkingReady] = useState<string | null>(null)
+  const [qualityOrder, setQualityOrder] = useState<Order | null>(null)
   const [showAddForm, setShowAddForm] = useState(false)
   const [showComponentModal, setShowComponentModal] = useState(false)
   const [pendingProduce, setPendingProduce] = useState<PendingProduce>(null)
@@ -49,48 +50,33 @@ export function KitchenProductionMode() {
     setRappiDismissed(true)
   }
 
-  const productNeeds = useMemo(() => {
-    const needs: Record<string, { productId: string; flavor: string; size: ProductSize; name: string; needed: number }> = {}
-    for (const order of orders) {
-      if (['cancelled', 'delivered', 'dispatched'].includes(order.status)) continue
+  const confirmedOrders = useMemo(
+    () => orders.filter(o => o.status === 'confirmed' && o.delivery_date === today()),
+    [orders]
+  )
+
+  const batchPlan = useMemo(() => {
+    const g: Record<string, Array<{ size: ProductSize; qty: number }>> = {}
+    for (const order of confirmedOrders) {
       for (const item of order.items ?? []) {
         if (!item.product) continue
-        const key = item.product_id
-        if (!needs[key]) {
-          needs[key] = { productId: item.product_id, flavor: item.product.flavor, size: item.product.size, name: item.product.name, needed: 0 }
-        }
-        needs[key].needed += item.quantity
+        const flavor = item.product.flavor
+        g[flavor] = g[flavor] ?? []
+        const existing = g[flavor].find(e => e.size === item.product!.size)
+        if (existing) existing.qty += item.quantity
+        else g[flavor].push({ size: item.product.size, qty: item.quantity })
       }
     }
-    return Object.values(needs).sort((a, b) => a.flavor.localeCompare(b.flavor) || a.size.localeCompare(b.size))
-  }, [orders])
+    return Object.entries(g).sort(([a], [b]) => a.localeCompare(b))
+  }, [confirmedOrders])
 
-  const inventoryMap = useMemo(() => {
-    const map: Record<string, number> = {}
-    for (const item of inventory) map[item.product_id] = item.quantity
-    return map
-  }, [inventory])
-
-  const toProduceByFlavor = useMemo(() => {
-    const g: Record<string, Array<{ productId: string; flavor: string; size: ProductSize; name: string; needed: number; stock: number; deficit: number }>> = {}
-    for (const item of productNeeds) {
-      const stock = inventoryMap[item.productId] ?? 0
-      const deficit = Math.max(0, item.needed - stock)
-      if (deficit === 0) continue
-      g[item.flavor] = g[item.flavor] ?? []
-      g[item.flavor].push({ ...item, stock, deficit })
-    }
-    return g
-  }, [productNeeds, inventoryMap])
-
-  const toProduceCount = useMemo(
-    () => Object.values(toProduceByFlavor).reduce((s, items) => s + items.length, 0),
-    [toProduceByFlavor]
+  const batchTotal = useMemo(
+    () => batchPlan.reduce((s, [, sizes]) => s + sizes.reduce((x, y) => x + y.qty, 0), 0),
+    [batchPlan]
   )
 
   async function handleProduce(productId: string, qty: number) {
     if (qty <= 0) return
-    setProducing(productId)
     try {
       await adjustInventory(productId, qty, 'production')
       refetchInv()
@@ -98,13 +84,24 @@ export function KitchenProductionMode() {
     } catch {
       setToast({ msg: 'Error', type: 'error' })
     }
-    setProducing(null)
+  }
+
+  async function handleReady(order: Order) {
+    setMarkingReady(order.id)
+    try {
+      await updateOrderStatus(order.id, 'ready', order)
+      refetchInv()
+      setToast({ msg: `${order.customer_name ?? 'Pedido'} listo`, type: 'success' })
+    } catch {
+      setToast({ msg: 'Error', type: 'error' })
+    }
+    setMarkingReady(null)
   }
 
   return (
     <div className="p-4 space-y-4">
       <div className="flex items-center justify-between">
-        <p className="text-gray-400 text-sm">{toProduceCount} producto{toProduceCount !== 1 ? 's' : ''} por producir</p>
+        <p className="text-gray-400 text-sm">{confirmedOrders.length} pedido{confirmedOrders.length !== 1 ? 's' : ''} por preparar</p>
         <button
           onClick={() => setShowAddForm(true)}
           className="flex items-center gap-2 px-4 py-2.5 bg-[#7C3AED] text-white rounded-lg text-sm font-medium hover:bg-[#6D28D9] transition-colors min-h-[44px]"
@@ -126,39 +123,63 @@ export function KitchenProductionMode() {
       )}
 
       <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-        {/* Por producir */}
+        {/* Pedidos por preparar */}
         <div className="space-y-3">
-          <p className="text-white text-base font-bold">Por producir</p>
-          {toProduceCount === 0 ? (
+          <p className="text-white text-base font-bold">Pedidos por preparar</p>
+          {confirmedOrders.length === 0 ? (
             <div className="flex flex-col items-center justify-center py-12 text-center bg-[#1F2937] rounded-xl border border-[#374151]">
               <CheckCircle size={48} className="text-green-500 mb-3" />
-              <p className="text-white text-lg font-bold">Sin produccion pendiente</p>
-              <p className="text-gray-400 text-sm mt-1">Todo el stock esta cubierto</p>
+              <p className="text-white text-lg font-bold">Sin pedidos pendientes</p>
+              <p className="text-gray-400 text-sm mt-1">Todos los pedidos de hoy estan listos</p>
             </div>
           ) : (
             <div className="space-y-3">
-              {Object.entries(toProduceByFlavor).map(([flavor, items]) => (
+              {confirmedOrders.map(order => (
+                <div key={order.id} className="bg-[#1F2937] rounded-xl overflow-hidden border border-[#374151]">
+                  <div className="px-5 pt-4 pb-3 border-b border-[#374151]">
+                    <p className="text-white text-lg font-bold truncate">{order.customer_name ?? 'Cliente'}</p>
+                  </div>
+                  <div className="px-5 py-3 space-y-1">
+                    {order.items?.map(item => (
+                      <div key={item.id} className="flex items-center justify-between">
+                        <span className="text-gray-200 text-base font-medium">{item.quantity}x {item.product?.flavor}</span>
+                        <span className="text-gray-400 text-sm capitalize">{item.product?.size}</span>
+                      </div>
+                    ))}
+                  </div>
+                  <button
+                    onClick={() => setQualityOrder(order)}
+                    disabled={markingReady === order.id}
+                    className="w-full py-4 text-base font-bold flex items-center justify-center gap-2 bg-green-600 text-white hover:bg-green-700 disabled:opacity-50 transition-colors"
+                  >
+                    <CheckCircle size={18} />
+                    Listo
+                  </button>
+                </div>
+              ))}
+            </div>
+          )}
+        </div>
+
+        {/* Plan de produccion + Ya producido hoy */}
+        <div className="space-y-3">
+          <p className="text-white text-base font-bold">Plan de produccion</p>
+          {batchTotal === 0 ? (
+            <div className="flex flex-col items-center justify-center py-12 text-center bg-[#1F2937] rounded-xl border border-[#374151]">
+              <p className="text-gray-400 text-sm">Nada por producir</p>
+            </div>
+          ) : (
+            <div className="space-y-3">
+              {batchPlan.map(([flavor, sizes]) => (
                 <div key={flavor} className="bg-[#1F2937] rounded-xl overflow-hidden border border-[#374151]">
                   <div className="px-5 pt-4 pb-3 border-b border-[#374151]">
                     <p className="text-white text-xl font-bold capitalize">{flavor}</p>
                   </div>
                   <div className="divide-y divide-[#374151]">
-                    {items.map(item => (
-                      <div key={item.productId} className="flex items-center justify-between gap-4 px-5 py-4">
-                        <div className="flex-1 min-w-0">
-                          <p className="text-gray-300 text-base font-medium">{item.name}</p>
-                          <p className="text-gray-400 text-sm mt-0.5">
-                            {item.needed} necesarias · {item.stock} en stock
-                          </p>
-                        </div>
-                        <button
-                          onClick={() => setPendingProduce({ productId: item.productId, qty: item.deficit })}
-                          disabled={producing === item.productId}
-                          className="flex items-center gap-2 px-5 py-3 bg-green-600 text-white rounded-xl text-base font-bold hover:bg-green-700 disabled:opacity-50 transition-colors min-h-[48px] flex-shrink-0"
-                        >
-                          <TrendingUp size={18} />
-                          +{item.deficit}
-                        </button>
+                    {sizes.map(s => (
+                      <div key={s.size} className="flex items-center justify-between gap-4 px-5 py-3">
+                        <span className="text-gray-300 text-base capitalize">{s.size}</span>
+                        <span className="text-white text-lg font-bold tabular-nums">{s.qty}</span>
                       </div>
                     ))}
                   </div>
@@ -166,11 +187,8 @@ export function KitchenProductionMode() {
               ))}
             </div>
           )}
-        </div>
 
-        {/* Ya producido hoy */}
-        <div className="space-y-3">
-          <p className="text-white text-base font-bold">Ya producido hoy</p>
+          <p className="text-white text-base font-bold pt-2">Ya producido hoy</p>
           {producedToday.length === 0 ? (
             <div className="flex flex-col items-center justify-center py-12 text-center bg-[#1F2937] rounded-xl border border-[#374151]">
               <p className="text-gray-400 text-sm">Nada producido aun hoy</p>
@@ -246,13 +264,33 @@ export function KitchenProductionMode() {
       {pendingProduce && (
         <QualityCheckModal
           productId={pendingProduce.productId}
-          qty={pendingProduce.qty}
+          orderId={null}
+          subtitle={`Lote de +${pendingProduce.qty} unidades`}
           onConfirm={async () => {
             const { productId, qty } = pendingProduce
             setPendingProduce(null)
             await handleProduce(productId, qty)
           }}
           onClose={() => setPendingProduce(null)}
+          onError={msg => setToast({ msg, type: 'error' })}
+        />
+      )}
+
+      {qualityOrder && (
+        <QualityCheckModal
+          productId={qualityOrder.items?.[0]?.product_id ?? ''}
+          orderId={qualityOrder.id}
+          subtitle={qualityOrder.customer_name ?? 'Pedido'}
+          onConfirm={async passed => {
+            const order = qualityOrder
+            setQualityOrder(null)
+            if (passed) {
+              await handleReady(order)
+            } else {
+              setToast({ msg: 'Pedido pendiente: revisar calidad', type: 'error' })
+            }
+          }}
+          onClose={() => setQualityOrder(null)}
           onError={msg => setToast({ msg, type: 'error' })}
         />
       )}
@@ -434,14 +472,16 @@ function AddComponentModal({
 
 function QualityCheckModal({
   productId,
-  qty,
+  orderId,
+  subtitle,
   onConfirm,
   onClose,
   onError,
 }: {
   productId: string
-  qty: number
-  onConfirm: () => Promise<void>
+  orderId: string | null
+  subtitle: string
+  onConfirm: (passed: boolean) => Promise<void>
   onClose: () => void
   onError: (msg: string) => void
 }) {
@@ -482,13 +522,13 @@ function QualityCheckModal({
         product_id: productId,
         items_fallidos: failedItems,
         observacion: needsObservacion ? observacion.trim() : null,
-        order_id: null,
+        order_id: orderId,
         photo_path: photoPath,
       })
     } catch {
       onError('No se pudo guardar el log de calidad')
     }
-    onConfirm()
+    await onConfirm(failedItems.length === 0)
   }
 
   return (
@@ -497,7 +537,7 @@ function QualityCheckModal({
         <div className="px-6 pt-6 pb-4 flex-shrink-0 flex items-center justify-between border-b border-[#374151]">
           <div>
             <h2 className="text-white text-xl font-bold">Control de calidad</h2>
-            <p className="text-gray-400 text-sm mt-0.5">Lote de +{qty} unidades</p>
+            <p className="text-gray-400 text-sm mt-0.5">{subtitle}</p>
           </div>
           <button onClick={onClose} className="p-2 text-gray-400 hover:text-white transition-colors">
             <X size={20} />

@@ -2,9 +2,9 @@ import { useState } from 'react'
 import { useOrders, updateOrderStatus, updateOrderFields } from '../../hooks/useOrders'
 import { Toast } from '../../components/Toast'
 import { PhotoUpload } from '../../components/PhotoUpload'
-import { today } from '../../lib/utils'
+import { today, formatDate, shiftDay } from '../../lib/utils'
 import { STATUS_LABELS, PAYMENT_STATUS_LABELS, PAYMENT_STATUS_COLORS } from '../../lib/constants'
-import { Bike, Store, Truck, CheckCircle, AlertTriangle, Package, CreditCard, MapPin } from 'lucide-react'
+import { Bike, Store, Truck, CheckCircle, AlertTriangle, Package, CreditCard, MapPin, ChevronLeft, ChevronRight } from 'lucide-react'
 import type { Order, OrderStatus } from '../../lib/types'
 
 const STATUS_ORDER: Record<string, number> = {
@@ -15,12 +15,13 @@ const STATUS_ORDER: Record<string, number> = {
 }
 
 export function KitchenDispatchMode() {
-  const { orders, refetch } = useOrders(today())
+  const [selectedDate, setSelectedDate] = useState(today())
+  const { orders, refetch } = useOrders(selectedDate)
   const [toast, setToast] = useState<{ msg: string; type: 'success' | 'error' } | null>(null)
   const [updatingId, setUpdatingId] = useState<string | null>(null)
 
   const dispatchable = orders
-    .filter(o => ['confirmed', 'in_production', 'ready', 'dispatched'].includes(o.status))
+    .filter(o => o.status !== 'delivered')
     .sort((a, b) => (STATUS_ORDER[a.status] ?? 9) - (STATUS_ORDER[b.status] ?? 9))
 
   const delivered = orders.filter(o => o.status === 'delivered')
@@ -49,6 +50,27 @@ export function KitchenDispatchMode() {
 
   return (
     <div className="p-4">
+      <div className="flex items-center justify-center gap-4 mb-4">
+        <button
+          onClick={() => setSelectedDate(d => shiftDay(d, -1))}
+          aria-label="Dia anterior"
+          className="p-2 text-gray-400 hover:text-white min-h-[44px] min-w-[44px] flex items-center justify-center"
+        >
+          <ChevronLeft size={24} />
+        </button>
+        <div className="text-center min-w-[160px]">
+          <p className="text-white text-lg font-bold capitalize">{formatDate(selectedDate)}</p>
+          {selectedDate === today() && <p className="text-green-400 text-xs font-medium">Hoy</p>}
+        </div>
+        <button
+          onClick={() => setSelectedDate(d => shiftDay(d, 1))}
+          aria-label="Dia siguiente"
+          className="p-2 text-gray-400 hover:text-white min-h-[44px] min-w-[44px] flex items-center justify-center"
+        >
+          <ChevronRight size={24} />
+        </button>
+      </div>
+
       <div className="flex items-center justify-between mb-4">
         <p className="text-gray-400 text-sm">{dispatchable.length} pedido{dispatchable.length !== 1 ? 's' : ''} activos</p>
         {delivered.length > 0 && (

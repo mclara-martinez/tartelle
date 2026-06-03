@@ -28,6 +28,12 @@ export function tomorrow(): string {
   return format(d, 'yyyy-MM-dd')
 }
 
+export function shiftDay(date: string, delta: number): string {
+  const d = parseISO(date)
+  d.setDate(d.getDate() + delta)
+  return format(d, 'yyyy-MM-dd')
+}
+
 // Rango [inicio, fin] de un día de Bogotá (UTC−5 fijo, sin DST) para un 'yyyy-MM-dd',
 // devuelto en ISO/UTC para consultas por created_at. El offset explícito hace que sea
 // independiente del timezone del proceso (el servidor puede correr en UTC).
