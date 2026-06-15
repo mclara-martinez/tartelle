@@ -51,7 +51,7 @@ export function DomiciliarioView() {
   async function handlePickup(order: Order) {
     setUpdatingId(order.id)
     try {
-      await updateOrderFields(order.id, { picked_up_at: new Date().toISOString() } as Partial<Order>)
+      await updateOrderFields(order.id, { picked_up_at: new Date().toISOString(), dispatched_at: new Date().toISOString() } as Partial<Order>)
       await updateOrderStatus(order.id, 'dispatched')
       setToast({ msg: 'Recogido', type: 'success' })
       setActiveTab('entregando')

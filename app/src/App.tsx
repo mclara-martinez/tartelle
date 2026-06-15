@@ -25,7 +25,7 @@ function viewFromHash(): View {
 }
 
 function AppContent() {
-  const { user, role, loading, signOut } = useAuth()
+  const { user, role, allowedViews, loading, signOut } = useAuth()
   const [view, setView] = useState<View>(viewFromHash)
   const [selectedOrderId, setSelectedOrderId] = useState<string | null>(null)
 
@@ -40,6 +40,12 @@ function AppContent() {
     window.addEventListener('hashchange', onHashChange)
     return () => window.removeEventListener('hashchange', onHashChange)
   }, [])
+
+  useEffect(() => {
+    if (role === 'owner' && allowedViews && !allowedViews.includes(view)) {
+      navigate((allowedViews[0] as View) ?? 'orders')
+    }
+  }, [role, allowedViews, view, navigate])
 
   if (loading) {
     return (

@@ -30,7 +30,7 @@ function SidebarContent({ current, onNavigate, onSignOut, onItemClick }: {
   onSignOut: () => void
   onItemClick?: () => void
 }) {
-  const { user } = useAuth()
+  const { user, allowedViews } = useAuth()
 
   return (
     <div className="flex flex-col h-full">
@@ -50,7 +50,7 @@ function SidebarContent({ current, onNavigate, onSignOut, onItemClick }: {
 
       {/* Nav — generous spacing between items like RestoFlow */}
       <nav className="flex-1 min-h-0 overflow-y-auto px-3 py-3 space-y-1" aria-label="Navegacion principal">
-        {NAV.map(({ id, label, icon: Icon }) => {
+        {(allowedViews ? NAV.filter(item => allowedViews.includes(item.id)) : NAV).map(({ id, label, icon: Icon }) => {
           const active = current === id
           return (
             <button

@@ -6,12 +6,13 @@ import { Toast } from '../../components/Toast'
 import { ROLE_LABELS } from '../../lib/constants'
 import type { AppUser, AppRole } from '../../lib/types'
 
-const ROLE_VALUES: AppRole[] = ['admin', 'kitchen', 'driver']
+const ROLE_VALUES: AppRole[] = ['admin', 'kitchen', 'driver', 'owner']
 
 const ROLE_COLORS: Record<AppRole, { bg: string; text: string }> = {
   admin:   { bg: '#EDE9FE', text: '#5B21B6' },
   kitchen: { bg: '#D1FAE5', text: '#065F46' },
   driver:  { bg: '#DBEAFE', text: '#1E40AF' },
+  owner:   { bg: '#FEF3C7', text: '#92400E' },
 }
 
 function formatDate(iso: string | null) {

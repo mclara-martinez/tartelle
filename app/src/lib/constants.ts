@@ -130,6 +130,7 @@ export const ROLE_LABELS: Record<AppRole, string> = {
   admin:   'Administrador',
   kitchen: 'Cocina',
   driver:  'Domiciliario',
+  owner:   'Propietaria',
 }
 
 export const STATUS_DOT_COLORS: Record<OrderStatus, string> = Object.fromEntries(

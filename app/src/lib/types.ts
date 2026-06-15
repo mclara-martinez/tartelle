@@ -70,6 +70,7 @@ export interface Order {
   packaging_notes: string | null
   assigned_driver: string | null
   picked_up_at: string | null
+  dispatched_at: string | null
   delivered_at: string | null
   dispatch_photo_url: string | null
   invoice_photo_url: string | null
@@ -140,7 +141,7 @@ export interface ProductionPlanItem {
   product?: Product
 }
 
-export type AppRole = 'admin' | 'kitchen' | 'driver'
+export type AppRole = 'admin' | 'kitchen' | 'driver' | 'owner'
 
 export interface DayClosureDetail {
   product_id: string

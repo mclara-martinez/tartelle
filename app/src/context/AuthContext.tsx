@@ -2,11 +2,12 @@ import { createContext, useContext, useEffect, useState } from 'react'
 import type { User } from '@supabase/supabase-js'
 import { supabase } from '../lib/supabase'
 
-type Role = 'admin' | 'kitchen' | 'driver'
+type Role = 'admin' | 'kitchen' | 'driver' | 'owner'
 
 interface AuthContextValue {
   user: User | null
   role: Role | null
+  allowedViews: string[] | null
   loading: boolean
   signOut: () => Promise<void>
 }
@@ -31,13 +32,16 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   }, [])
 
   const role = (user?.user_metadata?.role as Role) ?? null
+  const allowedViews: string[] | null = role === 'admin'
+    ? null
+    : (user?.user_metadata?.allowed_views as string[] ?? null)
 
   async function signOut() {
     await supabase.auth.signOut()
   }
 
   return (
-    <AuthContext.Provider value={{ user, role, loading, signOut }}>
+    <AuthContext.Provider value={{ user, role, allowedViews, loading, signOut }}>
       {children}
     </AuthContext.Provider>
   )
