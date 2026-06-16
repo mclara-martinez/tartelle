@@ -31,10 +31,10 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     return () => subscription.unsubscribe()
   }, [])
 
-  const role = (user?.user_metadata?.role as Role) ?? null
+  const role = (user?.app_metadata?.role as Role) ?? null
   const allowedViews: string[] | null = role === 'admin'
     ? null
-    : (user?.user_metadata?.allowed_views as string[] ?? null)
+    : (user?.app_metadata?.allowed_views as string[] ?? null)
 
   async function signOut() {
     await supabase.auth.signOut()
