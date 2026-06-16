@@ -47,7 +47,7 @@ export function OrderCreateView({ onClose }: Props) {
   const [submitting, setSubmitting] = useState(false)
   const [toast, setToast] = useState<{ msg: string; type: 'success' | 'error' } | null>(null)
 
-  const [catalogFilter, setCatalogFilter] = useState<'retail' | 'eventos' | 'cafe_velez'>('retail')
+  const [catalogFilter, setCatalogFilter] = useState<'retail' | 'eventos' | 'velez_cafe'>('retail')
 
   // Group products by category → size, filtered by catalogFilter
   const productsByCategory = useMemo(() => {
@@ -56,7 +56,7 @@ export function OrderCreateView({ onClose }: Props) {
       const visible =
         catalogFilter === 'retail'   ? (p.catalog === 'retail' || p.catalog === 'ambos') :
         catalogFilter === 'eventos'  ? (p.catalog === 'eventos' || p.catalog === 'ambos') :
-        /* cafe_velez */               p.catalog === 'cafe_velez'
+        /* velez_cafe */               p.catalog === 'velez_cafe'
       if (!visible) continue
       const cat = p.category ?? 'otro'
       grouped[cat] ??= {}
@@ -225,7 +225,7 @@ export function OrderCreateView({ onClose }: Props) {
           ) : (
             <>
               <div className="flex gap-2 mb-4">
-                {(['retail', 'eventos', 'cafe_velez'] as const).map(cat => (
+                {(['retail', 'eventos', 'velez_cafe'] as const).map(cat => (
                   <button
                     key={cat}
                     onClick={() => setCatalogFilter(cat)}

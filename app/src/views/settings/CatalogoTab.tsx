@@ -8,19 +8,19 @@ import {
 } from '../../lib/constants'
 import type { Product, ProductCatalog, ProductSize, ProductCategory, TaxType } from '../../lib/types'
 
-type CatalogTag = 'retail' | 'eventos' | 'cafe_velez'
+type CatalogTag = 'retail' | 'eventos' | 'velez_cafe'
 
 const CATALOG_TAGS: { value: CatalogTag; label: string }[] = [
   { value: 'retail',    label: 'Retail' },
   { value: 'eventos',   label: 'Eventos' },
-  { value: 'cafe_velez', label: 'Café Vélez' },
+  { value: 'velez_cafe', label: 'Café Vélez' },
 ]
 
 function productMatchesTags(catalog: ProductCatalog, tags: Set<CatalogTag>): boolean {
   if (tags.size === 0) return true
   if (tags.has('retail') && (catalog === 'retail' || catalog === 'ambos')) return true
   if (tags.has('eventos') && (catalog === 'eventos' || catalog === 'ambos')) return true
-  if (tags.has('cafe_velez') && catalog === 'cafe_velez') return true
+  if (tags.has('velez_cafe') && catalog === 'velez_cafe') return true
   return false
 }
 
@@ -29,7 +29,7 @@ function catalogDisplayTags(catalog: ProductCatalog): { label: string; key: stri
   if (catalog === 'ambos') return [{ label: 'Retail', key: 'retail' }, { label: 'Eventos', key: 'eventos' }]
   if (catalog === 'retail') return [{ label: 'Retail', key: 'retail' }]
   if (catalog === 'eventos') return [{ label: 'Eventos', key: 'eventos' }]
-  return [{ label: 'Café Vélez', key: 'cafe_velez' }]
+  return [{ label: 'Café Vélez', key: 'velez_cafe' }]
 }
 
 const ACTIVE_OPTIONS = [
