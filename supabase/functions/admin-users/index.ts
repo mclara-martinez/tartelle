@@ -13,11 +13,11 @@ function json(data: unknown, status = 200) {
   })
 }
 
-function mapUser(u: { id: string; email?: string; user_metadata?: Record<string, unknown>; created_at: string; last_sign_in_at?: string; banned_until?: string }) {
+function mapUser(u: { id: string; email?: string; app_metadata?: Record<string, unknown>; created_at: string; last_sign_in_at?: string; banned_until?: string }) {
   return {
     id: u.id,
     email: u.email ?? '',
-    role: (u.user_metadata?.role as string) ?? 'kitchen',
+    role: (u.app_metadata?.role as string) ?? 'kitchen',
     created_at: u.created_at,
     last_sign_in_at: u.last_sign_in_at ?? null,
     banned_until: u.banned_until ?? null,
@@ -42,7 +42,7 @@ Deno.serve(async (req: Request) => {
   const token = authHeader.replace('Bearer ', '')
   const { data: { user: caller }, error: authErr } = await supabaseAdmin.auth.getUser(token)
   if (authErr || !caller) return json({ error: 'No autorizado' }, 401)
-  if (caller.user_metadata?.role !== 'admin') return json({ error: 'Acceso denegado' }, 403)
+  if (caller.app_metadata?.role !== 'admin') return json({ error: 'Acceso denegado' }, 403)
 
   const url = new URL(req.url)
   // Extract optional :id from path — e.g. /admin-users/abc-123
@@ -64,7 +64,7 @@ Deno.serve(async (req: Request) => {
     const { data: { user }, error } = await supabaseAdmin.auth.admin.createUser({
       email,
       password,
-      user_metadata: { role },
+      app_metadata: { role },
       email_confirm: true,
     })
     if (error) return json({ error: error.message }, 400)
@@ -77,7 +77,7 @@ Deno.serve(async (req: Request) => {
     if (!role) return json({ error: 'Falta el rol' }, 400)
 
     const { data: { user }, error } = await supabaseAdmin.auth.admin.updateUserById(userId, {
-      user_metadata: { role },
+      app_metadata: { role },
     })
     if (error) return json({ error: error.message }, 400)
     return json(mapUser(user!))
