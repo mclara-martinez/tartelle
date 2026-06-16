@@ -76,8 +76,12 @@ Deno.serve(async (req: Request) => {
     const { role } = await req.json()
     if (!role) return json({ error: 'Falta el rol' }, 400)
 
+    // Fetch current user to preserve existing app_metadata (e.g. allowed_views)
+    const { data: { user: existing }, error: fetchErr } = await supabaseAdmin.auth.admin.getUserById(userId)
+    if (fetchErr || !existing) return json({ error: 'Usuario no encontrado' }, 404)
+
     const { data: { user }, error } = await supabaseAdmin.auth.admin.updateUserById(userId, {
-      app_metadata: { role },
+      app_metadata: { ...existing.app_metadata, role },
     })
     if (error) return json({ error: error.message }, 400)
     return json(mapUser(user!))
