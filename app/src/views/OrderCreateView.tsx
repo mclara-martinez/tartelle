@@ -235,7 +235,7 @@ export function OrderCreateView({ onClose }: Props) {
                         : 'bg-[var(--color-bg)] text-[var(--color-text-secondary)] hover:text-[var(--color-text-primary)]'
                     }`}
                   >
-                    {cat === 'retail' ? 'Tienda' : cat === 'eventos' ? 'Eventos' : 'Café Vélez'}
+                    {cat === 'retail' ? 'Tienda' : cat === 'eventos' ? 'Eventos' : 'Vélez Café'}
                   </button>
                 ))}
               </div>

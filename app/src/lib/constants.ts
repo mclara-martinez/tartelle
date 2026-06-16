@@ -117,7 +117,7 @@ export const CATALOG_LABELS: Record<ProductCatalog, string> = {
   retail:     'Retail',
   eventos:    'Eventos',
   ambos:      'Ambos',
-  velez_cafe: 'Café Vélez',
+  velez_cafe: 'Vélez Café',
 }
 
 export const TAX_TYPE_LABELS: Record<NonNullable<TaxType>, string> = {

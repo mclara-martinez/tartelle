@@ -13,7 +13,7 @@ type CatalogTag = 'retail' | 'eventos' | 'velez_cafe'
 const CATALOG_TAGS: { value: CatalogTag; label: string }[] = [
   { value: 'retail',    label: 'Retail' },
   { value: 'eventos',   label: 'Eventos' },
-  { value: 'velez_cafe', label: 'Café Vélez' },
+  { value: 'velez_cafe', label: 'Vélez Café' },
 ]
 
 function productMatchesTags(catalog: ProductCatalog, tags: Set<CatalogTag>): boolean {
@@ -29,7 +29,7 @@ function catalogDisplayTags(catalog: ProductCatalog): { label: string; key: stri
   if (catalog === 'ambos') return [{ label: 'Retail', key: 'retail' }, { label: 'Eventos', key: 'eventos' }]
   if (catalog === 'retail') return [{ label: 'Retail', key: 'retail' }]
   if (catalog === 'eventos') return [{ label: 'Eventos', key: 'eventos' }]
-  return [{ label: 'Café Vélez', key: 'velez_cafe' }]
+  return [{ label: 'Vélez Café', key: 'velez_cafe' }]
 }
 
 const ACTIVE_OPTIONS = [
