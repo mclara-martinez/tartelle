@@ -140,6 +140,10 @@ export function OrdersView({ onNavigate, selectedOrderId, onSelectOrder }: Props
     ? orders.filter(o => o.customer_name?.toLowerCase().includes(searchQuery.toLowerCase()))
     : orders
 
+  const displayOrders = filteredOrders.map(o =>
+    optimisticStatus[o.id] ? { ...o, status: optimisticStatus[o.id] } : o
+  )
+
   const csvLabel = preset === 'range' ? `${rangeStart}_${rangeEnd}` : preset === 'today' ? today() : tomorrow()
 
   async function handleStatusChange(orderId: string, status: OrderStatus) {
@@ -151,6 +155,7 @@ export function OrdersView({ onNavigate, selectedOrderId, onSelectOrder }: Props
       await updateOrderStatus(orderId, status, order)
       setToast({ msg: 'Estado actualizado', type: 'success' })
       await refetch()
+      setOptimisticStatus(prev => { const n = { ...prev }; delete n[orderId]; return n })
     } catch {
       setToast({ msg: 'Error al actualizar', type: 'error' })
       setOptimisticStatus(prev => { const n = { ...prev }; delete n[orderId]; return n })
@@ -288,7 +293,7 @@ export function OrdersView({ onNavigate, selectedOrderId, onSelectOrder }: Props
           </p>
         </div>
       ) : viewMode === 'kanban' ? (
-        <KanbanBoard orders={filteredOrders} onSelectOrder={(id) => onSelectOrder(id)} onStatusChange={handleStatusChange} />
+        <KanbanBoard orders={displayOrders} onSelectOrder={(id) => onSelectOrder(id)} onStatusChange={handleStatusChange} />
       ) : (
         <>
           {/* Desktop table */}

@@ -49,6 +49,7 @@ export function OrderDrawer({ orderId, onClose, onStatusChange }: Props) {
       await updateOrderStatus(orderId, status, order)
       setToast({ msg: `Estado: ${STATUS_LABELS[status]}`, type: 'success' })
       onStatusChange?.()
+      if (status === 'cancelled' || status === 'delivered') onClose()
     } catch {
       setToast({ msg: 'Error al actualizar', type: 'error' })
       setOrder(prev => prev ? { ...prev, status: prevStatus } : prev)

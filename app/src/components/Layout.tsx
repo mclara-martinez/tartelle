@@ -30,7 +30,14 @@ function SidebarContent({ current, onNavigate, onSignOut, onItemClick }: {
   onSignOut: () => void
   onItemClick?: () => void
 }) {
-  const { user, allowedViews } = useAuth()
+  const { user, role, allowedViews } = useAuth()
+
+  const ROLE_LABELS: Record<string, string> = {
+    admin: 'Administrador',
+    owner: 'Propietaria',
+    kitchen: 'Cocina',
+    driver: 'Domiciliario',
+  }
 
   return (
     <div className="flex flex-col h-full">
@@ -44,7 +51,7 @@ function SidebarContent({ current, onNavigate, onSignOut, onItemClick }: {
 
       {/* User info — with border separator */}
       <div className="px-5 pb-4 mb-2 border-b border-[var(--color-border-light)]">
-        <p className="text-sm font-medium text-[var(--color-text-primary)]">Administrador</p>
+        <p className="text-sm font-medium text-[var(--color-text-primary)]">{role ? (ROLE_LABELS[role] ?? 'Administrador') : 'Administrador'}</p>
         <p className="text-xs text-[var(--color-text-muted)] mt-0.5 truncate">{user?.email}</p>
       </div>
 

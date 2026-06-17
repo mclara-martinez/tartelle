@@ -1,4 +1,4 @@
-import { useState, useMemo } from 'react'
+import { useState, useMemo, useEffect } from 'react'
 import { useProducts } from '../hooks/useProducts'
 import { useCustomerSearch, useRecentCustomers, createCustomer } from '../hooks/useCustomers'
 import { createOrder, validateOrderStock } from '../hooks/useOrders'
@@ -7,7 +7,7 @@ import { formatCOP, today, tomorrow } from '../lib/utils'
 import { DELIVERY_FEE, CHANNEL_LABELS, SIZE_LABELS, CATEGORY_LABELS, PRODUCT_CATEGORY_ORDER, PAYMENT_METHOD_LABELS } from '../lib/constants'
 import { PhotoUpload } from '../components/PhotoUpload'
 import type { Order, OrderChannel, DeliveryType, Product, ProductCategory, ProductSize, PaymentMethod } from '../lib/types'
-import { X, Plus, Minus, Search, Bike, Store, ArrowLeft, ShoppingBag, User, Trash2, Package } from 'lucide-react'
+import { X, Plus, Minus, Search, Bike, Store, ArrowLeft, ShoppingBag, User, Trash2, Package, Clock } from 'lucide-react'
 
 interface CartItem {
   product: Product
@@ -29,7 +29,6 @@ export function OrderCreateView({ onClose }: Props) {
   const [customerId, setCustomerId] = useState<string | null>(null)
   const [customerDiscount, setCustomerDiscount] = useState(0)
   const [billingName, setBillingName] = useState('')
-  const [billingNameTouched, setBillingNameTouched] = useState(false)
   const [billingIdNumber, setBillingIdNumber] = useState('')
   const [billingEmail, setBillingEmail] = useState('')
   const [customerSearch, setCustomerSearch] = useState('')
@@ -48,6 +47,10 @@ export function OrderCreateView({ onClose }: Props) {
   const [toast, setToast] = useState<{ msg: string; type: 'success' | 'error' } | null>(null)
 
   const [catalogFilter, setCatalogFilter] = useState<'retail' | 'eventos' | 'velez_cafe'>('retail')
+
+  useEffect(() => {
+    setCatalogFilter('retail')
+  }, [])
 
   // Group products by category → size, filtered by catalogFilter
   const productsByCategory = useMemo(() => {
@@ -117,7 +120,6 @@ export function OrderCreateView({ onClose }: Props) {
     setCustomerPhone(c.phone ?? '')
     setCustomerDiscount(c.discount_pct)
     setBillingName(c.razon_social || c.name || '')
-    setBillingNameTouched(true)
     setBillingIdNumber(c.nit || c.cedula || '')
     setBillingEmail(c.email || '')
     setShowCustomerSearch(false)
@@ -287,6 +289,12 @@ export function OrderCreateView({ onClose }: Props) {
                           >
                             <p className="text-sm font-medium capitalize leading-tight">{label}</p>
                             <p className="text-sm font-semibold mt-1">{formatCOP(product.base_price)}</p>
+                            {product.requires_advance_order && (
+                              <span className="mt-1 flex items-center gap-0.5 text-[10px] text-[var(--color-text-muted)]">
+                                <Clock size={9} />
+                                Encargo
+                              </span>
+                            )}
                             {inCart && (
                               <span className="absolute -top-1.5 -right-1.5 w-5 h-5 bg-[var(--color-accent)] text-white rounded-full text-[11px] font-bold flex items-center justify-center">
                                 {inCart.quantity}
@@ -345,7 +353,13 @@ export function OrderCreateView({ onClose }: Props) {
                       </div>
                     </div>
                   )}
-                  <button onClick={() => setShowCustomerSearch(false)} className="text-xs text-[var(--color-text-muted)] hover:text-[var(--color-text-primary)]">
+                  <button onClick={() => {
+                    if (customerSearch.trim()) {
+                      setCustomerName(customerSearch.trim())
+                      if (billingName === '' || billingName === customerName) setBillingName(customerSearch.trim())
+                    }
+                    setShowCustomerSearch(false)
+                  }} className="text-xs text-[var(--color-text-muted)] hover:text-[var(--color-text-primary)]">
                     Ingresar manualmente
                   </button>
                 </div>
@@ -359,7 +373,7 @@ export function OrderCreateView({ onClose }: Props) {
                       onChange={e => {
                         setCustomerName(e.target.value)
                         setCustomerId(null)
-                        if (!billingNameTouched) setBillingName(e.target.value)
+                        if (billingName === '' || billingName === customerName) setBillingName(e.target.value)
                       }}
                       className="flex-1 border border-[var(--color-border)] rounded-lg px-3 py-2 text-sm focus:outline-none focus:border-[var(--color-accent)]"
                     />
@@ -390,7 +404,7 @@ export function OrderCreateView({ onClose }: Props) {
                   type="text"
                   placeholder="Nombre completo o razón social"
                   value={billingName}
-                  onChange={e => { setBillingName(e.target.value); setBillingNameTouched(true) }}
+                  onChange={e => setBillingName(e.target.value)}
                   className="w-full border border-[var(--color-border)] rounded-lg px-3 py-2 text-sm focus:outline-none focus:border-[var(--color-accent)]"
                 />
                 <input

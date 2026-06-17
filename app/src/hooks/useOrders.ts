@@ -79,32 +79,41 @@ export async function updateOrderStatus(
   status: Order['status'],
   order?: Order
 ) {
+  // Adjust inventory BEFORE patching status so a missing-row 406 never leaves
+  // DB and UI out of sync. Items with no inventory_finished row are skipped
+  // with a warning — the status transition still completes.
+  if (order?.items?.length) {
+    if (status === 'ready') {
+      await Promise.all(
+        order.items.map(item =>
+          adjustInventory(item.product_id, item.quantity, 'production', orderId).catch(err => {
+            console.warn(`[inventory] skipping adjustment for ${item.product_id}:`, err.message)
+          })
+        )
+      )
+    } else if (status === 'dispatched') {
+      await Promise.all(
+        order.items.map(item =>
+          adjustInventory(item.product_id, -item.quantity, 'sale', orderId).catch(err => {
+            console.warn(`[inventory] skipping adjustment for ${item.product_id}:`, err.message)
+          })
+        )
+      )
+    }
+  }
+
   const { error } = await supabase
     .from('orders')
     .update({ status })
     .eq('id', orderId)
   if (error) throw new Error(error.message)
 
-  if (order?.items?.length) {
-    if (status === 'ready') {
-      await Promise.all(
-        order.items.map(item =>
-          adjustInventory(item.product_id, item.quantity, 'production', orderId)
-        )
+  if (order?.items?.length && status === 'cancelled' && (order.status === 'dispatched' || order.status === 'delivered')) {
+    await Promise.all(
+      order.items.map(item =>
+        adjustInventory(item.product_id, item.quantity, 'adjustment', orderId, 'Cancelación de pedido')
       )
-    } else if (status === 'dispatched') {
-      await Promise.all(
-        order.items.map(item =>
-          adjustInventory(item.product_id, -item.quantity, 'sale', orderId)
-        )
-      )
-    } else if (status === 'cancelled' && (order.status === 'dispatched' || order.status === 'delivered')) {
-      await Promise.all(
-        order.items.map(item =>
-          adjustInventory(item.product_id, item.quantity, 'adjustment', orderId, 'Cancelación de pedido')
-        )
-      )
-    }
+    )
   }
 }
 
