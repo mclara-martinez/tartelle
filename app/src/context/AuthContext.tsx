@@ -2,7 +2,7 @@ import { createContext, useContext, useEffect, useState } from 'react'
 import type { User } from '@supabase/supabase-js'
 import { supabase } from '../lib/supabase'
 
-type Role = 'admin' | 'kitchen' | 'driver' | 'owner'
+type Role = 'admin' | 'kitchen' | 'driver' | 'owner' | 'operator'
 
 interface AuthContextValue {
   user: User | null

@@ -42,7 +42,7 @@ function AppContent() {
   }, [])
 
   useEffect(() => {
-    if (role === 'owner' && allowedViews && !allowedViews.includes(view)) {
+    if ((role === 'owner' || role === 'operator') && allowedViews && !allowedViews.includes(view)) {
       navigate((allowedViews[0] as View) ?? 'orders')
     }
   }, [role, allowedViews, view, navigate])

@@ -35,6 +35,7 @@ function SidebarContent({ current, onNavigate, onSignOut, onItemClick }: {
   const ROLE_LABELS: Record<string, string> = {
     admin: 'Administrador',
     owner: 'Propietaria',
+    operator: 'Operadora',
     kitchen: 'Cocina',
     driver: 'Domiciliario',
   }
