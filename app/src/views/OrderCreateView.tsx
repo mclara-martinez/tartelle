@@ -129,6 +129,10 @@ export function OrderCreateView({ onClose }: Props) {
 
   async function handleSubmit() {
     if (cart.length === 0) return
+    if ((paymentMethod === 'transfer' || paymentMethod === 'bold') && !paymentReceiptUrl) {
+      setToast({ msg: 'Adjunta el comprobante de pago para guardar el pedido.', type: 'error' })
+      return
+    }
     setSubmitting(true)
     let blocked: Awaited<ReturnType<typeof validateOrderStock>>
     try {
