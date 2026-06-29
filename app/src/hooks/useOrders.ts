@@ -125,6 +125,42 @@ export async function updateOrderFields(orderId: string, fields: Partial<Order>)
   if (error) throw new Error(error.message)
 }
 
+// Edit an order's line items and recompute totals. Replaces the full set of
+// order_items (delete + re-insert) and patches the order row. Only safe before
+// the order reaches `ready` — at that point inventory_finished has already been
+// adjusted per item by updateOrderStatus, so item edits would desync stock.
+// The caller enforces that gate (canEditItems). delivery_fee, discount and notes
+// are persisted alongside so a single save covers item + field edits.
+export async function updateOrderItems(
+  orderId: string,
+  items: { product_id: string; quantity: number; unit_price: number }[],
+  fields: { delivery_fee: number; discount: number; notes: string | null }
+) {
+  if (items.length === 0) throw new Error('El pedido debe tener al menos un producto')
+
+  const subtotal = items.reduce((sum, i) => sum + i.quantity * i.unit_price, 0)
+  const total = subtotal + fields.delivery_fee - fields.discount
+
+  const { error: delErr } = await supabase.from('order_items').delete().eq('order_id', orderId)
+  if (delErr) throw new Error(delErr.message)
+
+  const rows = items.map(i => ({
+    order_id: orderId,
+    product_id: i.product_id,
+    quantity: i.quantity,
+    unit_price: i.unit_price,
+    subtotal: i.quantity * i.unit_price,
+  }))
+  const { error: insErr } = await supabase.from('order_items').insert(rows)
+  if (insErr) throw new Error(insErr.message)
+
+  const { error: ordErr } = await supabase
+    .from('orders')
+    .update({ subtotal, delivery_fee: fields.delivery_fee, discount: fields.discount, total, notes: fields.notes })
+    .eq('id', orderId)
+  if (ordErr) throw new Error(ordErr.message)
+}
+
 export async function createOrder(order: Omit<Order, 'id' | 'created_at' | 'updated_at'>, items: { product_id: string; quantity: number; unit_price: number }[]) {
   const { data: newOrder, error: orderErr } = await supabase
     .from('orders')
