@@ -3,7 +3,7 @@ import { useProducts } from '../hooks/useProducts'
 import { useCustomerSearch, useRecentCustomers, createCustomer } from '../hooks/useCustomers'
 import { createOrder, validateOrderStock } from '../hooks/useOrders'
 import { Toast } from '../components/Toast'
-import { formatCOP, today, tomorrow } from '../lib/utils'
+import { formatCOP, tomorrow } from '../lib/utils'
 import { DELIVERY_FEE, CHANNEL_LABELS, SIZE_LABELS, CATEGORY_LABELS, PRODUCT_CATEGORY_ORDER, PAYMENT_METHOD_LABELS } from '../lib/constants'
 import { PhotoUpload } from '../components/PhotoUpload'
 import type { Order, OrderChannel, DeliveryType, Product, ProductCategory, ProductSize, PaymentMethod } from '../lib/types'
@@ -44,6 +44,7 @@ export function OrderCreateView({ onClose }: Props) {
   const [estimatedDeliveryTime, setEstimatedDeliveryTime] = useState('')
   const [tempOrderId] = useState(() => crypto.randomUUID())
   const [submitting, setSubmitting] = useState(false)
+  const [showSameDayConfirm, setShowSameDayConfirm] = useState(false)
   const [toast, setToast] = useState<{ msg: string; type: 'success' | 'error' } | null>(null)
 
   const [catalogFilter, setCatalogFilter] = useState<'retail' | 'eventos' | 'velez_cafe'>('retail')
@@ -129,8 +130,9 @@ export function OrderCreateView({ onClose }: Props) {
   async function handleSubmit() {
     if (cart.length === 0) return
     setSubmitting(true)
+    let blocked: Awaited<ReturnType<typeof validateOrderStock>>
     try {
-      const blocked = await validateOrderStock(
+      blocked = await validateOrderStock(
         cart.map(i => ({
           product_id: i.product.id,
           requires_advance_order: i.product.requires_advance_order,
@@ -139,12 +141,23 @@ export function OrderCreateView({ onClose }: Props) {
         })),
         deliveryDate
       )
-      if (blocked.length > 0) {
-        setToast({ msg: 'No disponible para hoy. Elige otra fecha de entrega.', type: 'error' })
-        setSubmitting(false)
-        return
-      }
+    } catch {
+      setToast({ msg: 'Error al crear pedido', type: 'error' })
+      setSubmitting(false)
+      return
+    }
+    // Same-day order with advance-order products: confirm with kitchen instead of blocking
+    if (blocked.length > 0) {
+      setSubmitting(false)
+      setShowSameDayConfirm(true)
+      return
+    }
+    await saveOrder()
+  }
 
+  async function saveOrder() {
+    setSubmitting(true)
+    try {
       // Create customer if new
       let cId = customerId
       if (!cId && customerName.trim()) {
@@ -486,7 +499,6 @@ export function OrderCreateView({ onClose }: Props) {
                 <input
                   type="date"
                   value={deliveryDate}
-                  min={today()}
                   onChange={e => setDeliveryDate(e.target.value)}
                   className="w-full border border-[var(--color-border)] rounded-lg px-3 py-2 text-xs font-medium focus:outline-none focus:border-[var(--color-accent)] bg-white text-[var(--color-text-primary)]"
                 />
@@ -645,6 +657,35 @@ export function OrderCreateView({ onClose }: Props) {
           </div>
         </div>
       </div>
+
+      {showSameDayConfirm && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/40">
+          <div className="bg-[var(--color-surface)] rounded-2xl shadow-xl w-full max-w-sm p-5">
+            <div className="flex items-start gap-3 mb-2">
+              <span className="mt-0.5 text-[var(--color-warning-text)] flex-shrink-0"><Clock size={20} /></span>
+              <h2 className="text-base font-semibold">Pedido para hoy</h2>
+            </div>
+            <p className="text-sm text-[var(--color-text-secondary)] mb-5">
+              Este pedido es para hoy y hay productos que requieren anticipación.
+              Confirma con cocina antes de montarlo. ¿Continuar?
+            </p>
+            <div className="flex gap-2">
+              <button
+                onClick={() => setShowSameDayConfirm(false)}
+                className="flex-1 min-h-[44px] rounded-lg border border-[var(--color-border)] text-sm font-medium text-[var(--color-text-secondary)] hover:bg-[var(--color-bg)] transition-colors"
+              >
+                Cancelar
+              </button>
+              <button
+                onClick={() => { setShowSameDayConfirm(false); saveOrder() }}
+                className="flex-1 min-h-[48px] rounded-lg bg-[var(--color-accent)] text-white text-sm font-semibold hover:bg-[var(--color-teal-dark)] transition-colors"
+              >
+                Continuar
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
 
       {toast && <Toast message={toast.msg} type={toast.type} onClose={() => setToast(null)} />}
     </div>
