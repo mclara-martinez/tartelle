@@ -16,6 +16,7 @@ export function PhotoUpload({ orderId, type, existingPath, onUpload, label = 'Fo
   const [uploading, setUploading] = useState(false)
   const [previewUrl, setPreviewUrl] = useState<string | null>(null)
   const [done, setDone] = useState(!!existingPath)
+  const [dragOver, setDragOver] = useState(false)
 
   useEffect(() => {
     if (existingPath) {
@@ -23,9 +24,8 @@ export function PhotoUpload({ orderId, type, existingPath, onUpload, label = 'Fo
     }
   }, [existingPath])
 
-  async function handleFile(e: React.ChangeEvent<HTMLInputElement>) {
-    const file = e.target.files?.[0]
-    if (!file) return
+  async function handleFile(file: File) {
+    if (!file.type.startsWith('image/')) return
     setUploading(true)
     try {
       const path = await uploadOrderPhoto(file, orderId, type)
@@ -38,6 +38,28 @@ export function PhotoUpload({ orderId, type, existingPath, onUpload, label = 'Fo
     }
     setUploading(false)
     if (inputRef.current) inputRef.current.value = ''
+  }
+
+  function onInputChange(e: React.ChangeEvent<HTMLInputElement>) {
+    const file = e.target.files?.[0]
+    if (file) handleFile(file)
+  }
+
+  function onDrop(e: React.DragEvent) {
+    e.preventDefault()
+    setDragOver(false)
+    if (uploading) return
+    const file = Array.from(e.dataTransfer.files).find(f => f.type.startsWith('image/'))
+    if (file) handleFile(file)
+  }
+
+  function onPaste(e: React.ClipboardEvent) {
+    if (uploading) return
+    const file = Array.from(e.clipboardData.files).find(f => f.type.startsWith('image/'))
+    if (file) {
+      e.preventDefault()
+      handleFile(file)
+    }
   }
 
   const bgClass = dark
@@ -59,18 +81,25 @@ export function PhotoUpload({ orderId, type, existingPath, onUpload, label = 'Fo
   }
 
   return (
-    <>
+    <div
+      onDragOver={e => { e.preventDefault(); if (!uploading) setDragOver(true) }}
+      onDragLeave={() => setDragOver(false)}
+      onDrop={onDrop}
+      onPaste={onPaste}
+      className={`inline-flex rounded-lg transition-shadow ${dragOver ? 'ring-2 ring-[var(--color-accent)]' : ''}`}
+    >
       <input
         ref={inputRef}
         type="file"
         accept="image/*"
         capture="environment"
-        onChange={handleFile}
+        onChange={onInputChange}
         className="hidden"
       />
       <button
         onClick={() => inputRef.current?.click()}
         disabled={uploading}
+        title="Click, arrastra o pega (Ctrl+V) una imagen"
         className={`flex items-center gap-2 px-3 py-2.5 rounded-lg text-sm font-medium transition-colors min-h-[44px] min-w-[44px] ${bgClass} disabled:opacity-50`}
       >
         {uploading ? (
@@ -82,6 +111,6 @@ export function PhotoUpload({ orderId, type, existingPath, onUpload, label = 'Fo
         )}
         {label}
       </button>
-    </>
+    </div>
   )
 }

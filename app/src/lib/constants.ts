@@ -101,6 +101,7 @@ export const PAYMENT_METHOD_LABELS: Record<PaymentMethod, string> = {
   cash: 'Efectivo',
   bold: 'Link Bold',
   rappi: 'Rappi',
+  credit: 'Crédito',
 }
 
 export const PAYMENT_BANK_LABELS: Record<PaymentBank, string> = {
