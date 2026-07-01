@@ -575,7 +575,8 @@ export function OrderCreateView({ onClose }: Props) {
                   type="receipt"
                   existingPath={paymentReceiptUrl}
                   onUpload={setPaymentReceiptUrl}
-                  label="Comprobante"
+                  label="Comprobante de pago"
+                  dropzone
                 />
               </div>
             )}
@@ -588,7 +589,8 @@ export function OrderCreateView({ onClose }: Props) {
                   type="receipt"
                   existingPath={paymentReceiptUrl}
                   onUpload={setPaymentReceiptUrl}
-                  label="Comprobante"
+                  label="Comprobante de pago"
+                  dropzone
                 />
               </div>
             )}
