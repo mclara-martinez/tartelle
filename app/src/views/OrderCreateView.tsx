@@ -600,7 +600,7 @@ export function OrderCreateView({ onClose }: Props) {
                 Empaque especial
               </label>
               <div className="flex flex-wrap gap-1.5 mb-2">
-                {['Regalo', 'Marcada por 10 porciones', 'Marcada por 8 porciones'].map(chip => (
+                {['Regalo', 'Marcada por 10 porciones', 'Marcada por 12 porciones'].map(chip => (
                   <button
                     key={chip}
                     onClick={() => setPackagingNotes(prev => prev ? `${prev}, ${chip}` : chip)}
