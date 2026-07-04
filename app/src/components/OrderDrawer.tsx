@@ -40,6 +40,9 @@ export function OrderDrawer({ orderId, onClose, onStatusChange }: Props) {
   const [editing, setEditing] = useState(false)
   const [editItems, setEditItems] = useState<EditItem[]>([])
   const [editDeliveryFee, setEditDeliveryFee] = useState(0)
+  const [editDiscount, setEditDiscount] = useState(0)
+  const [editDeliveryAddress, setEditDeliveryAddress] = useState('')
+  const [editDeliveryDate, setEditDeliveryDate] = useState('')
   const [editNotes, setEditNotes] = useState('')
   const [saving, setSaving] = useState(false)
   const [productQuery, setProductQuery] = useState('')
@@ -93,6 +96,9 @@ export function OrderDrawer({ orderId, onClose, onStatusChange }: Props) {
       }))
     )
     setEditDeliveryFee(order.delivery_fee)
+    setEditDiscount(order.discount)
+    setEditDeliveryAddress(order.delivery_address ?? '')
+    setEditDeliveryDate(order.delivery_date)
     setEditNotes(order.notes ?? '')
     setProductQuery('')
     setEditing(true)
@@ -123,7 +129,6 @@ export function OrderDrawer({ orderId, onClose, onStatusChange }: Props) {
   }
 
   const editSubtotal = editItems.reduce((sum, i) => sum + i.quantity * i.unit_price, 0)
-  const editDiscount = order?.discount ?? 0
   const editTotal = editSubtotal + editDeliveryFee - editDiscount
 
   const productMatches = productQuery.trim().length >= 2
@@ -147,14 +152,23 @@ export function OrderDrawer({ orderId, onClose, onStatusChange }: Props) {
         await updateOrderItems(
           orderId,
           editItems.map(i => ({ product_id: i.product.id, quantity: i.quantity, unit_price: i.unit_price })),
-          { delivery_fee: editDeliveryFee, discount: editDiscount, notes: editNotes.trim() || null }
+          {
+            delivery_fee: editDeliveryFee,
+            discount: editDiscount,
+            notes: editNotes.trim() || null,
+            delivery_address: editDeliveryAddress.trim() || null,
+            delivery_date: editDeliveryDate,
+          }
         )
       } else {
         // Items locked: only persist fields, recompute total from existing subtotal.
         const newTotal = order.subtotal + editDeliveryFee - editDiscount
         await updateOrderFields(orderId, {
           delivery_fee: editDeliveryFee,
+          discount: editDiscount,
           notes: editNotes.trim() || null,
+          delivery_address: editDeliveryAddress.trim() || null,
+          delivery_date: editDeliveryDate,
           total: newTotal,
         })
       }
@@ -236,10 +250,36 @@ export function OrderDrawer({ orderId, onClose, onStatusChange }: Props) {
                 </span>
               </div>
 
-              {order.delivery_address && (
-                <p className="text-sm text-[var(--color-text-secondary)] bg-[var(--color-bg-hover)] rounded-lg px-3 py-2">
-                  {order.delivery_address}
-                </p>
+              {editing ? (
+                <div className="space-y-2.5">
+                  <label className="block">
+                    <span className="text-[11px] font-medium text-[var(--color-text-muted)] uppercase tracking-wider">Fecha de entrega</span>
+                    <input
+                      type="date"
+                      value={editDeliveryDate}
+                      onChange={e => setEditDeliveryDate(e.target.value)}
+                      className="mt-1 w-full border border-[var(--color-border)] rounded-lg px-3 py-2 text-sm focus:outline-none focus:border-[var(--color-accent)]"
+                    />
+                  </label>
+                  {order.delivery_type === 'delivery' && (
+                    <label className="block">
+                      <span className="text-[11px] font-medium text-[var(--color-text-muted)] uppercase tracking-wider">Dirección de entrega</span>
+                      <textarea
+                        placeholder="Dirección de entrega..."
+                        value={editDeliveryAddress}
+                        onChange={e => setEditDeliveryAddress(e.target.value)}
+                        rows={2}
+                        className="mt-1 w-full border border-[var(--color-border)] rounded-lg px-3 py-2 text-sm focus:outline-none focus:border-[var(--color-accent)] resize-none"
+                      />
+                    </label>
+                  )}
+                </div>
+              ) : (
+                order.delivery_address && (
+                  <p className="text-sm text-[var(--color-text-secondary)] bg-[var(--color-bg-hover)] rounded-lg px-3 py-2">
+                    {order.delivery_address}
+                  </p>
+                )
               )}
 
               {(order.billing_name || order.billing_id_number || order.billing_email) && (
@@ -372,11 +412,27 @@ export function OrderDrawer({ orderId, onClose, onStatusChange }: Props) {
                 )
               )}
 
-              {(editing ? editDiscount : order.discount) > 0 && (
-                <div className="flex justify-between text-sm">
+              {editing ? (
+                <div className="flex justify-between items-center text-sm">
                   <span className="text-[var(--color-text-muted)]">Descuento</span>
-                  <span className="text-[var(--color-success-text)] tabular-nums">-{formatCOP(editing ? editDiscount : order.discount)}</span>
+                  <div className="flex items-center gap-1">
+                    <span className="text-[var(--color-text-muted)]">$</span>
+                    <input
+                      type="number"
+                      min={0}
+                      value={editDiscount}
+                      onChange={e => setEditDiscount(Math.max(0, parseInt(e.target.value || '0', 10)))}
+                      className="w-24 border border-[var(--color-border)] rounded-md px-2 py-1 text-sm tabular-nums text-right focus:outline-none focus:border-[var(--color-accent)]"
+                    />
+                  </div>
                 </div>
+              ) : (
+                order.discount > 0 && (
+                  <div className="flex justify-between text-sm">
+                    <span className="text-[var(--color-text-muted)]">Descuento</span>
+                    <span className="text-[var(--color-success-text)] tabular-nums">-{formatCOP(order.discount)}</span>
+                  </div>
+                )
               )}
               <div className="flex justify-between text-base font-semibold pt-2.5 border-t border-[var(--color-border)]">
                 <span>Total</span>

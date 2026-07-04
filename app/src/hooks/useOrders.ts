@@ -134,7 +134,13 @@ export async function updateOrderFields(orderId: string, fields: Partial<Order>)
 export async function updateOrderItems(
   orderId: string,
   items: { product_id: string; quantity: number; unit_price: number }[],
-  fields: { delivery_fee: number; discount: number; notes: string | null }
+  fields: {
+    delivery_fee: number
+    discount: number
+    notes: string | null
+    delivery_address: string | null
+    delivery_date: string
+  }
 ) {
   if (items.length === 0) throw new Error('El pedido debe tener al menos un producto')
 
@@ -156,7 +162,15 @@ export async function updateOrderItems(
 
   const { error: ordErr } = await supabase
     .from('orders')
-    .update({ subtotal, delivery_fee: fields.delivery_fee, discount: fields.discount, total, notes: fields.notes })
+    .update({
+      subtotal,
+      delivery_fee: fields.delivery_fee,
+      discount: fields.discount,
+      total,
+      notes: fields.notes,
+      delivery_address: fields.delivery_address,
+      delivery_date: fields.delivery_date,
+    })
     .eq('id', orderId)
   if (ordErr) throw new Error(ordErr.message)
 }
