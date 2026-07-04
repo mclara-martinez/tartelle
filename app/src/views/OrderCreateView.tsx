@@ -35,6 +35,8 @@ export function OrderCreateView({ onClose }: Props) {
   const [showCustomerSearch, setShowCustomerSearch] = useState(false)
   const [channel, setChannel] = useState<OrderChannel>('walk_in')
   const [deliveryType, setDeliveryType] = useState<DeliveryType>('pickup')
+  const [deliveryFeeOverride, setDeliveryFeeOverride] = useState<number | null>(null)
+  const [discountOverride, setDiscountOverride] = useState<number | null>(null)
   const [deliveryAddress, setDeliveryAddress] = useState('')
   const [deliveryDate, setDeliveryDate] = useState<string>(tomorrow())
   const [notes, setNotes] = useState('')
@@ -94,8 +96,8 @@ export function OrderCreateView({ onClose }: Props) {
   }
 
   const subtotal = cart.reduce((sum, item) => sum + item.product.base_price * item.quantity, 0)
-  const deliveryFee = deliveryType === 'delivery' ? DELIVERY_FEE : 0
-  const discount = Math.round(subtotal * customerDiscount / 100)
+  const deliveryFee = deliveryFeeOverride ?? (deliveryType === 'delivery' ? DELIVERY_FEE : 0)
+  const discount = discountOverride ?? Math.round(subtotal * customerDiscount / 100)
   const total = subtotal + deliveryFee - discount
 
   function addToCart(product: Product) {
@@ -120,6 +122,7 @@ export function OrderCreateView({ onClose }: Props) {
     setCustomerName(c.name)
     setCustomerPhone(c.phone ?? '')
     setCustomerDiscount(c.discount_pct)
+    setDiscountOverride(null)
     setBillingName(c.razon_social || c.name || '')
     setBillingIdNumber(c.nit || c.cedula || '')
     setBillingEmail(c.email || '')
@@ -481,7 +484,7 @@ export function OrderCreateView({ onClose }: Props) {
                 <label className="text-xs font-medium text-[var(--color-text-muted)] uppercase tracking-wider block mb-1.5">Entrega</label>
                 <div className="flex gap-1">
                   <button
-                    onClick={() => setDeliveryType('pickup')}
+                    onClick={() => { setDeliveryType('pickup'); setDeliveryFeeOverride(null) }}
                     className={`flex-1 flex items-center justify-center gap-1 py-2 rounded-lg text-xs font-medium border transition-colors ${
                       deliveryType === 'pickup' ? 'border-[var(--color-accent)] bg-[var(--color-accent-light)] text-[var(--color-accent)]' : 'border-[var(--color-border)] text-[var(--color-text-secondary)]'
                     }`}
@@ -489,7 +492,7 @@ export function OrderCreateView({ onClose }: Props) {
                     <Store size={13} /> Local
                   </button>
                   <button
-                    onClick={() => setDeliveryType('delivery')}
+                    onClick={() => { setDeliveryType('delivery'); setDeliveryFeeOverride(null) }}
                     className={`flex-1 flex items-center justify-center gap-1 py-2 rounded-lg text-xs font-medium border transition-colors ${
                       deliveryType === 'delivery' ? 'border-[var(--color-accent)] bg-[var(--color-accent-light)] text-[var(--color-accent)]' : 'border-[var(--color-border)] text-[var(--color-text-secondary)]'
                     }`}
@@ -637,18 +640,36 @@ export function OrderCreateView({ onClose }: Props) {
               <span className="text-[var(--color-text-secondary)]">Subtotal</span>
               <span>{formatCOP(subtotal)}</span>
             </div>
-            {deliveryFee > 0 && (
-              <div className="flex justify-between text-sm">
+            {deliveryType === 'delivery' && (
+              <div className="flex justify-between items-center text-sm">
                 <span className="text-[var(--color-text-secondary)]">Domicilio</span>
-                <span>{formatCOP(deliveryFee)}</span>
+                <div className="flex items-center gap-1">
+                  <span className="text-[var(--color-text-muted)]">$</span>
+                  <input
+                    type="number"
+                    min={0}
+                    value={deliveryFee}
+                    onChange={e => setDeliveryFeeOverride(Math.max(0, parseInt(e.target.value || '0', 10)))}
+                    className="w-24 border border-[var(--color-border)] rounded-md px-2 py-1 text-sm tabular-nums text-right focus:outline-none focus:border-[var(--color-accent)]"
+                  />
+                </div>
               </div>
             )}
-            {discount > 0 && (
-              <div className="flex justify-between text-sm">
-                <span className="text-[var(--color-text-secondary)]">Descuento ({customerDiscount}%)</span>
-                <span className="text-[var(--color-success)]">-{formatCOP(discount)}</span>
+            <div className="flex justify-between items-center text-sm">
+              <span className="text-[var(--color-text-secondary)]">
+                Descuento{discountOverride === null && customerDiscount > 0 ? ` (${customerDiscount}%)` : ''}
+              </span>
+              <div className="flex items-center gap-1">
+                <span className="text-[var(--color-text-muted)]">$</span>
+                <input
+                  type="number"
+                  min={0}
+                  value={discount}
+                  onChange={e => setDiscountOverride(Math.max(0, parseInt(e.target.value || '0', 10)))}
+                  className="w-24 border border-[var(--color-border)] rounded-md px-2 py-1 text-sm tabular-nums text-right focus:outline-none focus:border-[var(--color-accent)]"
+                />
               </div>
-            )}
+            </div>
             <div className="flex justify-between text-lg font-semibold pt-2 border-t border-[var(--color-border)]">
               <span>Total</span>
               <span>{formatCOP(total)}</span>
