@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback } from 'react'
+import { useState, useEffect, useCallback, useRef } from 'react'
 import { supabase } from '../lib/supabase'
 import { today } from '../lib/utils'
 
@@ -29,14 +29,19 @@ export async function insertComponentLog(params: {
 export function useComponentLogs(date: string) {
   const [logs, setLogs] = useState<ComponentLogEntry[]>([])
   const [loading, setLoading] = useState(true)
+  // Only the latest request may write state — a fetch for an older date can
+  // resolve after a newer one (see useOrders).
+  const requestIdRef = useRef(0)
 
   const fetch = useCallback(async () => {
+    const requestId = ++requestIdRef.current
     setLoading(true)
     const { data } = await supabase
       .from('component_log')
       .select('*')
       .eq('fecha', date)
       .order('created_at', { ascending: false })
+    if (requestId !== requestIdRef.current) return
     setLogs(data ?? [])
     setLoading(false)
   }, [date])

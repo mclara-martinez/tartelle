@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback } from 'react'
+import { useState, useEffect, useCallback, useRef } from 'react'
 import { supabase } from '../lib/supabase'
 import { today } from '../lib/utils'
 import type { QualityLog } from '../lib/types'
@@ -23,14 +23,19 @@ export async function insertQualityLog(params: {
 export function useQualityLogs(date: string) {
   const [logs, setLogs] = useState<QualityLog[]>([])
   const [loading, setLoading] = useState(true)
+  // Only the latest request may write state — a fetch for an older date can
+  // resolve after a newer one (see useOrders).
+  const requestIdRef = useRef(0)
 
   const fetch = useCallback(async () => {
+    const requestId = ++requestIdRef.current
     setLoading(true)
     const { data } = await supabase
       .from('quality_logs')
       .select('*, product:products(*)')
       .eq('date', date)
       .order('created_at', { ascending: false })
+    if (requestId !== requestIdRef.current) return
     setLogs((data as QualityLog[]) ?? [])
     setLoading(false)
   }, [date])

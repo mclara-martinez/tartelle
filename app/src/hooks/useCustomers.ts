@@ -1,14 +1,19 @@
-import { useState, useEffect, useCallback } from 'react'
+import { useState, useEffect, useCallback, useRef } from 'react'
 import { supabase } from '../lib/supabase'
 import type { Customer } from '../lib/types'
 
 export function useCustomerSearch() {
   const [results, setResults] = useState<Customer[]>([])
   const [loading, setLoading] = useState(false)
+  // Only the latest search may write state — typing fast can make an older
+  // query's response arrive after a newer one (see useOrders).
+  const requestIdRef = useRef(0)
 
   const search = useCallback(async (query: string) => {
+    const requestId = ++requestIdRef.current
     if (query.trim().length < 2) {
       setResults([])
+      setLoading(false)
       return
     }
     setLoading(true)
@@ -20,9 +25,11 @@ export function useCustomerSearch() {
         .or(`name.ilike.%${query}%,phone.ilike.%${query}%`)
         .order('name')
         .limit(8)
+      if (requestId !== requestIdRef.current) return
       setResults(data ?? [])
     } catch {
       // Silently fail — customer search is a convenience, not a gate
+      if (requestId !== requestIdRef.current) return
       setResults([])
     }
     setLoading(false)

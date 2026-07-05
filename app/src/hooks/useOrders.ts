@@ -25,8 +25,13 @@ export function useOrders(startDate?: string, endDate?: string) {
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
   const debounceRef = useRef<ReturnType<typeof setTimeout> | null>(null)
+  // Guards against out-of-order responses: a fetch for an older date range can
+  // resolve after a newer one and overwrite its result. Only the latest request
+  // is allowed to write state.
+  const requestIdRef = useRef(0)
 
   const fetchOrders = useCallback(async () => {
+    const requestId = ++requestIdRef.current
     setLoading(true)
     setError(null)
     const start = startDate ?? today()
@@ -45,6 +50,8 @@ export function useOrders(startDate?: string, endDate?: string) {
       .lte('delivery_date', end)
       .neq('status', 'cancelled')
       .order('created_at', { ascending: true })
+
+    if (requestId !== requestIdRef.current) return
 
     if (err) {
       setError(err.message)
