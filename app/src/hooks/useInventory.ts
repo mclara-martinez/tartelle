@@ -9,14 +9,20 @@ export function useInventory() {
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
   const debounceRef = useRef<ReturnType<typeof setTimeout> | null>(null)
+  // Only the latest request may write state — prevents an older in-flight
+  // response from overwriting a newer one (see useOrders).
+  const requestIdRef = useRef(0)
 
   const fetchInventory = useCallback(async () => {
+    const requestId = ++requestIdRef.current
     setLoading(true)
     setError(null)
     const { data, error: err } = await supabase
       .from('inventory_finished')
       .select('*, product:products(*)')
       .order('product(flavor)')
+
+    if (requestId !== requestIdRef.current) return
 
     if (err) {
       setError(err.message)
@@ -50,8 +56,10 @@ export function useProductionToday() {
   const [entries, setEntries] = useState<ProductionLogEntry[]>([])
   const [loading, setLoading] = useState(true)
   const debounceRef = useRef<ReturnType<typeof setTimeout> | null>(null)
+  const requestIdRef = useRef(0)
 
   const fetch = useCallback(async () => {
+    const requestId = ++requestIdRef.current
     setLoading(true)
     const startOfToday = new Date()
     startOfToday.setHours(0, 0, 0, 0)
@@ -61,6 +69,7 @@ export function useProductionToday() {
       .eq('reason', 'production')
       .gte('created_at', startOfToday.toISOString())
       .order('created_at', { ascending: false })
+    if (requestId !== requestIdRef.current) return
     setEntries((data as ProductionLogEntry[]) ?? [])
     setLoading(false)
   }, [])

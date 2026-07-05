@@ -6,8 +6,12 @@ export function useProductionExtras(date: string) {
   const [extras, setExtras] = useState<ProductionExtra[]>([])
   const [loading, setLoading] = useState(true)
   const debounceRef = useRef<ReturnType<typeof setTimeout> | null>(null)
+  // Only the latest request may write state — a fetch for an older date can
+  // resolve after a newer one (see useOrders).
+  const requestIdRef = useRef(0)
 
   const fetchExtras = useCallback(async () => {
+    const requestId = ++requestIdRef.current
     setLoading(true)
     const { data } = await supabase
       .from('production_extras')
@@ -15,6 +19,7 @@ export function useProductionExtras(date: string) {
       .eq('date', date)
       .order('created_at')
 
+    if (requestId !== requestIdRef.current) return
     setExtras(data ?? [])
     setLoading(false)
   }, [date])

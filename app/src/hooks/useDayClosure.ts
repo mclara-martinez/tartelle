@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback } from 'react'
+import { useState, useEffect, useCallback, useRef } from 'react'
 import { supabase } from '../lib/supabase'
 import type { DayClosure } from '../lib/types'
 import { today, dayRangeISO } from '../lib/utils'
@@ -17,8 +17,12 @@ export function useDayClosure(date: string = today()) {
   const [movements, setMovements] = useState<MovementRow[]>([])
   const [inventoryMap, setInventoryMap] = useState<Record<string, number>>({})
   const [loading, setLoading] = useState(true)
+  // Only the latest request may write state — a fetch for an older date can
+  // resolve after a newer one (see useOrders).
+  const requestIdRef = useRef(0)
 
   const fetch = useCallback(async () => {
+    const requestId = ++requestIdRef.current
     setLoading(true)
 
     // 1. Check existing closure for this date
@@ -64,6 +68,8 @@ export function useDayClosure(date: string = today()) {
     for (const item of inv ?? []) {
       invMap[item.product_id] = item.quantity
     }
+
+    if (requestId !== requestIdRef.current) return
 
     setTodayClosure((closure as DayClosure | null) ?? null)
     setMovements(movementRows)
