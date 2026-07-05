@@ -131,6 +131,15 @@ export interface ProductionExtra {
   product?: Product
 }
 
+export interface ProductionCount {
+  id: string
+  date: string
+  product_id: string
+  quantity: number
+  created_at: string
+  product?: Product
+}
+
 export interface ProductionPlanItem {
   id: string
   plan_id: string

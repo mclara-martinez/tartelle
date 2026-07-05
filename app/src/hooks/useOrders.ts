@@ -1,8 +1,64 @@
 import { useState, useEffect, useCallback, useRef } from 'react'
 import { supabase } from '../lib/supabase'
 import type { Order } from '../lib/types'
-import { today } from '../lib/utils'
+import { today, shiftDay } from '../lib/utils'
 import { adjustInventory } from './useInventory'
+
+// Pedidos activos con fecha de entrega anterior a `beforeDate` (ventana de 14
+// días para no arrastrar pedidos viejos mal cerrados). Dos lecturas:
+// - reservedByProduct: unidades en pedidos 'ready' sin despachar — están dentro
+//   del conteo físico de cocina pero comprometidas; se muestran como hint al
+//   digitar el conteo nocturno.
+// - overdueCount: pedidos sin producir (pending/confirmed/in_production) con
+//   fecha ya pasada — se alertan en el tab para que la operadora decida.
+export function usePastActiveOrders(beforeDate: string) {
+  const [reservedByProduct, setReservedByProduct] = useState<Record<string, number>>({})
+  const [overdueCount, setOverdueCount] = useState(0)
+  const debounceRef = useRef<ReturnType<typeof setTimeout> | null>(null)
+
+  const fetchPast = useCallback(async () => {
+    const { data } = await supabase
+      .from('orders')
+      .select('id, status, delivery_date, items:order_items(product_id, quantity)')
+      .gte('delivery_date', shiftDay(beforeDate, -14))
+      .lt('delivery_date', beforeDate)
+      .in('status', ['pending', 'confirmed', 'in_production', 'ready'])
+
+    const reserved: Record<string, number> = {}
+    let overdue = 0
+    const t = today()
+    for (const order of data ?? []) {
+      if (order.status === 'ready') {
+        for (const item of order.items ?? []) {
+          reserved[item.product_id] = (reserved[item.product_id] ?? 0) + item.quantity
+        }
+      } else if (order.delivery_date < t) {
+        overdue += 1
+      }
+    }
+    setReservedByProduct(reserved)
+    setOverdueCount(overdue)
+  }, [beforeDate])
+
+  useEffect(() => {
+    fetchPast()
+
+    const channel = supabase
+      .channel(`past-orders-${Math.random().toString(36).slice(2)}`)
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'orders' }, () => {
+        if (debounceRef.current) clearTimeout(debounceRef.current)
+        debounceRef.current = setTimeout(() => fetchPast(), 400)
+      })
+      .subscribe()
+
+    return () => {
+      if (debounceRef.current) clearTimeout(debounceRef.current)
+      supabase.removeChannel(channel)
+    }
+  }, [fetchPast])
+
+  return { reservedByProduct, overdueCount }
+}
 
 export async function validateOrderStock(
   items: Array<{ product_id: string; requires_advance_order: boolean; flavor: string; size: string }>,
@@ -81,6 +137,12 @@ export function useOrders(startDate?: string, endDate?: string) {
   return { orders, loading, error, refetch: fetchOrders }
 }
 
+// Ajustes automáticos de inventory_finished desactivados hasta la fase de
+// inventario: la tabla está vacía y sin mantenimiento, y el tab Producción
+// ahora trabaja con conteos nocturnos por fecha (production_counts). Mientras
+// esté en false, cambiar de estado un pedido no mueve stock.
+const INVENTORY_SYNC_ENABLED: boolean = false
+
 export async function updateOrderStatus(
   orderId: string,
   status: Order['status'],
@@ -89,7 +151,7 @@ export async function updateOrderStatus(
   // Adjust inventory BEFORE patching status so a missing-row 406 never leaves
   // DB and UI out of sync. Items with no inventory_finished row are skipped
   // with a warning — the status transition still completes.
-  if (order?.items?.length) {
+  if (INVENTORY_SYNC_ENABLED && order?.items?.length) {
     if (status === 'ready') {
       await Promise.all(
         order.items.map(item =>
@@ -115,7 +177,7 @@ export async function updateOrderStatus(
     .eq('id', orderId)
   if (error) throw new Error(error.message)
 
-  if (order?.items?.length && status === 'cancelled' && (order.status === 'dispatched' || order.status === 'delivered')) {
+  if (INVENTORY_SYNC_ENABLED && order?.items?.length && status === 'cancelled' && (order.status === 'dispatched' || order.status === 'delivered')) {
     await Promise.all(
       order.items.map(item =>
         adjustInventory(item.product_id, item.quantity, 'adjustment', orderId, 'Cancelación de pedido')

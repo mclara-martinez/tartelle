@@ -1,15 +1,20 @@
 import { useState, useMemo, useCallback } from 'react'
-import { useOrders } from '../hooks/useOrders'
-import { useInventory, adjustInventory } from '../hooks/useInventory'
+import { useOrders, usePastActiveOrders } from '../hooks/useOrders'
 import { useProducts } from '../hooks/useProducts'
 import { useProductionExtras } from '../hooks/useProductionExtras'
+import { useProductionCounts } from '../hooks/useProductionCounts'
 import { Toast } from '../components/Toast'
 import { today, tomorrow } from '../lib/utils'
 import { SIZE_LABELS } from '../lib/constants'
-import { CheckCircle, TrendingUp, ClipboardList as PageIcon, Plus, X, ShoppingBag, ChevronLeft, ChevronRight } from 'lucide-react'
+import { CheckCircle, ClipboardList as PageIcon, Plus, X, ShoppingBag, ChevronLeft, ChevronRight, Copy, Boxes, AlertTriangle } from 'lucide-react'
 import { format, parseISO, addDays, subDays } from 'date-fns'
 import { es } from 'date-fns/locale'
 import type { ProductSize } from '../lib/types'
+
+// Estados que aún requieren producción. Excluye ready/dispatched/delivered
+// (ya se hicieron) y cancelled. 'pending' existe en la DB aunque no está en el
+// union de OrderStatus, por eso el array es string[].
+const PRODUCIBLE_STATUSES: string[] = ['pending', 'confirmed', 'in_production']
 
 function formatDateLabel(dateStr: string): string {
   const t = today()
@@ -20,84 +25,76 @@ function formatDateLabel(dateStr: string): string {
 }
 
 export function ProductionView() {
-  const [targetDate, setTargetDate] = useState<string>(today())
+  const [targetDate, setTargetDate] = useState<string>(tomorrow())
   const [toast, setToast] = useState<{ msg: string; type: 'success' | 'error' } | null>(null)
-  const [producing, setProducing] = useState<string | null>(null)
 
   const [extraProductId, setExtraProductId] = useState('')
   const [extraQty, setExtraQty] = useState(1)
   const [savingExtra, setSavingExtra] = useState(false)
   const [removingExtra, setRemovingExtra] = useState<string | null>(null)
 
+  const [countProductId, setCountProductId] = useState('')
+  const [countQty, setCountQty] = useState(0)
+  const [savingCount, setSavingCount] = useState(false)
+  const [removingCount, setRemovingCount] = useState<string | null>(null)
+
   const goToPrev = useCallback(() => setTargetDate(d => format(subDays(parseISO(d), 1), 'yyyy-MM-dd')), [])
   const goToNext = useCallback(() => setTargetDate(d => format(addDays(parseISO(d), 1), 'yyyy-MM-dd')), [])
-  const goToToday = useCallback(() => setTargetDate(today()), [])
   const { orders, loading: loadingOrders } = useOrders(targetDate)
-  const { inventory, loading: loadingInv, refetch: refetchInv } = useInventory()
   const { products } = useProducts()
   const { extras, upsertExtra, removeExtra } = useProductionExtras(targetDate)
+  const { counts, loading: loadingCounts, upsertCount, removeCount, refetch: refetchCounts } = useProductionCounts(targetDate)
+  const { reservedByProduct, overdueCount } = usePastActiveOrders(targetDate)
 
-  const extraProducts = useMemo(() =>
+  const retailProducts = useMemo(() =>
     products.filter(p => p.catalog === 'retail' || p.catalog === 'ambos'),
     [products]
   )
 
-  const extraProductsByFlavor = useMemo(() => {
-    const groups: Record<string, typeof extraProducts> = {}
-    for (const p of extraProducts) {
+  const retailProductsByFlavor = useMemo(() => {
+    const groups: Record<string, typeof retailProducts> = {}
+    for (const p of retailProducts) {
       groups[p.flavor] = groups[p.flavor] ?? []
       groups[p.flavor].push(p)
     }
     return Object.entries(groups).sort(([a], [b]) => a.localeCompare(b))
-  }, [extraProducts])
+  }, [retailProducts])
 
-  const extrasMap = useMemo(() => {
-    const map: Record<string, { id: string; quantity: number }> = {}
-    for (const e of extras) map[e.product_id] = { id: e.id, quantity: e.quantity }
+  const countsMap = useMemo(() => {
+    const map: Record<string, number> = {}
+    for (const c of counts) map[c.product_id] = c.quantity
     return map
-  }, [extras])
+  }, [counts])
 
   const productNeeds = useMemo(() => {
-    const needs: Record<string, { productId: string; flavor: string; size: ProductSize; needed: number; fromOrders: number; price: number }> = {}
+    const needs: Record<string, { productId: string; flavor: string; size: ProductSize; fromOrders: number; fromExtras: number; available: number; toMake: number }> = {}
+
+    const ensure = (productId: string, flavor: string, size: ProductSize) => {
+      if (!needs[productId]) {
+        needs[productId] = { productId, flavor, size, fromOrders: 0, fromExtras: 0, available: countsMap[productId] ?? 0, toMake: 0 }
+      }
+      return needs[productId]
+    }
 
     for (const order of orders) {
-      if (order.status === 'cancelled' || order.status === 'delivered') continue
+      if (!PRODUCIBLE_STATUSES.includes(order.status)) continue
       for (const item of order.items ?? []) {
         if (!item.product) continue
-        const key = item.product_id
-        if (!needs[key]) {
-          needs[key] = { productId: item.product_id, flavor: item.product.flavor, size: item.product.size, needed: 0, fromOrders: 0, price: item.product.base_price }
-        }
-        needs[key].needed += item.quantity
-        needs[key].fromOrders += item.quantity
+        ensure(item.product_id, item.product.flavor, item.product.size).fromOrders += item.quantity
       }
     }
 
     for (const extra of extras) {
       if (!extra.product) continue
-      const key = extra.product_id
-      if (needs[key]) {
-        needs[key].needed += extra.quantity
-      } else {
-        needs[key] = {
-          productId: extra.product_id,
-          flavor: extra.product.flavor,
-          size: extra.product.size,
-          needed: extra.quantity,
-          fromOrders: 0,
-          price: extra.product.base_price,
-        }
-      }
+      ensure(extra.product_id, extra.product.flavor, extra.product.size).fromExtras += extra.quantity
+    }
+
+    for (const n of Object.values(needs)) {
+      n.toMake = Math.max(0, n.fromOrders + n.fromExtras - n.available)
     }
 
     return Object.values(needs).sort((a, b) => a.flavor.localeCompare(b.flavor) || a.size.localeCompare(b.size))
-  }, [orders, extras])
-
-  const inventoryMap = useMemo(() => {
-    const map: Record<string, number> = {}
-    for (const item of inventory) map[item.product_id] = item.quantity
-    return map
-  }, [inventory])
+  }, [orders, extras, countsMap])
 
   const productNeedsByFlavor = useMemo(() => {
     const g: Record<string, typeof productNeeds> = {}
@@ -108,17 +105,37 @@ export function ProductionView() {
     return g
   }, [productNeeds])
 
-  async function handleProduce(productId: string, qty: number) {
-    if (qty <= 0) return
-    setProducing(productId)
-    try {
-      await adjustInventory(productId, qty, 'production')
-      refetchInv()
-      setToast({ msg: `+${qty} unidades producidas`, type: 'success' })
-    } catch {
-      setToast({ msg: 'Error al actualizar', type: 'error' })
+  const totalToMake = useMemo(() => productNeeds.reduce((s, n) => s + n.toMake, 0), [productNeeds])
+
+  // Texto para WhatsApp: solo los HACER, agrupado por sabor.
+  const summaryText = useMemo(() => {
+    const lines: string[] = [`PRODUCCIÓN — ${format(parseISO(targetDate), "EEE d MMM", { locale: es })}`]
+    for (const [flavor, items] of Object.entries(productNeedsByFlavor)) {
+      const pending = items.filter(i => i.toMake > 0)
+      if (pending.length === 0) continue
+      lines.push('', flavor.toUpperCase())
+      for (const item of pending) {
+        lines.push(`• ${SIZE_LABELS[item.size]}: HACER ${item.toMake}`)
+      }
     }
-    setProducing(null)
+    lines.push('', `Total: ${totalToMake} unidades`)
+    return lines.join('\n')
+  }, [productNeedsByFlavor, targetDate, totalToMake])
+
+  async function handleCopySummary() {
+    try {
+      await navigator.clipboard.writeText(summaryText)
+      setToast({ msg: 'Resumen copiado', type: 'success' })
+    } catch {
+      // Fallback para contextos sin Clipboard API (http local, permisos)
+      const ta = document.createElement('textarea')
+      ta.value = summaryText
+      document.body.appendChild(ta)
+      ta.select()
+      const ok = document.execCommand('copy')
+      document.body.removeChild(ta)
+      setToast(ok ? { msg: 'Resumen copiado', type: 'success' } : { msg: 'No se pudo copiar', type: 'error' })
+    }
   }
 
   async function handleAddExtra() {
@@ -145,8 +162,37 @@ export function ProductionView() {
     setRemovingExtra(null)
   }
 
-  const loading = loadingOrders || loadingInv
-  const deficitCount = productNeeds.filter(p => Math.max(0, p.needed - (inventoryMap[p.productId] ?? 0)) > 0).length
+  async function handleRemoveCount(id: string) {
+    setRemovingCount(id)
+    try {
+      await removeCount(id)
+    } catch {
+      setToast({ msg: 'Error al eliminar conteo', type: 'error' })
+    }
+    setRemovingCount(null)
+  }
+
+  async function handleAddCount() {
+    if (!countProductId || countQty < 0) return
+    setSavingCount(true)
+    try {
+      await upsertCount(countProductId, countQty)
+      await refetchCounts()
+      setCountProductId('')
+      setCountQty(0)
+      setToast({ msg: 'Conteo guardado', type: 'success' })
+    } catch (err) {
+      console.error('[production_counts] error al guardar conteo:', err)
+      setToast({ msg: 'Error al guardar conteo', type: 'error' })
+    }
+    setSavingCount(false)
+  }
+
+  // Reservado a pedidos 'ready' sin entregar del producto seleccionado — el
+  // hint que le dice a la operadora cuánto restar del mensaje de cocina.
+  const selectedCountReserved = countProductId ? (reservedByProduct[countProductId] ?? 0) : 0
+
+  const loading = loadingOrders || loadingCounts
 
   return (
     <div className="space-y-6">
@@ -154,7 +200,7 @@ export function ProductionView() {
         <PageIcon className="h-6 w-6 text-[var(--color-text-secondary)]" strokeWidth={1.5} />
         <div>
           <h1 className="text-xl font-bold">Produccion</h1>
-          <p className="text-sm text-[var(--color-text-muted)]">Plan de produccion</p>
+          <p className="text-sm text-[var(--color-text-muted)]">Pedidos + extras − disponible = a producir</p>
         </div>
       </div>
 
@@ -167,10 +213,18 @@ export function ProductionView() {
         </button>
         {targetDate !== today() && (
           <button
-            onClick={goToToday}
+            onClick={() => setTargetDate(today())}
             className="text-xs font-medium px-2 py-1 rounded-md border border-[var(--color-border)] text-[var(--color-text-secondary)] hover:text-[var(--color-accent)] hover:border-[var(--color-accent)] transition-colors duration-150"
           >
             Hoy
+          </button>
+        )}
+        {targetDate !== tomorrow() && (
+          <button
+            onClick={() => setTargetDate(tomorrow())}
+            className="text-xs font-medium px-2 py-1 rounded-md border border-[var(--color-border)] text-[var(--color-text-secondary)] hover:text-[var(--color-accent)] hover:border-[var(--color-accent)] transition-colors duration-150"
+          >
+            Mañana
           </button>
         )}
         <span className="text-sm font-semibold text-[var(--color-text-primary)] capitalize min-w-[10rem] text-center">
@@ -182,6 +236,91 @@ export function ProductionView() {
         >
           <ChevronRight className="h-4 w-4" />
         </button>
+      </div>
+
+      {overdueCount > 0 && (
+        <div className="flex items-start gap-2.5 bg-amber-50 border border-amber-200 rounded-lg px-4 py-3">
+          <AlertTriangle className="h-4 w-4 text-amber-600 flex-shrink-0 mt-0.5" />
+          <p className="text-sm text-amber-800">
+            <span className="font-semibold">{overdueCount} pedido{overdueCount !== 1 ? 's' : ''} con fecha pasada sin producir ni entregar.</span>{' '}
+            Revisa en Pedidos si alguno debe entrar al plan como extra o cerrarse.
+          </p>
+        </div>
+      )}
+
+      {/* Conteo de producto terminado disponible */}
+      <div className="bg-white rounded-lg border border-[var(--color-border)] overflow-hidden">
+        <div className="px-4 py-3 border-b border-[var(--color-border)] flex items-center gap-2">
+          <Boxes className="h-4 w-4 text-[var(--color-accent)] flex-shrink-0" strokeWidth={1.5} />
+          <div className="min-w-0">
+            <p className="text-sm font-semibold text-[var(--color-text-primary)]">Terminado disponible</p>
+            <p className="text-xs text-[var(--color-text-muted)]">Conteo de cocina menos lo reservado a pedidos listos sin entregar</p>
+          </div>
+        </div>
+
+        {counts.length > 0 && (
+          <div className="divide-y divide-[var(--color-border-light)]">
+            {counts.map(count => (
+              <div key={count.id} className="flex items-center justify-between gap-3 px-4 py-2.5">
+                <p className="text-sm text-[var(--color-text-primary)] truncate min-w-0">
+                  {count.product?.flavor} · {SIZE_LABELS[count.product?.size ?? 'other']}
+                </p>
+                <div className="flex items-center gap-2 flex-shrink-0">
+                  <span className="text-sm font-medium text-[var(--color-accent)]">{count.quantity} disp.</span>
+                  <button
+                    onClick={() => handleRemoveCount(count.id)}
+                    disabled={removingCount === count.id}
+                    className="p-1 rounded text-[var(--color-text-muted)] hover:text-red-600 hover:bg-red-50 transition-colors duration-150 disabled:opacity-40"
+                  >
+                    <X className="h-3.5 w-3.5" />
+                  </button>
+                </div>
+              </div>
+            ))}
+          </div>
+        )}
+
+        <div className="px-4 py-3 space-y-1.5">
+          <div className="flex items-center gap-2">
+            <select
+              value={countProductId}
+              onChange={e => setCountProductId(e.target.value)}
+              className="flex-1 min-w-0 text-sm border border-[var(--color-border)] rounded-lg px-2.5 py-1.5 bg-white text-[var(--color-text-primary)] focus:outline-none focus:ring-1 focus:ring-[var(--color-accent)]"
+            >
+              <option value="">Seleccionar producto...</option>
+              {retailProductsByFlavor.map(([flavor, ps]) => (
+                <optgroup key={flavor} label={flavor.charAt(0).toUpperCase() + flavor.slice(1)}>
+                  {ps.map(p => (
+                    <option key={p.id} value={p.id}>
+                      {p.name}
+                    </option>
+                  ))}
+                </optgroup>
+              ))}
+            </select>
+            <input
+              type="number"
+              min={0}
+              max={99}
+              value={countQty}
+              onChange={e => setCountQty(Math.max(0, parseInt(e.target.value) || 0))}
+              className="w-14 text-sm text-center border border-[var(--color-border)] rounded-lg px-2 py-1.5 bg-white text-[var(--color-text-primary)] focus:outline-none focus:ring-1 focus:ring-[var(--color-accent)]"
+            />
+            <button
+              onClick={handleAddCount}
+              disabled={!countProductId || savingCount}
+              className="flex items-center gap-1 text-sm font-medium text-white bg-[var(--color-accent)] px-3 py-1.5 rounded-lg hover:bg-[var(--color-accent-hover)] disabled:opacity-40 disabled:cursor-not-allowed transition-colors duration-200 flex-shrink-0"
+            >
+              <Plus className="h-3.5 w-3.5" />
+              Agregar
+            </button>
+          </div>
+          {selectedCountReserved > 0 && (
+            <p className="text-xs text-amber-700">
+              Reservado hoy: {selectedCountReserved} (pedidos listos sin entregar) — réstalo del conteo de cocina
+            </p>
+          )}
+        </div>
       </div>
 
       {/* Extras del día */}
@@ -220,7 +359,7 @@ export function ProductionView() {
             className="flex-1 min-w-0 text-sm border border-[var(--color-border)] rounded-lg px-2.5 py-1.5 bg-white text-[var(--color-text-primary)] focus:outline-none focus:ring-1 focus:ring-[var(--color-accent)]"
           >
             <option value="">Seleccionar producto...</option>
-            {extraProductsByFlavor.map(([flavor, ps]) => (
+            {retailProductsByFlavor.map(([flavor, ps]) => (
               <optgroup key={flavor} label={flavor.charAt(0).toUpperCase() + flavor.slice(1)}>
                 {ps.map(p => (
                   <option key={p.id} value={p.id}>
@@ -264,10 +403,7 @@ export function ProductionView() {
               </div>
               <div className="divide-y divide-[var(--color-border-light)]">
                 {items.map(item => {
-                  const stock = inventoryMap[item.productId] ?? 0
-                  const deficit = Math.max(0, item.needed - stock)
-                  const isCovered = deficit === 0
-                  const extraQtyForItem = extrasMap[item.productId]?.quantity ?? 0
+                  const isCovered = item.toMake === 0
                   return (
                     <div
                       key={item.productId}
@@ -276,22 +412,13 @@ export function ProductionView() {
                       }`}
                     >
                       <div className="min-w-0">
-                        <div className="flex items-center gap-1.5">
-                          <p className="text-sm font-medium text-[var(--color-text-secondary)]">
-                            {SIZE_LABELS[item.size]}
-                          </p>
-                          {extraQtyForItem > 0 && (
-                            <span className="text-xs font-medium text-[var(--color-accent)] border border-[var(--color-accent)] px-1.5 py-0.5 rounded-full leading-none opacity-70">
-                              +{extraQtyForItem} extra
-                            </span>
-                          )}
-                        </div>
+                        <p className="text-sm font-medium text-[var(--color-text-secondary)]">
+                          {SIZE_LABELS[item.size]}
+                        </p>
                         <p className="text-xs text-[var(--color-text-muted)] mt-0.5">
-                          {isCovered
-                            ? `${item.needed} requeridos · ${stock} en stock`
-                            : item.fromOrders > 0 && extraQtyForItem > 0
-                              ? `${item.fromOrders} pedidos + ${extraQtyForItem} extras · ${stock} en stock`
-                              : `Necesitas ${item.needed} · Tienes ${stock}`}
+                          {item.fromOrders} pedido{item.fromOrders !== 1 ? 's' : ''}
+                          {item.fromExtras > 0 && ` + ${item.fromExtras} extra`}
+                          {` · ${item.available} disp.`}
                         </p>
                       </div>
                       {isCovered ? (
@@ -300,14 +427,9 @@ export function ProductionView() {
                           Cubierto
                         </span>
                       ) : (
-                        <button
-                          onClick={() => handleProduce(item.productId, deficit)}
-                          disabled={producing === item.productId}
-                          className="flex items-center gap-1.5 text-xs font-medium text-white bg-[var(--color-accent)] px-3 py-1.5 rounded-lg hover:bg-[var(--color-accent-hover)] disabled:opacity-50 disabled:cursor-not-allowed transition-colors duration-200 flex-shrink-0"
-                        >
-                          <TrendingUp className="h-3 w-3" />
-                          +{deficit}
-                        </button>
+                        <span className="text-xs font-bold text-white bg-[var(--color-accent)] px-3 py-1.5 rounded-lg flex-shrink-0">
+                          HACER {item.toMake}
+                        </span>
                       )}
                     </div>
                   )
@@ -316,12 +438,20 @@ export function ProductionView() {
             </section>
           ))}
 
-          <p className="text-sm text-[var(--color-text-muted)] px-1">
-            {productNeeds.length} producto{productNeeds.length !== 1 ? 's' : ''} requeridos
-            {deficitCount > 0 && (
-              <span className="text-[var(--color-warning-text)] font-medium"> · {deficitCount} por producir</span>
-            )}
-          </p>
+          {/* Resumen copiable para cocina */}
+          <div className="bg-white rounded-lg border border-[var(--color-border)] overflow-hidden">
+            <div className="px-4 py-3 border-b border-[var(--color-border)] flex items-center justify-between gap-2">
+              <p className="text-sm font-semibold text-[var(--color-text-primary)]">Resumen para cocina</p>
+              <button
+                onClick={handleCopySummary}
+                className="flex items-center gap-1.5 text-sm font-medium text-white bg-[var(--color-accent)] px-3 py-1.5 rounded-lg hover:bg-[var(--color-accent-hover)] transition-colors duration-200 min-h-[44px]"
+              >
+                <Copy className="h-3.5 w-3.5" />
+                Copiar resumen
+              </button>
+            </div>
+            <pre className="px-4 py-3 text-sm text-[var(--color-text-primary)] whitespace-pre-wrap font-sans">{summaryText}</pre>
+          </div>
         </div>
       )}
 
@@ -329,3 +459,4 @@ export function ProductionView() {
     </div>
   )
 }
+
