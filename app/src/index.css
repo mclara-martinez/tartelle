@@ -19,6 +19,7 @@
   /* ── Accent: Tartelle Teal ── */
   --color-accent: #0D9373;
   --color-accent-hover: #047857;
+  --color-teal-dark: #047857; /* algunas vistas referencian este nombre para hovers */
   --color-accent-light: #E8F5F0;
   --color-accent-subtle: #D1EDE5;
 

@@ -85,6 +85,6 @@ Prices are stored and displayed in COP (Colombian pesos). Use `formatCOP()` for 
 
 Colors come from CSS variables defined in `app/src/index.css`, not hardcoded hex. Use `var(--color-accent)` for the Tartelle teal, `var(--color-bg)` for page background, etc. Status colors live in `STATUS_COLORS` in constants.ts and map to CSS variables.
 
-For dark-background sections (kitchen/driver views): use `bg-[#111827]` / `bg-[#1F2937]` / `border-[#374151]` — those views use hardcoded Tailwind dark values rather than CSS variables.
+The whole app is light-themed, including kitchen and driver views (migrated from a hardcoded dark theme 2026-07-04). Kitchen (`KitchenView` + `views/kitchen/*`) and `DomiciliarioView` render fullscreen outside the sidebar `Layout`, but use the same light tokens as everything else: page `var(--color-bg)`, cards `bg-white` + `border-[var(--color-border)]`, text `var(--color-text-primary/secondary/muted)`. The kitchen mode toggle keeps per-mode accents via status tokens: Produccion → `--color-status-production`, Despacho → `--color-status-confirmed`, Ventas → `--color-status-pending`. Channel brand colors (Rappi `#FF441B`, Didi `#FF6600`) are the only intentional hardcoded hex.
 
 Minimum touch targets: `min-h-[44px]` for standard buttons, `min-h-[48px]` for primary actions.

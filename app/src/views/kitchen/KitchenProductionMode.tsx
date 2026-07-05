@@ -101,10 +101,10 @@ export function KitchenProductionMode() {
   return (
     <div className="p-4 space-y-4">
       <div className="flex items-center justify-between">
-        <p className="text-gray-400 text-sm">{confirmedOrders.length} pedido{confirmedOrders.length !== 1 ? 's' : ''} por preparar</p>
+        <p className="text-[var(--color-text-secondary)] text-sm">{confirmedOrders.length} pedido{confirmedOrders.length !== 1 ? 's' : ''} por preparar</p>
         <button
           onClick={() => setShowAddForm(true)}
-          className="flex items-center gap-2 px-4 py-2.5 bg-[#7C3AED] text-white rounded-lg text-sm font-medium hover:bg-[#6D28D9] transition-colors min-h-[44px]"
+          className="flex items-center gap-2 px-4 py-2.5 bg-[var(--color-status-production)] text-white rounded-lg text-sm font-medium hover:opacity-90 transition-opacity min-h-[44px]"
         >
           <Plus size={16} />
           Anadir a produccion
@@ -125,32 +125,32 @@ export function KitchenProductionMode() {
       <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
         {/* Pedidos por preparar */}
         <div className="space-y-3">
-          <p className="text-white text-base font-bold">Pedidos por preparar</p>
+          <p className="text-[var(--color-text-primary)] text-base font-bold">Pedidos por preparar</p>
           {confirmedOrders.length === 0 ? (
-            <div className="flex flex-col items-center justify-center py-12 text-center bg-[#1F2937] rounded-xl border border-[#374151]">
-              <CheckCircle size={48} className="text-green-500 mb-3" />
-              <p className="text-white text-lg font-bold">Sin pedidos pendientes</p>
-              <p className="text-gray-400 text-sm mt-1">Todos los pedidos de hoy estan listos</p>
+            <div className="flex flex-col items-center justify-center py-12 text-center bg-white rounded-xl border border-[var(--color-border)]">
+              <CheckCircle size={48} className="text-[var(--color-success-text)] mb-3" />
+              <p className="text-[var(--color-text-primary)] text-lg font-bold">Sin pedidos pendientes</p>
+              <p className="text-[var(--color-text-muted)] text-sm mt-1">Todos los pedidos de hoy estan listos</p>
             </div>
           ) : (
             <div className="space-y-3">
               {confirmedOrders.map(order => (
-                <div key={order.id} className="bg-[#1F2937] rounded-xl overflow-hidden border border-[#374151]">
-                  <div className="px-5 pt-4 pb-3 border-b border-[#374151]">
-                    <p className="text-white text-lg font-bold truncate">{order.customer_name ?? 'Cliente'}</p>
+                <div key={order.id} className="bg-white rounded-xl overflow-hidden border border-[var(--color-border)]">
+                  <div className="px-5 pt-4 pb-3 border-b border-[var(--color-border)]">
+                    <p className="text-[var(--color-text-primary)] text-lg font-bold truncate">{order.customer_name ?? 'Cliente'}</p>
                   </div>
                   <div className="px-5 py-3 space-y-1">
                     {order.items?.map(item => (
                       <div key={item.id} className="flex items-center justify-between">
-                        <span className="text-gray-200 text-base font-medium">{item.quantity}x {item.product?.flavor}</span>
-                        <span className="text-gray-400 text-sm capitalize">{item.product?.size}</span>
+                        <span className="text-[var(--color-text-primary)] text-base font-medium">{item.quantity}x {item.product?.flavor}</span>
+                        <span className="text-[var(--color-text-muted)] text-sm capitalize">{item.product?.size}</span>
                       </div>
                     ))}
                   </div>
                   <button
                     onClick={() => setQualityOrder(order)}
                     disabled={markingReady === order.id}
-                    className="w-full py-4 text-base font-bold flex items-center justify-center gap-2 bg-green-600 text-white hover:bg-green-700 disabled:opacity-50 transition-colors"
+                    className="w-full py-4 text-base font-bold flex items-center justify-center gap-2 bg-[var(--color-accent)] text-white hover:bg-[var(--color-accent-hover)] disabled:opacity-50 transition-colors"
                   >
                     <CheckCircle size={18} />
                     Listo
@@ -163,23 +163,23 @@ export function KitchenProductionMode() {
 
         {/* Plan de produccion + Ya producido hoy */}
         <div className="space-y-3">
-          <p className="text-white text-base font-bold">Plan de produccion</p>
+          <p className="text-[var(--color-text-primary)] text-base font-bold">Plan de produccion</p>
           {batchTotal === 0 ? (
-            <div className="flex flex-col items-center justify-center py-12 text-center bg-[#1F2937] rounded-xl border border-[#374151]">
-              <p className="text-gray-400 text-sm">Nada por producir</p>
+            <div className="flex flex-col items-center justify-center py-12 text-center bg-white rounded-xl border border-[var(--color-border)]">
+              <p className="text-[var(--color-text-muted)] text-sm">Nada por producir</p>
             </div>
           ) : (
             <div className="space-y-3">
               {batchPlan.map(([flavor, sizes]) => (
-                <div key={flavor} className="bg-[#1F2937] rounded-xl overflow-hidden border border-[#374151]">
-                  <div className="px-5 pt-4 pb-3 border-b border-[#374151]">
-                    <p className="text-white text-xl font-bold capitalize">{flavor}</p>
+                <div key={flavor} className="bg-white rounded-xl overflow-hidden border border-[var(--color-border)]">
+                  <div className="px-5 pt-4 pb-3 border-b border-[var(--color-border)]">
+                    <p className="text-[var(--color-text-primary)] text-xl font-bold capitalize">{flavor}</p>
                   </div>
-                  <div className="divide-y divide-[#374151]">
+                  <div className="divide-y divide-[var(--color-border-light)]">
                     {sizes.map(s => (
                       <div key={s.size} className="flex items-center justify-between gap-4 px-5 py-3">
-                        <span className="text-gray-300 text-base capitalize">{s.size}</span>
-                        <span className="text-white text-lg font-bold tabular-nums">{s.qty}</span>
+                        <span className="text-[var(--color-text-secondary)] text-base capitalize">{s.size}</span>
+                        <span className="text-[var(--color-text-primary)] text-lg font-bold tabular-nums">{s.qty}</span>
                       </div>
                     ))}
                   </div>
@@ -188,25 +188,25 @@ export function KitchenProductionMode() {
             </div>
           )}
 
-          <p className="text-white text-base font-bold pt-2">Ya producido hoy</p>
+          <p className="text-[var(--color-text-primary)] text-base font-bold pt-2">Ya producido hoy</p>
           {producedToday.length === 0 ? (
-            <div className="flex flex-col items-center justify-center py-12 text-center bg-[#1F2937] rounded-xl border border-[#374151]">
-              <p className="text-gray-400 text-sm">Nada producido aun hoy</p>
+            <div className="flex flex-col items-center justify-center py-12 text-center bg-white rounded-xl border border-[var(--color-border)]">
+              <p className="text-[var(--color-text-muted)] text-sm">Nada producido aun hoy</p>
             </div>
           ) : (
-            <div className="bg-[#1F2937] rounded-xl overflow-hidden border border-[#374151]">
-              <div className="divide-y divide-[#374151]">
+            <div className="bg-white rounded-xl overflow-hidden border border-[var(--color-border)]">
+              <div className="divide-y divide-[var(--color-border-light)]">
                 {producedToday.map(entry => (
                   <div key={entry.id} className="flex items-center justify-between gap-4 px-5 py-4">
                     <div className="flex-1 min-w-0">
-                      <p className="text-gray-300 text-base font-medium truncate">
+                      <p className="text-[var(--color-text-secondary)] text-base font-medium truncate">
                         {entry.product?.name ?? entry.product_id}
                       </p>
-                      <p className="text-gray-400 text-sm mt-0.5">
+                      <p className="text-[var(--color-text-muted)] text-sm mt-0.5">
                         {new Date(entry.created_at).toLocaleTimeString('es-CO', { hour: '2-digit', minute: '2-digit' })}
                       </p>
                     </div>
-                    <span className="text-green-400 text-lg font-bold flex-shrink-0">+{entry.change}</span>
+                    <span className="text-[var(--color-success-text)] text-lg font-bold flex-shrink-0">+{entry.change}</span>
                   </div>
                 ))}
               </div>
@@ -218,29 +218,29 @@ export function KitchenProductionMode() {
       {/* Componentes producidos hoy */}
       <div className="space-y-3">
         <div className="flex items-center justify-between">
-          <p className="text-white text-base font-bold">Componentes producidos hoy</p>
+          <p className="text-[var(--color-text-primary)] text-base font-bold">Componentes producidos hoy</p>
           <button
             onClick={() => setShowComponentModal(true)}
-            className="flex items-center gap-2 px-4 py-2.5 bg-[#0D9488] text-white rounded-lg text-sm font-medium hover:bg-[#0F766E] transition-colors min-h-[44px]"
+            className="flex items-center gap-2 px-4 py-2.5 bg-[var(--color-accent)] text-white rounded-lg text-sm font-medium hover:bg-[var(--color-accent-hover)] transition-colors min-h-[44px]"
           >
             <Plus size={16} />
             Añadir componente
           </button>
         </div>
         {componentLogs.length === 0 ? (
-          <div className="flex items-center justify-center py-8 bg-[#1F2937] rounded-xl border border-[#374151]">
-            <p className="text-gray-400 text-sm">Ningún componente registrado hoy</p>
+          <div className="flex items-center justify-center py-8 bg-white rounded-xl border border-[var(--color-border)]">
+            <p className="text-[var(--color-text-muted)] text-sm">Ningún componente registrado hoy</p>
           </div>
         ) : (
-          <div className="bg-[#1F2937] rounded-xl overflow-hidden border border-[#374151]">
-            <div className="divide-y divide-[#374151]">
+          <div className="bg-white rounded-xl overflow-hidden border border-[var(--color-border)]">
+            <div className="divide-y divide-[var(--color-border-light)]">
               {componentLogs.map(entry => (
                 <div key={entry.id} className="flex items-center justify-between gap-4 px-5 py-4">
                   <div className="flex-1 min-w-0">
-                    <p className="text-gray-300 text-base font-medium truncate">{entry.nombre}</p>
-                    <p className="text-gray-400 text-sm mt-0.5">{entry.cantidad_descripcion}</p>
+                    <p className="text-[var(--color-text-secondary)] text-base font-medium truncate">{entry.nombre}</p>
+                    <p className="text-[var(--color-text-muted)] text-sm mt-0.5">{entry.cantidad_descripcion}</p>
                   </div>
-                  <span className="text-gray-500 text-sm flex-shrink-0 tabular-nums">
+                  <span className="text-[var(--color-text-muted)] text-sm flex-shrink-0 tabular-nums">
                     {new Date(entry.created_at).toLocaleTimeString('es-CO', { hour: '2-digit', minute: '2-digit' })}
                   </span>
                 </div>
@@ -298,31 +298,31 @@ export function KitchenProductionMode() {
       {toast && <Toast message={toast.msg} type={toast.type} onClose={() => setToast(null)} />}
 
       {showRappiModal && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm px-4">
-          <div className="bg-[#1F2937] border border-[#374151] rounded-2xl w-full max-w-md mx-auto max-h-[80vh] flex flex-col">
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 backdrop-blur-sm px-4">
+          <div className="bg-white border border-[var(--color-border)] rounded-2xl w-full max-w-md mx-auto max-h-[80vh] flex flex-col">
             <div className="px-6 pt-6 pb-4 flex-shrink-0">
               <div className="flex items-center gap-3 mb-3">
-                <AlertTriangle className="h-6 w-6 text-orange-400 flex-shrink-0" />
-                <h2 className="text-orange-400 text-xl font-bold">Stock bajo</h2>
+                <AlertTriangle className="h-6 w-6 text-[var(--color-warning-text)] flex-shrink-0" />
+                <h2 className="text-[var(--color-warning-text)] text-xl font-bold">Stock bajo</h2>
               </div>
-              <p className="text-gray-300 text-sm">Los siguientes productos tienen stock bajo:</p>
+              <p className="text-[var(--color-text-secondary)] text-sm">Los siguientes productos tienen stock bajo:</p>
             </div>
             <ul className="flex-1 overflow-y-auto min-h-0 px-6 space-y-2">
               {lowStockItems.map(item => (
                 <li key={item.id} className="flex items-center justify-between gap-3">
-                  <span className="text-gray-200 text-sm">{item.product?.name ?? item.product_id}</span>
+                  <span className="text-[var(--color-text-primary)] text-sm">{item.product?.name ?? item.product_id}</span>
                   <span className={`text-xs font-bold px-2 py-0.5 rounded tabular-nums ${
-                    item.quantity === 0 ? 'bg-red-900 text-red-300' : 'bg-orange-900 text-orange-300'
+                    item.quantity === 0 ? 'bg-[var(--color-danger-bg)] text-[var(--color-danger-text)]' : 'bg-[var(--color-warning-bg)] text-[var(--color-warning-text)]'
                   }`}>
                     {item.quantity === 0 ? 'Sin stock' : `${item.quantity} uds`}
                   </span>
                 </li>
               ))}
             </ul>
-            <div className="px-6 py-5 flex-shrink-0 border-t border-[#374151]">
+            <div className="px-6 py-5 flex-shrink-0 border-t border-[var(--color-border)]">
               <button
                 onClick={handleRappiConfirm}
-                className="w-full bg-green-600 hover:bg-green-700 text-white py-3 px-6 rounded-xl font-bold text-lg transition-colors min-h-[48px]"
+                className="w-full bg-[var(--color-accent)] hover:bg-[var(--color-accent-hover)] text-white py-3 px-6 rounded-xl font-bold text-lg transition-colors min-h-[48px]"
               >
                 Ya apagué Rappi ✓
               </button>
@@ -352,10 +352,10 @@ function AddProductionForm({ products, onAdd, onClose }: {
   }
 
   return (
-    <div className="bg-[#1F2937] rounded-xl p-5 border border-[#374151]">
+    <div className="bg-white rounded-xl p-5 border border-[var(--color-border)]">
       <div className="flex items-center justify-between mb-4">
-        <h3 className="text-white text-lg font-bold">Anadir a produccion</h3>
-        <button onClick={onClose} className="p-2 text-gray-400 hover:text-white"><X size={18} /></button>
+        <h3 className="text-[var(--color-text-primary)] text-lg font-bold">Anadir a produccion</h3>
+        <button onClick={onClose} className="p-2 text-[var(--color-text-muted)] hover:text-[var(--color-text-primary)]"><X size={18} /></button>
       </div>
 
       <div className="space-y-1 max-h-[300px] overflow-y-auto mb-4">
@@ -365,8 +365,8 @@ function AddProductionForm({ products, onAdd, onClose }: {
             onClick={() => setSelectedProduct(p.id)}
             className={`w-full text-left px-4 py-2.5 rounded-lg text-sm font-medium transition-colors min-h-[44px] ${
               selectedProduct === p.id
-                ? 'bg-[#7C3AED] text-white'
-                : 'bg-[#374151] text-gray-300 hover:bg-[#4B5563]'
+                ? 'bg-[var(--color-status-production)] text-white'
+                : 'bg-[var(--color-surface-warm)] text-[var(--color-text-secondary)] hover:bg-[var(--color-bg-active)]'
             }`}
           >
             {p.name}
@@ -376,14 +376,14 @@ function AddProductionForm({ products, onAdd, onClose }: {
 
       {selectedProduct && (
         <div className="flex items-center gap-3">
-          <div className="flex items-center gap-2 bg-[#374151] rounded-lg">
-            <button onClick={() => setQty(q => Math.max(1, q - 1))} className="px-4 py-2.5 text-white text-lg font-bold min-h-[44px]">-</button>
-            <span className="text-white text-xl font-bold w-12 text-center tabular-nums">{qty}</span>
-            <button onClick={() => setQty(q => q + 1)} className="px-4 py-2.5 text-white text-lg font-bold min-h-[44px]">+</button>
+          <div className="flex items-center gap-2 bg-[var(--color-surface-warm)] rounded-lg">
+            <button onClick={() => setQty(q => Math.max(1, q - 1))} className="px-4 py-2.5 text-[var(--color-text-primary)] text-lg font-bold min-h-[44px]">-</button>
+            <span className="text-[var(--color-text-primary)] text-xl font-bold w-12 text-center tabular-nums">{qty}</span>
+            <button onClick={() => setQty(q => q + 1)} className="px-4 py-2.5 text-[var(--color-text-primary)] text-lg font-bold min-h-[44px]">+</button>
           </div>
           <button
             onClick={handleSubmit}
-            className="flex-1 py-3 bg-green-600 text-white rounded-lg font-bold hover:bg-green-700 transition-colors min-h-[48px]"
+            className="flex-1 py-3 bg-[var(--color-accent)] text-white rounded-lg font-bold hover:bg-[var(--color-accent-hover)] transition-colors min-h-[48px]"
           >
             {`Agregar +${qty}`}
           </button>
@@ -417,50 +417,50 @@ function AddComponentModal({
   }
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm px-4">
-      <div className="bg-[#1F2937] border border-[#374151] rounded-2xl w-full max-w-md mx-auto">
-        <div className="px-6 pt-6 pb-4 flex items-center justify-between border-b border-[#374151]">
-          <h2 className="text-white text-xl font-bold">Añadir componente</h2>
-          <button onClick={onClose} className="p-2 text-gray-400 hover:text-white transition-colors">
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 backdrop-blur-sm px-4">
+      <div className="bg-white border border-[var(--color-border)] rounded-2xl w-full max-w-md mx-auto">
+        <div className="px-6 pt-6 pb-4 flex items-center justify-between border-b border-[var(--color-border)]">
+          <h2 className="text-[var(--color-text-primary)] text-xl font-bold">Añadir componente</h2>
+          <button onClick={onClose} className="p-2 text-[var(--color-text-muted)] hover:text-[var(--color-text-primary)] transition-colors">
             <X size={20} />
           </button>
         </div>
 
         <div className="px-6 py-4 space-y-4">
           <div className="space-y-1.5">
-            <label className="text-gray-400 text-sm">Nombre del componente</label>
+            <label className="text-[var(--color-text-secondary)] text-sm">Nombre del componente</label>
             <input
               type="text"
               value={nombre}
               onChange={e => setNombre(e.target.value)}
               placeholder="ej. Crema pastelera, Bizcocho de vainilla"
-              className="w-full bg-[#374151] border border-[#4B5563] rounded-xl px-4 py-3 text-white placeholder-gray-500 text-sm focus:outline-none focus:border-[#6B7280]"
+              className="w-full bg-white border border-[var(--color-border)] rounded-xl px-4 py-3 text-[var(--color-text-primary)] placeholder-[var(--color-text-muted)] text-sm focus:outline-none focus:border-[var(--color-accent)]"
               autoFocus
             />
           </div>
           <div className="space-y-1.5">
-            <label className="text-gray-400 text-sm">Cantidad</label>
+            <label className="text-[var(--color-text-secondary)] text-sm">Cantidad</label>
             <input
               type="text"
               value={cantidad}
               onChange={e => setCantidad(e.target.value)}
               placeholder="ej. 2 litros, 500 g, 3 bandejas"
-              className="w-full bg-[#374151] border border-[#4B5563] rounded-xl px-4 py-3 text-white placeholder-gray-500 text-sm focus:outline-none focus:border-[#6B7280]"
+              className="w-full bg-white border border-[var(--color-border)] rounded-xl px-4 py-3 text-[var(--color-text-primary)] placeholder-[var(--color-text-muted)] text-sm focus:outline-none focus:border-[var(--color-accent)]"
             />
           </div>
         </div>
 
-        <div className="px-6 py-5 border-t border-[#374151] flex gap-3">
+        <div className="px-6 py-5 border-t border-[var(--color-border)] flex gap-3">
           <button
             onClick={onClose}
-            className="flex-1 py-3 border border-[#4B5563] text-gray-300 rounded-xl font-medium hover:bg-[#374151] transition-colors min-h-[48px]"
+            className="flex-1 py-3 border border-[var(--color-border)] text-[var(--color-text-secondary)] rounded-xl font-medium hover:bg-[var(--color-bg-hover)] transition-colors min-h-[48px]"
           >
             Cancelar
           </button>
           <button
             onClick={handleSave}
             disabled={!canSave || submitting}
-            className="flex-1 py-3 bg-[#0D9488] text-white rounded-xl font-bold hover:bg-[#0F766E] disabled:opacity-40 transition-colors min-h-[48px]"
+            className="flex-1 py-3 bg-[var(--color-accent)] text-white rounded-xl font-bold hover:bg-[var(--color-accent-hover)] disabled:opacity-40 transition-colors min-h-[48px]"
           >
             {submitting ? 'Guardando...' : 'Guardar'}
           </button>
@@ -532,14 +532,14 @@ function QualityCheckModal({
   }
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm px-4">
-      <div className="bg-[#1F2937] border border-[#374151] rounded-2xl w-full max-w-md mx-auto max-h-[90vh] flex flex-col">
-        <div className="px-6 pt-6 pb-4 flex-shrink-0 flex items-center justify-between border-b border-[#374151]">
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 backdrop-blur-sm px-4">
+      <div className="bg-white border border-[var(--color-border)] rounded-2xl w-full max-w-md mx-auto max-h-[90vh] flex flex-col">
+        <div className="px-6 pt-6 pb-4 flex-shrink-0 flex items-center justify-between border-b border-[var(--color-border)]">
           <div>
-            <h2 className="text-white text-xl font-bold">Control de calidad</h2>
-            <p className="text-gray-400 text-sm mt-0.5">{subtitle}</p>
+            <h2 className="text-[var(--color-text-primary)] text-xl font-bold">Control de calidad</h2>
+            <p className="text-[var(--color-text-muted)] text-sm mt-0.5">{subtitle}</p>
           </div>
-          <button onClick={onClose} className="p-2 text-gray-400 hover:text-white transition-colors">
+          <button onClick={onClose} className="p-2 text-[var(--color-text-muted)] hover:text-[var(--color-text-primary)] transition-colors">
             <X size={20} />
           </button>
         </div>
@@ -553,16 +553,16 @@ function QualityCheckModal({
                 onClick={() => toggleItem(item)}
                 className={`w-full flex items-center gap-3 px-4 py-3.5 rounded-xl border text-left transition-colors min-h-[52px] ${
                   isOk
-                    ? 'bg-green-900/30 border-green-600/40'
-                    : 'bg-red-900/30 border-red-600/40'
+                    ? 'bg-[var(--color-success-bg)] border-[var(--color-success-text)]/30'
+                    : 'bg-[var(--color-danger-bg)] border-[var(--color-danger-text)]/30'
                 }`}
               >
                 <div className={`w-5 h-5 rounded-full border-2 flex items-center justify-center flex-shrink-0 ${
-                  isOk ? 'border-green-400 bg-green-600' : 'border-red-400'
+                  isOk ? 'border-[var(--color-success-text)] bg-[var(--color-success-text)]' : 'border-[var(--color-danger-text)]'
                 }`}>
                   {isOk && <CheckCircle size={12} className="text-white" />}
                 </div>
-                <span className={`text-base font-medium ${isOk ? 'text-green-300' : 'text-red-300'}`}>
+                <span className={`text-base font-medium ${isOk ? 'text-[var(--color-success-text)]' : 'text-[var(--color-danger-text)]'}`}>
                   {item}
                 </span>
               </button>
@@ -571,7 +571,7 @@ function QualityCheckModal({
 
           {needsObservacion && (
             <div className="space-y-1.5 pt-1">
-              <p className="text-red-400 text-sm font-medium flex items-center gap-1.5">
+              <p className="text-[var(--color-danger-text)] text-sm font-medium flex items-center gap-1.5">
                 <AlertTriangle size={14} />
                 Falló: {failedItems.join(', ')} — descripción requerida
               </p>
@@ -580,7 +580,7 @@ function QualityCheckModal({
                 onChange={e => setObservacion(e.target.value)}
                 placeholder="Describe el problema observado..."
                 rows={3}
-                className="w-full bg-[#374151] border border-[#4B5563] rounded-xl px-4 py-3 text-white placeholder-gray-500 text-sm resize-none focus:outline-none focus:border-[#6B7280]"
+                className="w-full bg-white border border-[var(--color-border)] rounded-xl px-4 py-3 text-[var(--color-text-primary)] placeholder-[var(--color-text-muted)] text-sm resize-none focus:outline-none focus:border-[var(--color-accent)]"
               />
             </div>
           )}
@@ -607,7 +607,7 @@ function QualityCheckModal({
             ) : (
               <button
                 onClick={() => fileRef.current?.click()}
-                className="flex items-center gap-2 px-4 py-2.5 bg-[#374151] text-gray-300 rounded-xl text-sm hover:bg-[#4B5563] transition-colors min-h-[44px]"
+                className="flex items-center gap-2 px-4 py-2.5 bg-[var(--color-surface-warm)] text-[var(--color-text-secondary)] rounded-xl text-sm hover:bg-[var(--color-bg-active)] transition-colors min-h-[44px]"
               >
                 <Camera size={16} />
                 Foto del lote (opcional)
@@ -616,17 +616,17 @@ function QualityCheckModal({
           </div>
         </div>
 
-        <div className="px-6 py-5 flex-shrink-0 border-t border-[#374151] flex gap-3">
+        <div className="px-6 py-5 flex-shrink-0 border-t border-[var(--color-border)] flex gap-3">
           <button
             onClick={onClose}
-            className="flex-1 py-3 border border-[#4B5563] text-gray-300 rounded-xl font-medium hover:bg-[#374151] transition-colors min-h-[48px]"
+            className="flex-1 py-3 border border-[var(--color-border)] text-[var(--color-text-secondary)] rounded-xl font-medium hover:bg-[var(--color-bg-hover)] transition-colors min-h-[48px]"
           >
             Cancelar
           </button>
           <button
             onClick={handleConfirm}
             disabled={!canConfirm || submitting}
-            className="flex-1 py-3 bg-green-600 text-white rounded-xl font-bold hover:bg-green-700 disabled:opacity-40 transition-colors min-h-[48px]"
+            className="flex-1 py-3 bg-[var(--color-accent)] text-white rounded-xl font-bold hover:bg-[var(--color-accent-hover)] disabled:opacity-40 transition-colors min-h-[48px]"
           >
             {submitting ? 'Guardando...' : 'Confirmar ✓'}
           </button>

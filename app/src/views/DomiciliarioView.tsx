@@ -98,38 +98,38 @@ export function DomiciliarioView() {
 
   if (loading) {
     return (
-      <div className="min-h-screen bg-[#111827] flex items-center justify-center">
-        <p className="text-[#9CA3AF]">Cargando entregas...</p>
+      <div className="min-h-screen bg-[var(--color-bg)] flex items-center justify-center">
+        <p className="text-[var(--color-text-muted)]">Cargando entregas...</p>
       </div>
     )
   }
 
   return (
-    <div className="min-h-screen bg-[#111827]">
-      <div className="bg-[#1F2937] border-b border-[#374151] px-4 py-4">
-        <h1 className="text-lg font-bold text-white">Tartelle — Entregas</h1>
+    <div className="min-h-screen bg-[var(--color-bg)]">
+      <div className="bg-white border-b border-[var(--color-border)] px-4 py-4">
+        <h1 className="text-lg font-bold text-[var(--color-text-primary)]">Tartelle — Entregas</h1>
 
         <div className="mt-3 flex items-center justify-between gap-2">
           <button
             onClick={prevDay}
-            className="p-2 rounded-lg bg-[#374151] text-white active:bg-[#4B5563]"
+            className="p-2 rounded-lg bg-[var(--color-surface-warm)] text-[var(--color-text-primary)] active:bg-[var(--color-bg-active)]"
             style={{ minHeight: '44px', minWidth: '44px' }}
           >
             <ChevronLeft size={20} />
           </button>
-          <span className="text-base font-semibold text-white flex-1 text-center">
+          <span className="text-base font-semibold text-[var(--color-text-primary)] flex-1 text-center">
             {formatPickerDate(selectedDate)}
           </span>
           <button
             onClick={nextDay}
-            className="p-2 rounded-lg bg-[#374151] text-white active:bg-[#4B5563]"
+            className="p-2 rounded-lg bg-[var(--color-surface-warm)] text-[var(--color-text-primary)] active:bg-[var(--color-bg-active)]"
             style={{ minHeight: '44px', minWidth: '44px' }}
           >
             <ChevronRight size={20} />
           </button>
         </div>
 
-        <div className="mt-3 bg-[#374151] rounded-lg p-1 flex gap-1">
+        <div className="mt-3 bg-[var(--color-surface-warm)] rounded-lg p-1 flex gap-1">
           <TabButton
             label="Por recoger"
             count={porRecoger.length}
@@ -178,14 +178,14 @@ function TabButton({ label, count, active, onClick }: {
     <button
       onClick={onClick}
       className={`flex-1 flex items-center justify-center gap-1.5 py-2 px-1 rounded-md text-xs font-semibold transition-all ${
-        active ? 'bg-[#1F2937] shadow-sm text-white' : 'text-[#9CA3AF] active:text-white'
+        active ? 'bg-white shadow-sm text-[var(--color-text-primary)]' : 'text-[var(--color-text-muted)] active:text-[var(--color-text-primary)]'
       }`}
       style={{ minHeight: '36px' }}
     >
       <span>{label}</span>
       {count > 0 && (
         <span className={`text-xs font-bold px-1.5 py-0.5 rounded-full ${
-          active ? 'bg-white text-[#111827]' : 'bg-[#4B5563] text-[#D1D5DB]'
+          active ? 'bg-[var(--color-accent)] text-white' : 'bg-[var(--color-neutral-bg)] text-[var(--color-neutral-text)]'
         }`}>
           {count}
         </span>
@@ -197,16 +197,16 @@ function TabButton({ label, count, active, onClick }: {
 function EmptyState({ tab }: { tab: DriverTab }) {
   if (tab === 'por_recoger') return (
     <div className="text-center py-20">
-      <Package size={48} className="mx-auto text-[#4B5563] mb-3" />
-      <p className="text-lg font-semibold text-white">Ningún pedido listo aún</p>
-      <p className="text-sm text-[#9CA3AF] mt-1">Cuando cocina marque un pedido como listo aparecerá aquí</p>
+      <Package size={48} className="mx-auto text-[var(--color-text-muted)] mb-3" />
+      <p className="text-lg font-semibold text-[var(--color-text-primary)]">Ningún pedido listo aún</p>
+      <p className="text-sm text-[var(--color-text-muted)] mt-1">Cuando cocina marque un pedido como listo aparecerá aquí</p>
     </div>
   )
   return (
     <div className="text-center py-20">
-      <CheckCircle size={48} className="mx-auto text-green-500 mb-3" />
-      <p className="text-lg font-semibold text-white">Sin entregas en ruta</p>
-      <p className="text-sm text-[#9CA3AF] mt-1">Todas las entregas están completas</p>
+      <CheckCircle size={48} className="mx-auto text-[var(--color-success-text)] mb-3" />
+      <p className="text-lg font-semibold text-[var(--color-text-primary)]">Sin entregas en ruta</p>
+      <p className="text-sm text-[var(--color-text-muted)] mt-1">Todas las entregas están completas</p>
     </div>
   )
 }
@@ -227,13 +227,13 @@ function DeliveryCard({ order, isUpdating, onPickup, onDeliver, onInvoicePhoto, 
   const paymentColors = PAYMENT_STATUS_COLORS[order.payment_status ?? 'pending']
 
   return (
-    <div className={`bg-[#1F2937] rounded-xl border-2 overflow-hidden ${isReady ? 'border-green-500' : 'border-orange-400'}`}>
+    <div className={`bg-white rounded-xl border-2 overflow-hidden ${isReady ? 'border-[var(--color-status-ready)]' : 'border-[var(--color-status-dispatched)]'}`}>
       <div className="px-4 pt-4 pb-3">
         <div className="flex items-start justify-between">
           <div>
-            <p className="text-lg font-bold text-white">{order.customer_name ?? 'Cliente'}</p>
+            <p className="text-lg font-bold text-[var(--color-text-primary)]">{order.customer_name ?? 'Cliente'}</p>
             {order.estimated_delivery_time && (
-              <p className="text-sm text-[#9CA3AF] mt-0.5 flex items-center gap-1">
+              <p className="text-sm text-[var(--color-text-muted)] mt-0.5 flex items-center gap-1">
                 <Clock size={12} />
                 {order.estimated_delivery_time.slice(0, 5)}
               </p>
@@ -253,7 +253,7 @@ function DeliveryCard({ order, isUpdating, onPickup, onDeliver, onInvoicePhoto, 
             href={`https://maps.google.com/?q=${encodeURIComponent(order.delivery_address)}`}
             target="_blank"
             rel="noopener noreferrer"
-            className="mt-2 flex items-start gap-2 text-blue-400 text-sm active:text-blue-300"
+            className="mt-2 flex items-start gap-2 text-[var(--color-status-confirmed)] text-sm active:opacity-70"
           >
             <MapPin size={16} className="flex-shrink-0 mt-0.5" />
             <span className="underline">{order.delivery_address}</span>
@@ -263,7 +263,7 @@ function DeliveryCard({ order, isUpdating, onPickup, onDeliver, onInvoicePhoto, 
         {order.customer_phone && (
           <a
             href={`tel:${order.customer_phone}`}
-            className="mt-1.5 flex items-center gap-2 text-blue-400 text-sm active:text-blue-300"
+            className="mt-1.5 flex items-center gap-2 text-[var(--color-status-confirmed)] text-sm active:opacity-70"
           >
             <Phone size={14} />
             <span className="underline">{order.customer_phone}</span>
@@ -274,23 +274,23 @@ function DeliveryCard({ order, isUpdating, onPickup, onDeliver, onInvoicePhoto, 
       <div className="px-4 pb-3 space-y-1">
         {order.items?.map(item => (
           <div key={item.id} className="flex items-center justify-between text-sm">
-            <span className="font-medium text-white">
+            <span className="font-medium text-[var(--color-text-primary)]">
               {item.quantity}x {item.product?.flavor}
             </span>
-            <span className="text-[#9CA3AF] capitalize">{item.product?.size}</span>
+            <span className="text-[var(--color-text-muted)] capitalize">{item.product?.size}</span>
           </div>
         ))}
       </div>
 
       {order.notes && (
-        <div className="mx-4 mb-2 bg-yellow-900/30 border border-yellow-700/50 rounded-lg px-3 py-2 text-sm text-yellow-300 flex items-start gap-2">
+        <div className="mx-4 mb-2 bg-[var(--color-warning-bg)] border border-[var(--color-warning-text)]/20 rounded-lg px-3 py-2 text-sm text-[var(--color-warning-text)] flex items-start gap-2">
           <Package size={14} className="flex-shrink-0 mt-0.5" />
           {order.notes}
         </div>
       )}
 
       {order.packaging_notes && (
-        <div className="mx-4 mb-2 bg-purple-900/30 border border-purple-700/50 rounded-lg px-3 py-2 text-sm text-purple-300 flex items-start gap-2">
+        <div className="mx-4 mb-2 bg-[var(--color-status-production-bg)] border border-[var(--color-status-production)]/20 rounded-lg px-3 py-2 text-sm text-[var(--color-status-production)] flex items-start gap-2">
           <Package size={14} className="flex-shrink-0 mt-0.5" />
           {order.packaging_notes}
         </div>
@@ -298,16 +298,16 @@ function DeliveryCard({ order, isUpdating, onPickup, onDeliver, onInvoicePhoto, 
 
       {isB2B && isReady && (
         <div className="mx-4 mb-3 rounded-xl border px-4 py-3 space-y-2.5"
-          style={{ backgroundColor: invoiceSatisfied ? 'rgba(20,83,45,0.2)' : 'rgba(124,45,18,0.25)', borderColor: invoiceSatisfied ? 'rgba(22,163,74,0.4)' : 'rgba(234,88,12,0.4)' }}
+          style={{ backgroundColor: invoiceSatisfied ? 'var(--color-success-bg)' : 'var(--color-warning-bg)', borderColor: invoiceSatisfied ? 'rgba(30,107,58,0.3)' : 'rgba(199,125,46,0.4)' }}
         >
           {invoiceSatisfied ? (
-            <p className="text-green-400 text-sm font-medium flex items-center gap-2">
+            <p className="text-[var(--color-success-text)] text-sm font-medium flex items-center gap-2">
               <CheckCircle size={15} />
               Factura OK
             </p>
           ) : (
             <>
-              <p className="text-orange-300 text-sm font-semibold flex items-center gap-2">
+              <p className="text-[var(--color-warning-text)] text-sm font-semibold flex items-center gap-2">
                 <AlertTriangle size={15} />
                 Factura pendiente
               </p>
@@ -321,7 +321,7 @@ function DeliveryCard({ order, isUpdating, onPickup, onDeliver, onInvoicePhoto, 
                 />
                 <button
                   onClick={onMarkInvoiceDelivered}
-                  className="flex-1 py-2 px-3 bg-[#374151] text-gray-300 rounded-lg text-sm font-medium hover:bg-[#4B5563] active:bg-[#4B5563] transition-colors min-h-[44px]"
+                  className="flex-1 py-2 px-3 bg-[var(--color-surface-warm)] text-[var(--color-text-secondary)] rounded-lg text-sm font-medium hover:bg-[var(--color-bg-active)] active:bg-[var(--color-bg-active)] transition-colors min-h-[44px]"
                 >
                   Entregada en físico
                 </button>
@@ -343,12 +343,12 @@ function DeliveryCard({ order, isUpdating, onPickup, onDeliver, onInvoicePhoto, 
         </div>
       )}
 
-      <div className="border-t border-[#374151]">
+      <div className="border-t border-[var(--color-border)]">
         {isReady && (
           <button
             onClick={onPickup}
             disabled={isUpdating || !invoiceSatisfied}
-            className="w-full py-4 text-base font-bold flex items-center justify-center gap-2 bg-green-600 text-white active:bg-green-700 disabled:opacity-50 transition-colors"
+            className="w-full py-4 text-base font-bold flex items-center justify-center gap-2 bg-[var(--color-accent)] text-white active:bg-[var(--color-accent-hover)] disabled:opacity-50 transition-colors"
             style={{ minHeight: '56px' }}
           >
             <Truck size={20} />
@@ -360,7 +360,7 @@ function DeliveryCard({ order, isUpdating, onPickup, onDeliver, onInvoicePhoto, 
           <button
             onClick={onDeliver}
             disabled={isUpdating}
-            className="w-full py-4 text-base font-bold flex items-center justify-center gap-2 bg-blue-600 text-white active:bg-blue-700 disabled:opacity-50 transition-colors"
+            className="w-full py-4 text-base font-bold flex items-center justify-center gap-2 bg-[var(--color-status-confirmed)] text-white active:opacity-90 disabled:opacity-50 transition-opacity"
             style={{ minHeight: '56px' }}
           >
             <CheckCircle size={20} />

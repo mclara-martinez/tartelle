@@ -8,12 +8,11 @@ interface Props {
   existingPath?: string | null
   onUpload: (path: string) => void
   label?: string
-  dark?: boolean
   /** Render as a large drop zone with a visible "+" on drag-over and global Ctrl+V paste. Used for the payment receipt. */
   dropzone?: boolean
 }
 
-export function PhotoUpload({ orderId, type, existingPath, onUpload, label = 'Foto', dark = false, dropzone = false }: Props) {
+export function PhotoUpload({ orderId, type, existingPath, onUpload, label = 'Foto', dropzone = false }: Props) {
   const inputRef = useRef<HTMLInputElement>(null)
   const [uploading, setUploading] = useState(false)
   const [previewUrl, setPreviewUrl] = useState<string | null>(null)
@@ -125,9 +124,7 @@ export function PhotoUpload({ orderId, type, existingPath, onUpload, label = 'Fo
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [dropzone, done, uploading])
 
-  const bgClass = dark
-    ? 'bg-[#374151] hover:bg-[#4B5563] text-white'
-    : 'bg-[var(--color-bg)] hover:bg-[var(--color-bg-hover)] text-[var(--color-text-primary)] border border-[var(--color-border)]'
+  const bgClass = 'bg-[var(--color-bg)] hover:bg-[var(--color-bg-hover)] text-[var(--color-text-primary)] border border-[var(--color-border)]'
 
   if (done && previewUrl) {
     return (
