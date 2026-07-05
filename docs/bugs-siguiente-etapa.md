@@ -14,11 +14,11 @@
 
 | # | Item | Detalle | Esfuerzo | Requiere |
 |---|------|---------|----------|----------|
-| A1 | **Cierre masivo de 48 pedidos vencidos + legacy `pending`** | Esperando la hoja de cálculo real de Andrea para hacer el match. UPDATE masivo en `orders`. La zona "Vencidos" (commit `ec94220`) ya los expone en la UI mientras tanto. | 1–2 h | Hoja de Andrea + OK explícito de M Clara (UPDATE masivo, tabla `orders`) |
-| A2 | **B11 — Despacho muestra pedidos no listos** | `KitchenDispatchMode.tsx:23` filtra `status !== 'delivered'`: confirmados y en cocina aparecen como si estuvieran despachables. Filtrar a `['ready','dispatched']` o separar visualmente "en preparación". | 1 h | Micro-decisión de UI (filtrar vs. separar) |
-| A3 | **Error boundary global** | Sin boundary, cualquier excepción de render deja la pantalla en blanco (pasó con los `pending` legacy; el fallback de `StatusBadge` tapó ese caso puntual, no la clase de problema). Crítico para tablets de cocina en piloto. | 1–2 h | Nada |
-| A4 | **Race de respuestas stale en `useOrders`** | Confirmada 2026-07-04 (rango de fechas muestra resultados de una ventana anterior). En curso en sesión aparte (task chip). Extender el patrón de guard al resto de hooks con parámetros. | En curso | Nada |
-| A5 | **Decisión: `INVENTORY_SYNC_ENABLED`** | El ajuste automático de inventario está apagado (`useOrders.ts:137`). No es bug, pero hay que alinear expectativas del piloto: el stock NO se mueve al cambiar estados. Decidir si el piloto corre así (recomendado) y cuándo entra la fase de inventario. | Decisión | M Clara + Andrea |
+| A1 | **Cierre masivo de 48 pedidos vencidos + legacy `pending`** 🟠 PENDIENTE | Esperando la hoja de cálculo real de Andrea para hacer el match. UPDATE masivo en `orders`. La zona "Vencidos" ya los expone en la UI mientras tanto. | 1–2 h | Hoja de Andrea + OK explícito de M Clara (UPDATE masivo, tabla `orders`) |
+| A2 | **B11 — Despacho muestra pedidos no listos** ✅ RESUELTO 2026-07-04 | Tablero separado: cola de despacho (listo/en camino, con botón) + sección atenuada "En preparación — aún no salen" (confirmado/en cocina). Verificado en app. Commit `19ddc2f`. | — | — |
+| A3 | **Error boundary global** ✅ RESUELTO 2026-07-04 | `ErrorBoundary` envuelve toda la app; fallback con Reintentar/Recargar. Probado forzando un crash en dev. Commit `19ddc2f`. | — | — |
+| A4 | **Race de respuestas stale en `useOrders`** ✅ RESUELTO 2026-07-04 | Guard de `requestId` en hooks con refetch por parámetro. PR #3 mergeado (`e4dc5e3`). | — | — |
+| A5 | **Decisión: `INVENTORY_SYNC_ENABLED`** 🟠 PENDIENTE | El ajuste automático de inventario está apagado (`useOrders.ts`). No es bug, pero hay que alinear expectativas del piloto: el stock NO se mueve al cambiar estados. Decidir si el piloto corre así (recomendado) y cuándo entra la fase de inventario. | Decisión | M Clara + Andrea |
 
 ## Etapa B — Durante el piloto (14–25 jul)
 

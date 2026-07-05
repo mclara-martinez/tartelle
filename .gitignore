@@ -7,3 +7,7 @@ dist/
 build/
 .cache/
 scripts/output/
+
+# Datos de clientes — nunca al repo (chats WhatsApp, exports Siigo)
+assets/
+siigo_FV_*.csv

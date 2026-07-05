@@ -7,8 +7,8 @@
 > La tabla de abajo se conserva como registro histórico; el estado real hoy es:
 >
 > - ✅ **RESUELTOS (19):** B1, B2, B3, B5, B6, B7, B9, B10, B12, B14, B15, B17, B18, B19, B20, B21, B22 + B4 y B8 (obsoletos: el bloqueo same-day se reemplazó por diálogo de confirmación en Tier 1, y B8 era comportamiento esperado — cocina muestra solo HOY).
-> - 🟠 **PARCIALES (2):**
->   - **B11** — Despacho aún muestra todos los estados activos (`status !== 'delivered'` en `KitchenDispatchMode.tsx:23`), no solo listo/en camino.
+> - ✅ **B11 — RESUELTO 2026-07-04:** el tablero de despacho ahora separa la cola real (listo/en camino) de una sección atenuada "En preparación — aún no salen" (commit `19ddc2f`).
+> - 🟠 **PARCIAL (1):**
 >   - **B16** — El modal de stock bajo no re-dispara dentro de la ventana de 2 h del cooldown en `localStorage`, aunque el inventario vuelva a caer.
 > - ⚪ **OBSOLETO (1):** **B13** — el ajuste automático de inventario está **desactivado por diseño** (`INVENTORY_SYNC_ENABLED = false`, `useOrders.ts:137`, "hasta la fase de inventario"). Saltar estados ya no desincroniza stock porque el stock no se mueve solo.
 > - 🔴 **ABIERTO (1):** **B23** — rediseño UX del inventario (decisión de diseño, post-piloto).
