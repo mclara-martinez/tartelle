@@ -1,5 +1,6 @@
 import { useState, useRef, useEffect } from 'react'
 import { useOrders, updateOrderStatus } from '../hooks/useOrders'
+import { useOverdueOrders } from '../hooks/useOverdueOrders'
 import { StatusBadge } from '../components/StatusBadge'
 import { OrderDrawer } from '../components/OrderDrawer'
 import { KanbanBoard } from '../components/KanbanBoard'
@@ -8,9 +9,9 @@ import { formatCOP, formatDate, today, tomorrow } from '../lib/utils'
 import { CHANNEL_LABELS, ORDER_STATUS_FLOW, STATUS_LABELS } from '../lib/constants'
 import type { Order, OrderStatus } from '../lib/types'
 import type { View } from '../App'
-import { Plus, List, Columns3, Bike, Store, Check, MessageSquare, Search, X, ShoppingBag as PageIcon, Download, Calendar } from 'lucide-react'
+import { Plus, List, Columns3, Bike, Store, Check, MessageSquare, Search, X, ShoppingBag as PageIcon, Download, Calendar, AlertTriangle } from 'lucide-react'
 
-type DatePreset = 'today' | 'tomorrow' | 'range'
+type DatePreset = 'today' | 'tomorrow' | 'range' | 'overdue'
 type ViewMode = 'list' | 'kanban'
 
 interface Props {
@@ -135,16 +136,21 @@ export function OrdersView({ onNavigate, selectedOrderId, onSelectOrder }: Props
   const endDate = preset === 'today' ? today() : preset === 'tomorrow' ? tomorrow() : rangeEnd
 
   const { orders, loading, error, refetch } = useOrders(startDate, endDate)
+  const { orders: overdueOrders, loading: overdueLoading, refetch: refetchOverdue } = useOverdueOrders()
+
+  const isOverdue = preset === 'overdue'
+  const sourceOrders = isOverdue ? overdueOrders : orders
+  const isLoading = isOverdue ? overdueLoading : loading
 
   const filteredOrders = searchQuery.trim()
-    ? orders.filter(o => o.customer_name?.toLowerCase().includes(searchQuery.toLowerCase()))
-    : orders
+    ? sourceOrders.filter(o => o.customer_name?.toLowerCase().includes(searchQuery.toLowerCase()))
+    : sourceOrders
 
   const displayOrders = filteredOrders.map(o =>
     optimisticStatus[o.id] ? { ...o, status: optimisticStatus[o.id] } : o
   )
 
-  const csvLabel = preset === 'range' ? `${rangeStart}_${rangeEnd}` : preset === 'today' ? today() : tomorrow()
+  const csvLabel = preset === 'range' ? `${rangeStart}_${rangeEnd}` : preset === 'overdue' ? 'vencidos' : preset === 'today' ? today() : tomorrow()
 
   async function handleStatusChange(orderId: string, status: OrderStatus) {
     if (updatingId === orderId) return
@@ -154,7 +160,7 @@ export function OrdersView({ onNavigate, selectedOrderId, onSelectOrder }: Props
     try {
       await updateOrderStatus(orderId, status, order)
       setToast({ msg: 'Estado actualizado', type: 'success' })
-      await refetch()
+      await Promise.all([refetch(), refetchOverdue()])
       setOptimisticStatus(prev => { const n = { ...prev }; delete n[orderId]; return n })
     } catch {
       setToast({ msg: 'Error al actualizar', type: 'error' })
@@ -173,7 +179,9 @@ export function OrdersView({ onNavigate, selectedOrderId, onSelectOrder }: Props
           <div>
             <h1 className="text-xl font-bold">Pedidos</h1>
             <p className="text-sm text-[var(--color-text-muted)]">
-              {preset === 'range'
+              {isOverdue
+                ? 'Con fecha pasada sin cerrar'
+                : preset === 'range'
                 ? `${formatDate(rangeStart)} — ${formatDate(rangeEnd)}`
                 : formatDate(startDate)}
             </p>
@@ -218,6 +226,22 @@ export function OrdersView({ onNavigate, selectedOrderId, onSelectOrder }: Props
             </button>
           ))}
         </div>
+
+        {/* Zona de vencidos — visible solo si hay pedidos con fecha pasada sin cerrar */}
+        {(overdueOrders.length > 0 || isOverdue) && (
+          <button
+            onClick={() => setPreset('overdue')}
+            className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-sm font-medium transition-colors duration-200 ${
+              isOverdue
+                ? 'bg-[var(--color-warning-bg)] text-[var(--color-warning-text)] ring-1 ring-[var(--color-warning-text)]'
+                : 'bg-[var(--color-warning-bg)] text-[var(--color-warning-text)] hover:ring-1 hover:ring-[var(--color-warning-text)]'
+            }`}
+          >
+            <AlertTriangle className="h-3.5 w-3.5" />
+            Vencidos
+            <span className="tabular-nums font-semibold">{overdueOrders.length}</span>
+          </button>
+        )}
 
         {/* Date range inputs — only when range preset is active */}
         {preset === 'range' && (
@@ -284,12 +308,12 @@ export function OrdersView({ onNavigate, selectedOrderId, onSelectOrder }: Props
         </div>
       )}
 
-      {loading ? (
+      {isLoading ? (
         <div className="text-sm text-[var(--color-text-muted)] pt-4">Cargando pedidos...</div>
       ) : filteredOrders.length === 0 ? (
         <div className="bg-white rounded-lg border border-[var(--color-border)] py-12 text-center">
           <p className="text-[var(--color-text-muted)] text-sm">
-            {searchQuery ? 'Sin resultados' : 'Sin pedidos para este periodo'}
+            {searchQuery ? 'Sin resultados' : isOverdue ? 'Sin pedidos vencidos' : 'Sin pedidos para este periodo'}
           </p>
         </div>
       ) : viewMode === 'kanban' ? (
@@ -321,9 +345,9 @@ export function OrdersView({ onNavigate, selectedOrderId, onSelectOrder }: Props
                     </p>
                   </div>
                 </div>
-                <span className="text-xs text-[var(--color-text-secondary)] inline-flex items-center gap-1">
-                  {order.delivery_type === 'delivery' ? <Bike className="h-3 w-3" /> : <Store className="h-3 w-3" />}
-                  {order.delivery_type === 'delivery' ? 'Dom.' : 'Local'}
+                <span className={`text-xs inline-flex items-center gap-1 ${isOverdue ? 'text-[var(--color-warning-text)] font-medium' : 'text-[var(--color-text-secondary)]'}`}>
+                  {order.delivery_type === 'delivery' ? <Bike className="h-3 w-3 flex-shrink-0" /> : <Store className="h-3 w-3 flex-shrink-0" />}
+                  {isOverdue ? formatDate(order.delivery_date) : order.delivery_type === 'delivery' ? 'Dom.' : 'Local'}
                 </span>
                 <span className="text-sm font-medium text-right tabular-nums">{formatCOP(order.total)}</span>
                 <div className="relative" ref={openDropdown === order.id ? dropdownRef : null}>
@@ -397,6 +421,7 @@ export function OrdersView({ onNavigate, selectedOrderId, onSelectOrder }: Props
                       )}
                     </div>
                     <p className="text-xs text-[var(--color-text-muted)] mt-0.5">
+                      {isOverdue && <span className="text-[var(--color-warning-text)] font-medium">{formatDate(order.delivery_date)} · </span>}
                       {CHANNEL_LABELS[order.channel]} · {order.items?.map(it => `${it.quantity}x ${it.product?.flavor}`).join(', ')}
                     </p>
                   </div>
@@ -446,7 +471,7 @@ export function OrdersView({ onNavigate, selectedOrderId, onSelectOrder }: Props
       )}
 
       {selectedOrderId && (
-        <OrderDrawer orderId={selectedOrderId} onClose={() => onSelectOrder(null)} onStatusChange={refetch} />
+        <OrderDrawer orderId={selectedOrderId} onClose={() => onSelectOrder(null)} onStatusChange={() => { refetch(); refetchOverdue() }} />
       )}
       {toast && <Toast message={toast.msg} type={toast.type} onClose={() => setToast(null)} />}
     </div>
