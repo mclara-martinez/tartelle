@@ -20,8 +20,14 @@ export function KitchenDispatchMode() {
   const [toast, setToast] = useState<{ msg: string; type: 'success' | 'error' } | null>(null)
   const [updatingId, setUpdatingId] = useState<string | null>(null)
 
-  const dispatchable = orders
-    .filter(o => o.status !== 'delivered')
+  // B11: separar lo despachable de lo que aún está en preparación —
+  // antes se mezclaban y un pedido confirmado parecía listo para salir.
+  const dispatchQueue = orders
+    .filter(o => o.status === 'ready' || o.status === 'dispatched')
+    .sort((a, b) => (STATUS_ORDER[a.status] ?? 9) - (STATUS_ORDER[b.status] ?? 9))
+
+  const inPreparation = orders
+    .filter(o => o.status === 'confirmed' || o.status === 'in_production')
     .sort((a, b) => (STATUS_ORDER[a.status] ?? 9) - (STATUS_ORDER[b.status] ?? 9))
 
   const delivered = orders.filter(o => o.status === 'delivered')
@@ -72,30 +78,62 @@ export function KitchenDispatchMode() {
       </div>
 
       <div className="flex items-center justify-between mb-4">
-        <p className="text-gray-400 text-sm">{dispatchable.length} pedido{dispatchable.length !== 1 ? 's' : ''} activos</p>
+        <p className="text-gray-400 text-sm">
+          {dispatchQueue.length} para despachar
+          {inPreparation.length > 0 && ` · ${inPreparation.length} en preparación`}
+        </p>
         {delivered.length > 0 && (
           <span className="text-gray-500 text-sm">{delivered.length} entregados</span>
         )}
       </div>
 
-      {dispatchable.length === 0 ? (
+      {dispatchQueue.length === 0 && inPreparation.length === 0 ? (
         <div className="flex flex-col items-center justify-center py-20 text-center">
           <CheckCircle size={64} className="text-green-500 mb-4" />
           <p className="text-white text-2xl font-bold">Todo despachado</p>
           <p className="text-gray-400 text-lg mt-1">No hay pedidos pendientes de despacho</p>
         </div>
       ) : (
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-          {dispatchable.map(order => (
-            <DispatchCard
-              key={order.id}
-              order={order}
-              isUpdating={updatingId === order.id}
-              onAction={handleAction}
-              onPhotoUpload={handlePhotoUpload}
-            />
-          ))}
-        </div>
+        <>
+          {dispatchQueue.length === 0 ? (
+            <p className="text-gray-500 text-base text-center py-8">
+              Nada listo para despachar todavía
+            </p>
+          ) : (
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              {dispatchQueue.map(order => (
+                <DispatchCard
+                  key={order.id}
+                  order={order}
+                  isUpdating={updatingId === order.id}
+                  onAction={handleAction}
+                  onPhotoUpload={handlePhotoUpload}
+                />
+              ))}
+            </div>
+          )}
+
+          {inPreparation.length > 0 && (
+            <div className="mt-8">
+              <p className="text-gray-400 text-sm font-semibold uppercase tracking-wider mb-3 flex items-center gap-2">
+                <span className="h-px flex-1 bg-[#374151]" />
+                En preparación — aún no salen
+                <span className="h-px flex-1 bg-[#374151]" />
+              </p>
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4 opacity-60">
+                {inPreparation.map(order => (
+                  <DispatchCard
+                    key={order.id}
+                    order={order}
+                    isUpdating={updatingId === order.id}
+                    onAction={handleAction}
+                    onPhotoUpload={handlePhotoUpload}
+                  />
+                ))}
+              </div>
+            </div>
+          )}
+        </>
       )}
 
       {toast && <Toast message={toast.msg} type={toast.type} onClose={() => setToast(null)} />}
