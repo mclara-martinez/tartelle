@@ -146,6 +146,15 @@ export function OrderDrawer({ orderId, onClose, onStatusChange }: Props) {
       setToast({ msg: 'El pedido debe tener al menos un producto', type: 'error' })
       return
     }
+    if (!editDeliveryDate) {
+      setToast({ msg: 'La fecha de entrega no puede quedar vacía', type: 'error' })
+      return
+    }
+    const totalToSave = canEditItems ? editTotal : order.subtotal + editDeliveryFee - editDiscount
+    if (totalToSave < 0) {
+      setToast({ msg: 'El descuento no puede ser mayor que el total del pedido', type: 'error' })
+      return
+    }
     setSaving(true)
     try {
       if (canEditItems) {
