@@ -39,8 +39,9 @@ export function PhotoUpload({ orderId, type, existingPath, onUpload, label = 'Fo
       setPreviewUrl(url)
       setDone(true)
       onUpload(path)
-    } catch {
-      setError('No se pudo subir la imagen. Intenta de nuevo.')
+    } catch (err) {
+      const detail = err instanceof Error && err.message ? ` (${err.message})` : ''
+      setError(`No se pudo subir la imagen. Intenta de nuevo.${detail}`)
     }
     setUploading(false)
     if (inputRef.current) inputRef.current.value = ''
