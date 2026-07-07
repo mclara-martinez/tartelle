@@ -32,14 +32,5 @@ create policy production_counts_delete_admin on public.production_counts
 -- Realtime para el refetch debounced del hook useProductionCounts
 alter publication supabase_realtime add table public.production_counts;
 
--- PENDIENTE (fase 2, tras validación con cuenta admin): políticas para
--- 'operator' en production_counts Y TAMBIÉN en production_extras (hoy solo
--- admin/kitchen). Descomentar y aplicar solo con OK explícito:
---
--- create policy production_counts_all_operator on public.production_counts
---   for all using (((auth.jwt() -> 'app_metadata') ->> 'role') = 'operator')
---   with check (((auth.jwt() -> 'app_metadata') ->> 'role') = 'operator');
---
--- create policy production_extras_all_operator on public.production_extras
---   for all using (((auth.jwt() -> 'app_metadata') ->> 'role') = 'operator')
---   with check (((auth.jwt() -> 'app_metadata') ->> 'role') = 'operator');
+-- Fase 2 (políticas 'operator' en production_counts y production_extras):
+-- aplicada 2026-07-06 — ver 20260706120000_production_operator_policies.sql.
