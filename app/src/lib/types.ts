@@ -140,6 +140,15 @@ export interface ProductionCount {
   product?: Product
 }
 
+export interface ProductionCheck {
+  id: string
+  date: string
+  product_id: string
+  user_id: string | null
+  user_email: string | null
+  created_at: string
+}
+
 export interface ProductionPlanItem {
   id: string
   plan_id: string

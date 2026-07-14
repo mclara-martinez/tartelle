@@ -1,18 +1,26 @@
 import { useState, useMemo, useRef } from 'react'
-import { useOrders, updateOrderStatus } from '../../hooks/useOrders'
-import { useInventory, useProductionToday, adjustInventory } from '../../hooks/useInventory'
-import { useProducts } from '../../hooks/useProducts'
+import { useProductionPlan, type ProductionNeed } from '../../hooks/useProductionPlan'
+import { useProductionChecks } from '../../hooks/useProductionChecks'
+import { useInventory } from '../../hooks/useInventory'
 import { Toast } from '../../components/Toast'
 import { insertQualityLog } from '../../hooks/useQualityLog'
 import { insertComponentLog, useComponentLogs } from '../../hooks/useComponentLog'
 import { uploadQualityPhoto } from '../../lib/storage'
-import { today } from '../../lib/utils'
-import { LOW_STOCK_THRESHOLD } from '../../lib/constants'
+import { today, tomorrow, formatDate } from '../../lib/utils'
+import { LOW_STOCK_THRESHOLD, SIZE_LABELS } from '../../lib/constants'
 import { CheckCircle, Plus, X, AlertTriangle, Camera } from 'lucide-react'
-import type { Product, ProductSize, Order } from '../../lib/types'
 
 const QUALITY_ITEMS = ['Textura', 'Color', 'Presentación', 'Sin defectos visibles']
-type PendingProduce = { productId: string; qty: number } | null
+
+// Pausado 2026-07-13 (decisión M Clara): el checklist de calidad sale de la
+// vista para el launch inicial, pero el código queda para reactivarlo pronto.
+// Con true, marcar una línea del plan abre QualityCheckModal antes del check.
+const QUALITY_CHECK_ENABLED: boolean = false
+
+// Pausado 2026-07-13: la alerta depende de inventory_finished, que no se
+// mantiene mientras la decisión de inventario esté pendiente. Vuelve con la
+// fase de inventario Rappi/Didi.
+const RAPPI_ALERT_ENABLED: boolean = false
 
 const RAPPI_CONFIRMED_KEY = 'rappi_off_confirmed'
 const TWO_HOURS_MS = 2 * 60 * 60 * 1000
@@ -24,196 +32,169 @@ function shouldShowRappiModal(lowStockCount: number): boolean {
   return Date.now() - Number(stored) > TWO_HOURS_MS
 }
 
+// Producir hoy: lo que cocina debe mezclar/hornear HOY, que por las 12h de
+// refrigeración corresponde a las entregas de MAÑANA. Mismo cálculo que el tab
+// Produccion del admin (useProductionPlan); cocina marca líneas completas.
 export function KitchenProductionMode() {
-  const { orders } = useOrders(today())
-  const { inventory, refetch: refetchInv } = useInventory()
-  const { products } = useProducts()
-  const { entries: producedToday } = useProductionToday()
+  const targetDate = tomorrow()
+  const { needsByCategory, needs, loading } = useProductionPlan(targetDate)
+  const { checksByProduct, toggleCheck } = useProductionChecks(targetDate)
+  const { inventory } = useInventory()
   const { logs: componentLogs, refetch: refetchComponents } = useComponentLogs(today())
   const [toast, setToast] = useState<{ msg: string; type: 'success' | 'error' } | null>(null)
-  const [markingReady, setMarkingReady] = useState<string | null>(null)
-  const [qualityOrder, setQualityOrder] = useState<Order | null>(null)
-  const [showAddForm, setShowAddForm] = useState(false)
+  const [togglingId, setTogglingId] = useState<string | null>(null)
+  const [qualityNeed, setQualityNeed] = useState<ProductionNeed | null>(null)
   const [showComponentModal, setShowComponentModal] = useState(false)
-  const [pendingProduce, setPendingProduce] = useState<PendingProduce>(null)
   const [rappiDismissed, setRappiDismissed] = useState(false)
 
   const lowStockItems = useMemo(
-    () => inventory.filter(i => i.quantity <= LOW_STOCK_THRESHOLD),
+    () => (RAPPI_ALERT_ENABLED ? inventory.filter(i => i.quantity <= LOW_STOCK_THRESHOLD) : []),
     [inventory]
   )
-
-  const showRappiModal = !rappiDismissed && shouldShowRappiModal(lowStockItems.length)
+  const showRappiModal = RAPPI_ALERT_ENABLED && !rappiDismissed && shouldShowRappiModal(lowStockItems.length)
 
   function handleRappiConfirm() {
     localStorage.setItem(RAPPI_CONFIRMED_KEY, String(Date.now()))
     setRappiDismissed(true)
   }
 
-  const confirmedOrders = useMemo(
-    () => orders.filter(o => o.status === 'confirmed' && o.delivery_date === today()),
-    [orders]
+  const pendingLines = useMemo(() => needs.filter(n => n.toMake > 0), [needs])
+  const doneLines = useMemo(
+    () => pendingLines.filter(n => checksByProduct[n.productId]),
+    [pendingLines, checksByProduct]
   )
 
-  const batchPlan = useMemo(() => {
-    const g: Record<string, Array<{ size: ProductSize; qty: number }>> = {}
-    for (const order of confirmedOrders) {
-      for (const item of order.items ?? []) {
-        if (!item.product) continue
-        const flavor = item.product.flavor
-        g[flavor] = g[flavor] ?? []
-        const existing = g[flavor].find(e => e.size === item.product!.size)
-        if (existing) existing.qty += item.quantity
-        else g[flavor].push({ size: item.product.size, qty: item.quantity })
-      }
+  async function handleToggle(need: ProductionNeed) {
+    if (togglingId) return
+    const isChecked = !!checksByProduct[need.productId]
+    // Quality check solo al marcar (no al desmarcar), cuando esté activo
+    if (QUALITY_CHECK_ENABLED && !isChecked) {
+      setQualityNeed(need)
+      return
     }
-    return Object.entries(g).sort(([a], [b]) => a.localeCompare(b))
-  }, [confirmedOrders])
-
-  const batchTotal = useMemo(
-    () => batchPlan.reduce((s, [, sizes]) => s + sizes.reduce((x, y) => x + y.qty, 0), 0),
-    [batchPlan]
-  )
-
-  async function handleProduce(productId: string, qty: number) {
-    if (qty <= 0) return
-    try {
-      await adjustInventory(productId, qty, 'production')
-      refetchInv()
-      setToast({ msg: `+${qty} producidas`, type: 'success' })
-    } catch {
-      setToast({ msg: 'Error', type: 'error' })
-    }
+    await doToggle(need.productId)
   }
 
-  async function handleReady(order: Order) {
-    setMarkingReady(order.id)
+  async function doToggle(productId: string) {
+    setTogglingId(productId)
     try {
-      await updateOrderStatus(order.id, 'ready', order)
-      refetchInv()
-      setToast({ msg: `${order.customer_name ?? 'Pedido'} listo`, type: 'success' })
+      await toggleCheck(productId)
     } catch {
-      setToast({ msg: 'Error', type: 'error' })
+      setToast({ msg: 'Error al guardar', type: 'error' })
     }
-    setMarkingReady(null)
+    setTogglingId(null)
   }
 
   return (
-    <div className="p-4 space-y-4">
-      <div className="flex items-center justify-between">
-        <p className="text-[var(--color-text-secondary)] text-sm">{confirmedOrders.length} pedido{confirmedOrders.length !== 1 ? 's' : ''} por preparar</p>
-        <button
-          onClick={() => setShowAddForm(true)}
-          className="flex items-center gap-2 px-4 py-2.5 bg-[var(--color-status-production)] text-white rounded-lg text-sm font-medium hover:opacity-90 transition-opacity min-h-[44px]"
-        >
-          <Plus size={16} />
-          Anadir a produccion
-        </button>
+    <div className="p-4 space-y-4 max-w-3xl mx-auto">
+      {/* Encabezado del plan */}
+      <div className="flex items-center justify-between gap-3 flex-wrap">
+        <div>
+          <p className="text-[var(--color-text-primary)] text-lg font-bold">Producir hoy</p>
+          <p className="text-[var(--color-text-muted)] text-sm">
+            Para entregas de mañana — <span className="capitalize">{formatDate(targetDate)}</span>
+          </p>
+        </div>
+        {pendingLines.length > 0 && (
+          <span className={`text-sm font-bold px-3 py-1.5 rounded-full tabular-nums ${
+            doneLines.length === pendingLines.length
+              ? 'bg-[var(--color-success-bg)] text-[var(--color-success-text)]'
+              : 'bg-[var(--color-status-production-bg)] text-[var(--color-status-production)]'
+          }`}>
+            {doneLines.length} de {pendingLines.length} líneas listas
+          </span>
+        )}
       </div>
 
-      {showAddForm && (
-        <AddProductionForm
-          products={products}
-          onAdd={(productId, qty) => {
-            setShowAddForm(false)
-            setPendingProduce({ productId, qty })
-          }}
-          onClose={() => setShowAddForm(false)}
-        />
-      )}
-
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-        {/* Pedidos por preparar */}
-        <div className="space-y-3">
-          <p className="text-[var(--color-text-primary)] text-base font-bold">Pedidos por preparar</p>
-          {confirmedOrders.length === 0 ? (
-            <div className="flex flex-col items-center justify-center py-12 text-center bg-white rounded-xl border border-[var(--color-border)]">
-              <CheckCircle size={48} className="text-[var(--color-success-text)] mb-3" />
-              <p className="text-[var(--color-text-primary)] text-lg font-bold">Sin pedidos pendientes</p>
-              <p className="text-[var(--color-text-muted)] text-sm mt-1">Todos los pedidos de hoy estan listos</p>
-            </div>
-          ) : (
-            <div className="space-y-3">
-              {confirmedOrders.map(order => (
-                <div key={order.id} className="bg-white rounded-xl overflow-hidden border border-[var(--color-border)]">
-                  <div className="px-5 pt-4 pb-3 border-b border-[var(--color-border)]">
-                    <p className="text-[var(--color-text-primary)] text-lg font-bold truncate">{order.customer_name ?? 'Cliente'}</p>
-                  </div>
-                  <div className="px-5 py-3 space-y-1">
-                    {order.items?.map(item => (
-                      <div key={item.id} className="flex items-center justify-between">
-                        <span className="text-[var(--color-text-primary)] text-base font-medium">{item.quantity}x {item.product?.flavor}</span>
-                        <span className="text-[var(--color-text-muted)] text-sm capitalize">{item.product?.size}</span>
-                      </div>
-                    ))}
-                  </div>
-                  <button
-                    onClick={() => setQualityOrder(order)}
-                    disabled={markingReady === order.id}
-                    className="w-full py-4 text-base font-bold flex items-center justify-center gap-2 bg-[var(--color-accent)] text-white hover:bg-[var(--color-accent-hover)] disabled:opacity-50 transition-colors"
-                  >
-                    <CheckCircle size={18} />
-                    Listo
-                  </button>
-                </div>
-              ))}
-            </div>
-          )}
+      {loading ? (
+        <div className="flex items-center justify-center py-12 bg-white rounded-xl border border-[var(--color-border)]">
+          <p className="text-[var(--color-text-muted)] text-sm">Cargando plan...</p>
         </div>
-
-        {/* Plan de produccion + Ya producido hoy */}
-        <div className="space-y-3">
-          <p className="text-[var(--color-text-primary)] text-base font-bold">Plan de produccion</p>
-          {batchTotal === 0 ? (
-            <div className="flex flex-col items-center justify-center py-12 text-center bg-white rounded-xl border border-[var(--color-border)]">
-              <p className="text-[var(--color-text-muted)] text-sm">Nada por producir</p>
-            </div>
-          ) : (
-            <div className="space-y-3">
-              {batchPlan.map(([flavor, sizes]) => (
+      ) : needs.length === 0 ? (
+        <div className="flex flex-col items-center justify-center py-12 text-center bg-white rounded-xl border border-[var(--color-border)]">
+          <CheckCircle size={48} className="text-[var(--color-success-text)] mb-3" />
+          <p className="text-[var(--color-text-primary)] text-lg font-bold">Nada por producir</p>
+          <p className="text-[var(--color-text-muted)] text-sm mt-1">No hay pedidos ni extras para mañana</p>
+        </div>
+      ) : (
+        <div className="space-y-6">
+          {needsByCategory.map(group => (
+            <div key={group.category} className="space-y-3">
+              <p className="text-[var(--color-text-muted)] text-xs font-semibold uppercase tracking-wider flex items-center gap-2">
+                {group.label}
+                <span className="h-px flex-1 bg-[var(--color-border)]" />
+              </p>
+              {group.flavors.map(({ flavor, items }) => (
                 <div key={flavor} className="bg-white rounded-xl overflow-hidden border border-[var(--color-border)]">
                   <div className="px-5 pt-4 pb-3 border-b border-[var(--color-border)]">
                     <p className="text-[var(--color-text-primary)] text-xl font-bold capitalize">{flavor}</p>
                   </div>
                   <div className="divide-y divide-[var(--color-border-light)]">
-                    {sizes.map(s => (
-                      <div key={s.size} className="flex items-center justify-between gap-4 px-5 py-3">
-                        <span className="text-[var(--color-text-secondary)] text-base capitalize">{s.size}</span>
-                        <span className="text-[var(--color-text-primary)] text-lg font-bold tabular-nums">{s.qty}</span>
-                      </div>
-                    ))}
+                    {items.map(item => {
+                      const check = checksByProduct[item.productId]
+                      const isCovered = item.toMake === 0
+                      if (isCovered) {
+                        return (
+                          <div key={item.productId} className="flex items-center justify-between gap-4 px-5 py-3 opacity-60">
+                            <div className="min-w-0">
+                              <p className="text-[var(--color-text-secondary)] text-base capitalize">{SIZE_LABELS[item.size]}</p>
+                              <p className="text-[var(--color-text-muted)] text-xs mt-0.5">
+                                {item.fromOrders} pedido{item.fromOrders !== 1 ? 's' : ''}
+                                {item.fromExtras > 0 && ` + ${item.fromExtras} extra`}
+                                {` · ${item.available} disp.`}
+                              </p>
+                            </div>
+                            <span className="flex items-center gap-1.5 text-sm font-medium text-[var(--color-success-text)] flex-shrink-0">
+                              <CheckCircle size={16} />
+                              Cubierto
+                            </span>
+                          </div>
+                        )
+                      }
+                      return (
+                        <button
+                          key={item.productId}
+                          onClick={() => handleToggle(item)}
+                          disabled={togglingId === item.productId}
+                          className={`w-full flex items-center justify-between gap-4 px-5 py-4 min-h-[64px] text-left transition-colors disabled:opacity-50 ${
+                            check ? 'bg-[var(--color-success-bg)]' : 'hover:bg-[var(--color-bg-hover)]'
+                          }`}
+                        >
+                          <div className="min-w-0">
+                            <p className={`text-lg font-bold capitalize ${
+                              check ? 'text-[var(--color-success-text)] line-through' : 'text-[var(--color-text-primary)]'
+                            }`}>
+                              {SIZE_LABELS[item.size]} × {item.toMake}
+                            </p>
+                            <p className="text-[var(--color-text-muted)] text-xs mt-0.5">
+                              {item.fromOrders} pedido{item.fromOrders !== 1 ? 's' : ''}
+                              {item.fromExtras > 0 && ` + ${item.fromExtras} extra`}
+                              {item.available > 0 && ` · ${item.available} disp.`}
+                            </p>
+                            {check && (
+                              <p className="text-[var(--color-success-text)] text-xs font-medium mt-0.5">
+                                Hecho {new Date(check.created_at).toLocaleTimeString('es-CO', { hour: '2-digit', minute: '2-digit' })}
+                                {check.user_email ? ` · ${check.user_email.split('@')[0]}` : ''}
+                              </p>
+                            )}
+                          </div>
+                          <div className={`w-9 h-9 rounded-full border-2 flex items-center justify-center flex-shrink-0 transition-colors ${
+                            check
+                              ? 'border-[var(--color-success-text)] bg-[var(--color-success-text)]'
+                              : 'border-[var(--color-border)]'
+                          }`}>
+                            {check && <CheckCircle size={20} className="text-white" />}
+                          </div>
+                        </button>
+                      )
+                    })}
                   </div>
                 </div>
               ))}
             </div>
-          )}
-
-          <p className="text-[var(--color-text-primary)] text-base font-bold pt-2">Ya producido hoy</p>
-          {producedToday.length === 0 ? (
-            <div className="flex flex-col items-center justify-center py-12 text-center bg-white rounded-xl border border-[var(--color-border)]">
-              <p className="text-[var(--color-text-muted)] text-sm">Nada producido aun hoy</p>
-            </div>
-          ) : (
-            <div className="bg-white rounded-xl overflow-hidden border border-[var(--color-border)]">
-              <div className="divide-y divide-[var(--color-border-light)]">
-                {producedToday.map(entry => (
-                  <div key={entry.id} className="flex items-center justify-between gap-4 px-5 py-4">
-                    <div className="flex-1 min-w-0">
-                      <p className="text-[var(--color-text-secondary)] text-base font-medium truncate">
-                        {entry.product?.name ?? entry.product_id}
-                      </p>
-                      <p className="text-[var(--color-text-muted)] text-sm mt-0.5">
-                        {new Date(entry.created_at).toLocaleTimeString('es-CO', { hour: '2-digit', minute: '2-digit' })}
-                      </p>
-                    </div>
-                    <span className="text-[var(--color-success-text)] text-lg font-bold flex-shrink-0">+{entry.change}</span>
-                  </div>
-                ))}
-              </div>
-            </div>
-          )}
+          ))}
         </div>
-      </div>
+      )}
 
       {/* Componentes producidos hoy */}
       <div className="space-y-3">
@@ -261,36 +242,21 @@ export function KitchenProductionMode() {
         />
       )}
 
-      {pendingProduce && (
+      {qualityNeed && (
         <QualityCheckModal
-          productId={pendingProduce.productId}
+          productId={qualityNeed.productId}
           orderId={null}
-          subtitle={`Lote de +${pendingProduce.qty} unidades`}
-          onConfirm={async () => {
-            const { productId, qty } = pendingProduce
-            setPendingProduce(null)
-            await handleProduce(productId, qty)
-          }}
-          onClose={() => setPendingProduce(null)}
-          onError={msg => setToast({ msg, type: 'error' })}
-        />
-      )}
-
-      {qualityOrder && (
-        <QualityCheckModal
-          productId={qualityOrder.items?.[0]?.product_id ?? ''}
-          orderId={qualityOrder.id}
-          subtitle={qualityOrder.customer_name ?? 'Pedido'}
+          subtitle={`${qualityNeed.flavor} ${SIZE_LABELS[qualityNeed.size]} × ${qualityNeed.toMake}`}
           onConfirm={async passed => {
-            const order = qualityOrder
-            setQualityOrder(null)
+            const need = qualityNeed
+            setQualityNeed(null)
             if (passed) {
-              await handleReady(order)
+              await doToggle(need.productId)
             } else {
-              setToast({ msg: 'Pedido pendiente: revisar calidad', type: 'error' })
+              setToast({ msg: 'Lote pendiente: revisar calidad', type: 'error' })
             }
           }}
-          onClose={() => setQualityOrder(null)}
+          onClose={() => setQualityNeed(null)}
           onError={msg => setToast({ msg, type: 'error' })}
         />
       )}
@@ -328,65 +294,6 @@ export function KitchenProductionMode() {
               </button>
             </div>
           </div>
-        </div>
-      )}
-    </div>
-  )
-}
-
-function AddProductionForm({ products, onAdd, onClose }: {
-  products: Product[]
-  onAdd: (productId: string, qty: number) => void
-  onClose: () => void
-}) {
-  const [selectedProduct, setSelectedProduct] = useState<string | null>(null)
-  const [qty, setQty] = useState(1)
-
-  const productList = useMemo(() => {
-    return [...products].sort((a, b) => a.name.localeCompare(b.name))
-  }, [products])
-
-  function handleSubmit() {
-    if (!selectedProduct || qty <= 0) return
-    onAdd(selectedProduct, qty)
-  }
-
-  return (
-    <div className="bg-white rounded-xl p-5 border border-[var(--color-border)]">
-      <div className="flex items-center justify-between mb-4">
-        <h3 className="text-[var(--color-text-primary)] text-lg font-bold">Anadir a produccion</h3>
-        <button onClick={onClose} className="p-2 text-[var(--color-text-muted)] hover:text-[var(--color-text-primary)]"><X size={18} /></button>
-      </div>
-
-      <div className="space-y-1 max-h-[300px] overflow-y-auto mb-4">
-        {productList.map(p => (
-          <button
-            key={p.id}
-            onClick={() => setSelectedProduct(p.id)}
-            className={`w-full text-left px-4 py-2.5 rounded-lg text-sm font-medium transition-colors min-h-[44px] ${
-              selectedProduct === p.id
-                ? 'bg-[var(--color-status-production)] text-white'
-                : 'bg-[var(--color-surface-warm)] text-[var(--color-text-secondary)] hover:bg-[var(--color-bg-active)]'
-            }`}
-          >
-            {p.name}
-          </button>
-        ))}
-      </div>
-
-      {selectedProduct && (
-        <div className="flex items-center gap-3">
-          <div className="flex items-center gap-2 bg-[var(--color-surface-warm)] rounded-lg">
-            <button onClick={() => setQty(q => Math.max(1, q - 1))} className="px-4 py-2.5 text-[var(--color-text-primary)] text-lg font-bold min-h-[44px]">-</button>
-            <span className="text-[var(--color-text-primary)] text-xl font-bold w-12 text-center tabular-nums">{qty}</span>
-            <button onClick={() => setQty(q => q + 1)} className="px-4 py-2.5 text-[var(--color-text-primary)] text-lg font-bold min-h-[44px]">+</button>
-          </div>
-          <button
-            onClick={handleSubmit}
-            className="flex-1 py-3 bg-[var(--color-accent)] text-white rounded-lg font-bold hover:bg-[var(--color-accent-hover)] transition-colors min-h-[48px]"
-          >
-            {`Agregar +${qty}`}
-          </button>
         </div>
       )}
     </div>
@@ -470,6 +377,8 @@ function AddComponentModal({
   )
 }
 
+// En pausa (QUALITY_CHECK_ENABLED=false): se reactiva pronto sobre el check de
+// línea del plan — al marcar una línea, validar calidad antes de guardar.
 function QualityCheckModal({
   productId,
   orderId,

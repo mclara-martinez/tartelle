@@ -44,6 +44,18 @@ export function dayRangeISO(date: string): { start: string; end: string } {
   }
 }
 
+// Orden por hora estimada de entrega: sin hora al final. Compartido entre la
+// vista del domiciliario y el modo Entregas de cocina.
+export function compareByEstimatedTime(
+  a: { estimated_delivery_time: string | null },
+  b: { estimated_delivery_time: string | null }
+): number {
+  if (!a.estimated_delivery_time && !b.estimated_delivery_time) return 0
+  if (!a.estimated_delivery_time) return 1
+  if (!b.estimated_delivery_time) return -1
+  return a.estimated_delivery_time.localeCompare(b.estimated_delivery_time)
+}
+
 export function cn(...classes: (string | undefined | false | null)[]): string {
   return classes.filter(Boolean).join(' ')
 }

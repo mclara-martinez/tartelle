@@ -1,20 +1,14 @@
 import { useState, useMemo, useCallback } from 'react'
-import { useOrders, usePastActiveOrders } from '../hooks/useOrders'
+import { usePastActiveOrders } from '../hooks/useOrders'
 import { useProducts } from '../hooks/useProducts'
-import { useProductionExtras } from '../hooks/useProductionExtras'
-import { useProductionCounts } from '../hooks/useProductionCounts'
+import { useProductionPlan } from '../hooks/useProductionPlan'
+import { useProductionChecks } from '../hooks/useProductionChecks'
 import { Toast } from '../components/Toast'
 import { today, tomorrow } from '../lib/utils'
 import { SIZE_LABELS } from '../lib/constants'
 import { CheckCircle, ClipboardList as PageIcon, Plus, X, ShoppingBag, ChevronLeft, ChevronRight, Copy, Boxes, AlertTriangle } from 'lucide-react'
 import { format, parseISO, addDays, subDays } from 'date-fns'
 import { es } from 'date-fns/locale'
-import type { ProductSize } from '../lib/types'
-
-// Estados que aún requieren producción. Excluye ready/dispatched/delivered
-// (ya se hicieron) y cancelled. 'pending' existe en la DB aunque no está en el
-// union de OrderStatus, por eso el array es string[].
-const PRODUCIBLE_STATUSES: string[] = ['pending', 'confirmed', 'in_production']
 
 function formatDateLabel(dateStr: string): string {
   const t = today()
@@ -40,10 +34,12 @@ export function ProductionView() {
 
   const goToPrev = useCallback(() => setTargetDate(d => format(subDays(parseISO(d), 1), 'yyyy-MM-dd')), [])
   const goToNext = useCallback(() => setTargetDate(d => format(addDays(parseISO(d), 1), 'yyyy-MM-dd')), [])
-  const { orders, loading: loadingOrders } = useOrders(targetDate)
   const { products } = useProducts()
-  const { extras, upsertExtra, removeExtra } = useProductionExtras(targetDate)
-  const { counts, loading: loadingCounts, upsertCount, removeCount, refetch: refetchCounts } = useProductionCounts(targetDate)
+  const {
+    needs, needsByCategory, totalToMake, loading,
+    extras, counts, upsertExtra, removeExtra, upsertCount, removeCount, refetchCounts,
+  } = useProductionPlan(targetDate)
+  const { checksByProduct } = useProductionChecks(targetDate)
   const { reservedByProduct, overdueCount } = usePastActiveOrders(targetDate)
 
   const retailProducts = useMemo(() =>
@@ -60,67 +56,25 @@ export function ProductionView() {
     return Object.entries(groups).sort(([a], [b]) => a.localeCompare(b))
   }, [retailProducts])
 
-  const countsMap = useMemo(() => {
-    const map: Record<string, number> = {}
-    for (const c of counts) map[c.product_id] = c.quantity
-    return map
-  }, [counts])
-
-  const productNeeds = useMemo(() => {
-    const needs: Record<string, { productId: string; flavor: string; size: ProductSize; fromOrders: number; fromExtras: number; available: number; toMake: number }> = {}
-
-    const ensure = (productId: string, flavor: string, size: ProductSize) => {
-      if (!needs[productId]) {
-        needs[productId] = { productId, flavor, size, fromOrders: 0, fromExtras: 0, available: countsMap[productId] ?? 0, toMake: 0 }
-      }
-      return needs[productId]
-    }
-
-    for (const order of orders) {
-      if (!PRODUCIBLE_STATUSES.includes(order.status)) continue
-      for (const item of order.items ?? []) {
-        if (!item.product) continue
-        ensure(item.product_id, item.product.flavor, item.product.size).fromOrders += item.quantity
-      }
-    }
-
-    for (const extra of extras) {
-      if (!extra.product) continue
-      ensure(extra.product_id, extra.product.flavor, extra.product.size).fromExtras += extra.quantity
-    }
-
-    for (const n of Object.values(needs)) {
-      n.toMake = Math.max(0, n.fromOrders + n.fromExtras - n.available)
-    }
-
-    return Object.values(needs).sort((a, b) => a.flavor.localeCompare(b.flavor) || a.size.localeCompare(b.size))
-  }, [orders, extras, countsMap])
-
-  const productNeedsByFlavor = useMemo(() => {
-    const g: Record<string, typeof productNeeds> = {}
-    for (const item of productNeeds) {
-      g[item.flavor] = g[item.flavor] ?? []
-      g[item.flavor].push(item)
-    }
-    return g
-  }, [productNeeds])
-
-  const totalToMake = useMemo(() => productNeeds.reduce((s, n) => s + n.toMake, 0), [productNeeds])
-
-  // Texto para WhatsApp: solo los HACER, agrupado por sabor.
+  // Texto para WhatsApp: solo los HACER, agrupado por categoría → sabor.
   const summaryText = useMemo(() => {
     const lines: string[] = [`PRODUCCIÓN — ${format(parseISO(targetDate), "EEE d MMM", { locale: es })}`]
-    for (const [flavor, items] of Object.entries(productNeedsByFlavor)) {
-      const pending = items.filter(i => i.toMake > 0)
-      if (pending.length === 0) continue
-      lines.push('', flavor.toUpperCase())
-      for (const item of pending) {
-        lines.push(`• ${SIZE_LABELS[item.size]}: HACER ${item.toMake}`)
+    for (const group of needsByCategory) {
+      const flavors = group.flavors
+        .map(f => ({ ...f, items: f.items.filter(i => i.toMake > 0) }))
+        .filter(f => f.items.length > 0)
+      if (flavors.length === 0) continue
+      lines.push('', `== ${group.label.toUpperCase()} ==`)
+      for (const { flavor, items } of flavors) {
+        lines.push(flavor.toUpperCase())
+        for (const item of items) {
+          lines.push(`• ${SIZE_LABELS[item.size]}: HACER ${item.toMake}`)
+        }
       }
     }
     lines.push('', `Total: ${totalToMake} unidades`)
     return lines.join('\n')
-  }, [productNeedsByFlavor, targetDate, totalToMake])
+  }, [needsByCategory, targetDate, totalToMake])
 
   async function handleCopySummary() {
     try {
@@ -191,8 +145,6 @@ export function ProductionView() {
   // Reservado a pedidos 'ready' sin entregar del producto seleccionado — el
   // hint que le dice a la operadora cuánto restar del mensaje de cocina.
   const selectedCountReserved = countProductId ? (reservedByProduct[countProductId] ?? 0) : 0
-
-  const loading = loadingOrders || loadingCounts
 
   return (
     <div className="space-y-6">
@@ -390,52 +342,67 @@ export function ProductionView() {
 
       {loading ? (
         <p className="text-sm text-[var(--color-text-muted)] pt-4">Cargando...</p>
-      ) : productNeeds.length === 0 ? (
+      ) : needs.length === 0 ? (
         <div className="bg-white rounded-lg border border-[var(--color-border)] py-12 text-center">
           <p className="text-sm text-[var(--color-text-muted)]">Sin pedidos ni extras que requieran produccion</p>
         </div>
       ) : (
-        <div className="space-y-3">
-          {Object.entries(productNeedsByFlavor).map(([flavor, items]) => (
-            <section key={flavor} className="bg-white rounded-lg border border-[var(--color-border)] overflow-hidden">
-              <div className="px-4 py-2.5 border-b border-[var(--color-border)]">
-                <p className="text-sm font-bold capitalize text-[var(--color-text-primary)]">{flavor}</p>
-              </div>
-              <div className="divide-y divide-[var(--color-border-light)]">
-                {items.map(item => {
-                  const isCovered = item.toMake === 0
-                  return (
-                    <div
-                      key={item.productId}
-                      className={`flex items-center justify-between gap-3 px-4 py-3 transition-colors duration-200 ${
-                        isCovered ? 'opacity-60' : 'hover:bg-[var(--color-bg-hover)]'
-                      }`}
-                    >
-                      <div className="min-w-0">
-                        <p className="text-sm font-medium text-[var(--color-text-secondary)]">
-                          {SIZE_LABELS[item.size]}
-                        </p>
-                        <p className="text-xs text-[var(--color-text-muted)] mt-0.5">
-                          {item.fromOrders} pedido{item.fromOrders !== 1 ? 's' : ''}
-                          {item.fromExtras > 0 && ` + ${item.fromExtras} extra`}
-                          {` · ${item.available} disp.`}
-                        </p>
-                      </div>
-                      {isCovered ? (
-                        <span className="flex items-center gap-1.5 text-xs font-medium text-[var(--color-success-text)] flex-shrink-0">
-                          <CheckCircle className="h-3.5 w-3.5" />
-                          Cubierto
-                        </span>
-                      ) : (
-                        <span className="text-xs font-bold text-white bg-[var(--color-accent)] px-3 py-1.5 rounded-lg flex-shrink-0">
-                          HACER {item.toMake}
-                        </span>
-                      )}
-                    </div>
-                  )
-                })}
-              </div>
-            </section>
+        <div className="space-y-5">
+          {needsByCategory.map(group => (
+            <div key={group.category} className="space-y-3">
+              <p className="text-xs font-semibold uppercase tracking-wider text-[var(--color-text-muted)] flex items-center gap-2">
+                {group.label}
+                <span className="h-px flex-1 bg-[var(--color-border)]" />
+              </p>
+              {group.flavors.map(({ flavor, items }) => (
+                <section key={flavor} className="bg-white rounded-lg border border-[var(--color-border)] overflow-hidden">
+                  <div className="px-4 py-2.5 border-b border-[var(--color-border)]">
+                    <p className="text-sm font-bold capitalize text-[var(--color-text-primary)]">{flavor}</p>
+                  </div>
+                  <div className="divide-y divide-[var(--color-border-light)]">
+                    {items.map(item => {
+                      const isCovered = item.toMake === 0
+                      const check = checksByProduct[item.productId]
+                      return (
+                        <div
+                          key={item.productId}
+                          className={`flex items-center justify-between gap-3 px-4 py-3 transition-colors duration-200 ${
+                            isCovered ? 'opacity-60' : 'hover:bg-[var(--color-bg-hover)]'
+                          }`}
+                        >
+                          <div className="min-w-0">
+                            <p className="text-sm font-medium text-[var(--color-text-secondary)]">
+                              {SIZE_LABELS[item.size]}
+                            </p>
+                            <p className="text-xs text-[var(--color-text-muted)] mt-0.5">
+                              {item.fromOrders} pedido{item.fromOrders !== 1 ? 's' : ''}
+                              {item.fromExtras > 0 && ` + ${item.fromExtras} extra`}
+                              {` · ${item.available} disp.`}
+                            </p>
+                            {check && (
+                              <p className="text-xs font-medium text-[var(--color-success-text)] mt-0.5 flex items-center gap-1">
+                                <CheckCircle className="h-3 w-3" />
+                                Hecho por cocina · {new Date(check.created_at).toLocaleTimeString('es-CO', { hour: '2-digit', minute: '2-digit' })}
+                              </p>
+                            )}
+                          </div>
+                          {isCovered ? (
+                            <span className="flex items-center gap-1.5 text-xs font-medium text-[var(--color-success-text)] flex-shrink-0">
+                              <CheckCircle className="h-3.5 w-3.5" />
+                              Cubierto
+                            </span>
+                          ) : (
+                            <span className="text-xs font-bold text-white bg-[var(--color-accent)] px-3 py-1.5 rounded-lg flex-shrink-0">
+                              HACER {item.toMake}
+                            </span>
+                          )}
+                        </div>
+                      )
+                    })}
+                  </div>
+                </section>
+              ))}
+            </div>
           ))}
 
           {/* Resumen copiable para cocina */}

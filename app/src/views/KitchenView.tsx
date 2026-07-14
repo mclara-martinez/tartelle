@@ -36,7 +36,7 @@ export function KitchenView({ onBack }: Props) {
             }`}
           >
             <ClipboardList size={16} />
-            Produccion
+            Producir
           </button>
           <button
             onClick={() => setMode('dispatch')}
@@ -47,7 +47,7 @@ export function KitchenView({ onBack }: Props) {
             }`}
           >
             <Truck size={16} />
-            Despacho
+            Entregas
           </button>
           <button
             onClick={() => setMode('sales')}

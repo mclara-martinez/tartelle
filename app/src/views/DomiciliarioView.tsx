@@ -2,7 +2,7 @@ import { useState } from 'react'
 import { useOrders, updateOrderStatus, updateOrderFields } from '../hooks/useOrders'
 import { Toast } from '../components/Toast'
 import { PhotoUpload } from '../components/PhotoUpload'
-import { today, tomorrow } from '../lib/utils'
+import { today, tomorrow, compareByEstimatedTime } from '../lib/utils'
 import { PAYMENT_STATUS_LABELS, PAYMENT_STATUS_COLORS } from '../lib/constants'
 import { MapPin, Phone, Package, CheckCircle, Truck, CreditCard, ChevronLeft, ChevronRight, Clock, AlertTriangle } from 'lucide-react'
 import { format, parseISO, addDays, subDays } from 'date-fns'
@@ -34,12 +34,7 @@ export function DomiciliarioView() {
   const entregando = deliveryOrders.filter(o => o.status === 'dispatched')
 
   const rawTabOrders = activeTab === 'por_recoger' ? porRecoger : entregando
-  const tabOrders = [...rawTabOrders].sort((a, b) => {
-    if (!a.estimated_delivery_time && !b.estimated_delivery_time) return 0
-    if (!a.estimated_delivery_time) return 1
-    if (!b.estimated_delivery_time) return -1
-    return a.estimated_delivery_time.localeCompare(b.estimated_delivery_time)
-  })
+  const tabOrders = [...rawTabOrders].sort(compareByEstimatedTime)
 
   function prevDay() {
     setSelectedDate(d => format(subDays(parseISO(d), 1), 'yyyy-MM-dd'))
