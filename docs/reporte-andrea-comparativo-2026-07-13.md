@@ -118,20 +118,22 @@ La **galleta toffee chocolate x8** aparece en el sistema a tres precios distinto
 
 ---
 
-## 7. Una falla del sistema que encontré de ñapa (la arreglo yo)
+## 7. Una falla del sistema que encontré de ñapa — ya está corregida ✅
 
-19 pedidos (desde el 11 de mayo) quedaron con **los productos duplicados por dentro**: el total del pedido está bien, pero la lista interna de productos quedó doble o triple (por ejemplo, un pedido de 2 tortas muestra 4).
+14 pedidos (desde mayo) quedaron con **los productos duplicados por dentro**: el total del pedido está bien, pero la lista interna de productos quedó doble o triple (por ejemplo, un pedido de 2 tortas muestra 4).
 
-Ya encontré la causa exacta y es **100% del sistema — la operaria no tiene ninguna culpa; al contrario, el problema aparece justamente cuando ella corrige un pedido**. Al editar, el sistema debe borrar la lista de productos vieja y guardar la nueva; por un permiso mal configurado en la base de datos, al perfil de la operaria le deja guardar la lista nueva pero **no le deja borrar la vieja** — y no avisa. Resultado: cada corrección suma una copia. Un pedido que se corrigió tres veces quedó con cuatro copias.
+La causa exacta es **100% del sistema — la operaria no tiene ninguna culpa; al contrario, el problema aparecía justamente cuando ella corregía un pedido**. Al editar, el sistema debe borrar la lista de productos vieja y guardar la nueva; por un permiso mal configurado en la base de datos, al perfil de la operaria le dejaba guardar la lista nueva pero **no le dejaba borrar la vieja** — y no avisaba. Resultado: cada corrección sumaba una copia. Un pedido que se corrigió tres veces quedó con cuatro copias.
 
-Esto no afecta la plata (los totales están bien) pero infla los conteos de producción e inventario. Yo corrijo el permiso, le pongo una alarma al sistema para que nunca vuelva a fallar en silencio, y limpio los 19 pedidos.
+Esto no afectaba la plata (los totales están bien) pero inflaba los conteos de producción e inventario. **Ya quedó resuelto (13 de julio):** corregí el permiso, le puse una alarma al sistema para que nunca vuelva a fallar en silencio, y limpié los 14 pedidos — verificado que no queda ninguno duplicado. Pueden editar pedidos con confianza desde ya.
+
+(Aparte quedaron 5 pedidos viejos del 11 de mayo con un descuadre pequeño de otro tipo, sin duplicados — los reviso por separado, no afectan el piloto.)
 
 ---
 
 ## Resumen de accionables
 
 **Del sistema (los resuelvo yo):**
-1. Corregir el permiso que causa los productos duplicados al editar, agregar la alarma para que no falle en silencio, y limpiar los 19 pedidos afectados.
+1. ~~Corregir el permiso que causa los productos duplicados al editar, agregar la alarma y limpiar los pedidos afectados~~ ✅ **Hecho (13 de julio)** — ver sección 7.
 2. Cambiar el campo de domicilio para que no venga pre-llenado con $8.000.
 3. Unificar FAIPA ↔ Grill Station Ciudad del Río como un solo cliente.
 4. Agregar al catálogo los productos de eventos que falten (brownies por unidades, tortas x49u, velas…) — con la lista que salga del punto de Karent.

@@ -1,6 +1,6 @@
 # Comparativo Excel manual vs BD app — Pedidos 23 jun a 7 jul 2026
 
-**Fecha del ejercicio:** 2026-07-13
+**Fecha del ejercicio:** 2026-07-13 · **Última actualización:** 2026-07-13 (hallazgo 4 resuelto: causa raíz RLS confirmada, política aplicada, datos limpiados)
 **Fuente manual:** `PEDIDOS JUNIO 23 - JUNIO 7.xlsx` (2 hojas: "MAYO " = 23–27 jun, "JUNIO" = 30 jun–7 jul; 243 líneas de ítems)
 **Fuente app:** tabla `orders` + `order_items`, entregas 23 jun–8 jul (72 pedidos)
 **Objetivo:** primera prueba del deploy del módulo de pedidos — verificar que lo registrado manual también esté en el sistema y coincida en ítems y valores.
@@ -56,11 +56,18 @@ Los 16 pedidos del Excel sin rastro en la app, en orden de valor:
 
 9 líneas Didi en el Excel (25 jun–1 jul, ~$238k) y cero pedidos canal Didi en la BD. El canal existe en la app (color de marca definido). Decidir: o se digita, o se documenta que Didi queda por fuera.
 
-## Hallazgo 4 — Ítems duplicados en `order_items` (bug o doble captura)
+## Hallazgo 4 — Ítems duplicados en `order_items` — ✅ RESUELTO 2026-07-13
 
-14 pedidos tienen filas de ítems duplicadas exactas (mismo producto, cantidad y precio); la suma de ítems da exactamente 2× el subtotal del pedido. El total del pedido está bien, pero **los conteos de producción e inventario saldrían inflados**. Afectados (por delivery_date): La Abuela Nita 1 jul, Entrecote Retiro 1 y 2 jul, Casa de Nadie 2 jul, Mientras Tin To 2 jul, La Fragua 2 jul, Rappi 3 y 4 jul, Consumidor Final 3, 4 y 6 jul, Ana María Toro 3 jul, Patricia Gutiérrez 4 jul. Además Manuela Londoño 3 jul tiene una fila huérfana de una edición de precio (galleta x8 a $54k junto a la definitiva de $68k).
+14 pedidos tenían filas de ítems duplicadas exactas (la suma de ítems daba 2×–4× el subtotal del pedido). El total del pedido estaba bien, pero los conteos de producción e inventario salían inflados. Afectados (por delivery_date): La Abuela Nita 1 jul, Entrecote Retiro 1 y 2 jul, Casa de Nadie 2 jul, Mientras Tin To 2 jul (4 copias — editado 3 veces), La Fragua 2 jul, Rappi 3 y 4 jul, Consumidor Final 3, 4 y 6 jul, Ana María Toro 3 jul, Patricia Gutiérrez 4 jul, y la fila huérfana de Manuela Londoño 3 jul (edición de precio de la galleta x8: quedaban la vieja de $54k y la definitiva de $68k).
 
-Casi todos fueron creados durante la digitación masiva del 7 jul — sospecha: doble submit en creación de pedido. **Revisar antes del piloto del 14 jul.**
+**Causa raíz (confirmada con timestamps de `order_items` + políticas RLS):** NO era doble submit al crear — era **al editar**. `updateOrderItems` hace delete + re-insert, pero `order_items` solo tenía política DELETE para `admin`; para `owner`/`operator` existía INSERT sin DELETE. Con RLS, el delete filtrado borra 0 filas **sin error**, así que cada edición de la operadora re-insertaba los ítems sin borrar los anteriores. No fue error de la operaria — el bug aparecía justamente al corregir bien un pedido.
+
+**Resolución (2026-07-13, aprobada):**
+1. Migración `order_items_delete_policy_owner_operator`: política DELETE para owner/operator, simétrica a la de INSERT.
+2. Guard en `updateOrderItems` (commit `3692f17`): si el delete borra 0 filas, aborta con error visible antes de insertar.
+3. Limpieza: 41 filas duplicadas eliminadas de los 14 pedidos, conservando el set de la última edición. Verificado: 0 pedidos con duplicación en toda la tabla.
+
+**Pendiente relacionado (otra causa, más vieja):** 5 pedidos del 11 de mayo tienen la suma de ítems distinta al subtotal ($4k–$26k en ambas direcciones) **sin duplicados** — un solo set que no cuadra. No se tocaron; investigar aparte.
 
 ## Hallazgo 5 — Diferencias de valor en pedidos que sí están (15 casos)
 
@@ -89,9 +96,11 @@ Casi todos fueron creados durante la digitación masiva del 7 jul — sospecha: 
 
 ## Recomendaciones antes del piloto (14 jul)
 
-1. **Corregir los ítems duplicados** de los 14 pedidos (hallazgo 4) — si no, los reportes de producción del módulo nuevo nacen inflados. Es un UPDATE/DELETE acotado; requiere aprobación explícita.
+1. ~~Corregir los ítems duplicados de los 14 pedidos~~ ✅ **Hecho 2026-07-13** (política RLS + guard en código + limpieza de datos — ver hallazgo 4).
 2. Decidir si la semana 23–27 jun se backfillea o se declara fuera del sistema (afecta cualquier reporte histórico).
-3. Definir el flujo Didi (¿se digita o no?).
+3. Definir el flujo Didi (¿se digita o no?). Verificado: el canal existe y funciona en el formulario; en toda la historia de la BD hay 0 pedidos Didi → nunca se han ingresado.
 4. Revisar con la operadora los 5 casos de valor de la sección 5b y las fechas corridas de la sección 6.
 5. Unificar FAIPA ↔ Grill Station Ciudad del Río como un solo cliente.
 6. Verificar por qué el pedido eventos de Karent Lorena Ramos ($1.18M) no se pudo digitar — probablemente faltan productos de eventos en el catálogo.
+7. Investigar los 5 pedidos del 11 de mayo con subtotal descuadrado (sin duplicados — causa distinta al hallazgo 4).
+8. Cambiar el domicilio pre-llenado de $8.000 en el formulario (`DELIVERY_FEE` en constants.ts) por campo vacío obligatorio — induce los errores de fee de la sección 5a.
