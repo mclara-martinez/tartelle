@@ -216,8 +216,18 @@ export async function updateOrderItems(
   const subtotal = items.reduce((sum, i) => sum + i.quantity * i.unit_price, 0)
   const total = subtotal + fields.delivery_fee - fields.discount
 
-  const { error: delErr } = await supabase.from('order_items').delete().eq('order_id', orderId)
+  // Un DELETE filtrado por RLS borra 0 filas sin reportar error, y el insert
+  // posterior duplicaría los ítems. Todo pedido tiene al menos un ítem, así
+  // que borrar 0 solo puede significar falta de permisos: abortar antes de insertar.
+  const { data: deleted, error: delErr } = await supabase
+    .from('order_items')
+    .delete()
+    .eq('order_id', orderId)
+    .select('id')
   if (delErr) throw new Error(delErr.message)
+  if (!deleted || deleted.length === 0) {
+    throw new Error('No se pudieron reemplazar los productos del pedido (sin permiso para borrar ítems). Los cambios NO se guardaron.')
+  }
 
   const rows = items.map(i => ({
     order_id: orderId,
