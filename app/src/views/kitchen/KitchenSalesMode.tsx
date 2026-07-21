@@ -96,7 +96,7 @@ export function KitchenSalesMode() {
           total: cartTotal,
           notes: null,
           payment_status: 'paid',
-          payment_method: channel === 'walk_in' ? 'cash' : 'rappi',
+          payment_method: channel === 'walk_in' ? 'cash' : channel,
           payment_bank: null,
           card_type: null,
           payment_receipt_url: null,

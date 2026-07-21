@@ -99,8 +99,9 @@ export const PAYMENT_STATUS_COLORS: Record<PaymentStatus, { bg: string; text: st
 export const PAYMENT_METHOD_LABELS: Record<PaymentMethod, string> = {
   transfer: 'Transferencia',
   cash: 'Efectivo',
-  bold: 'Link Bold',
+  bold: 'Wompi',
   rappi: 'Rappi',
+  didi: 'Didi',
   credit: 'Crédito',
 }
 

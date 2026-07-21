@@ -9,7 +9,7 @@ export type TaxType = 'impoconsumo_8' | 'iva_19' | 'iva_0' | null
 export type InventoryReason = 'production' | 'sale' | 'adjustment' | 'waste'
 export type PlanStatus = 'draft' | 'sent' | 'in_progress' | 'done'
 export type PaymentStatus = 'pending' | 'paid' | 'credit'
-export type PaymentMethod = 'transfer' | 'cash' | 'bold' | 'rappi' | 'credit'
+export type PaymentMethod = 'transfer' | 'cash' | 'bold' | 'rappi' | 'didi' | 'credit'
 export type PaymentBank = 'bancolombia' | 'itau' | 'davivienda' | 'nequi' | 'bbva'
 export type CardType = 'debit' | 'credit'
 
