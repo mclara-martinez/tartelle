@@ -1,4 +1,4 @@
-export type CustomerType = 'b2c' | 'b2b' | 'pos'
+export type CustomerType = 'b2c' | 'b2b'
 export type OrderChannel = 'whatsapp' | 'rappi' | 'didi' | 'instagram' | 'walk_in' | 'b2b'
 export type OrderStatus = 'confirmed' | 'in_production' | 'ready' | 'dispatched' | 'delivered' | 'cancelled'
 export type DeliveryType = 'pickup' | 'delivery'

@@ -6,7 +6,7 @@ import { Toast } from '../components/Toast'
 import { formatCOP, tomorrow } from '../lib/utils'
 import { DELIVERY_FEE, CHANNEL_LABELS, SIZE_LABELS, CATEGORY_LABELS, PRODUCT_CATEGORY_ORDER, PAYMENT_METHOD_LABELS } from '../lib/constants'
 import { PhotoUpload } from '../components/PhotoUpload'
-import type { Order, OrderChannel, DeliveryType, Product, ProductCategory, ProductSize, PaymentMethod } from '../lib/types'
+import type { Order, OrderChannel, DeliveryType, Product, ProductCategory, ProductSize, PaymentMethod, CustomerType } from '../lib/types'
 import { X, Plus, Minus, Search, Bike, Store, ArrowLeft, ShoppingBag, User, Trash2, Package, Clock } from 'lucide-react'
 
 interface CartItem {
@@ -27,6 +27,7 @@ export function OrderCreateView({ onClose }: Props) {
   const [customerName, setCustomerName] = useState('')
   const [customerPhone, setCustomerPhone] = useState('')
   const [customerId, setCustomerId] = useState<string | null>(null)
+  const [customerType, setCustomerType] = useState<CustomerType>('b2c')
   const [customerDiscount, setCustomerDiscount] = useState(0)
   const [billingName, setBillingName] = useState('')
   const [billingIdNumber, setBillingIdNumber] = useState('')
@@ -54,6 +55,11 @@ export function OrderCreateView({ onClose }: Props) {
   useEffect(() => {
     setCatalogFilter('retail')
   }, [])
+
+  // El canal Restaurante preselecciona Empresa; la operadora puede corregirlo con el toggle
+  useEffect(() => {
+    setCustomerType(channel === 'b2b' ? 'b2b' : 'b2c')
+  }, [channel])
 
   // Group products by category → size, filtered by catalogFilter
   const productsByCategory = useMemo(() => {
@@ -168,7 +174,7 @@ export function OrderCreateView({ onClose }: Props) {
       // Create customer if new
       let cId = customerId
       if (!cId && customerName.trim()) {
-        const isB2B = channel === 'b2b'
+        const isB2B = customerType === 'b2b'
         const idNumber = billingIdNumber.trim() || null
         const razonSocial = billingName.trim() && billingName.trim() !== customerName.trim() ? billingName.trim() : null
         const newCustomer = await createCustomer({
@@ -412,6 +418,21 @@ export function OrderCreateView({ onClose }: Props) {
                     onChange={e => setCustomerPhone(e.target.value)}
                     className="w-full border border-[var(--color-border)] rounded-lg px-3 py-2 text-sm focus:outline-none focus:border-[var(--color-accent)]"
                   />
+                  {!customerId && (
+                    <div className="flex gap-1.5">
+                      {([['b2c', 'Persona natural'], ['b2b', 'Empresa']] as [CustomerType, string][]).map(([t, label]) => (
+                        <button
+                          key={t}
+                          onClick={() => setCustomerType(t)}
+                          className={`flex-1 px-3 py-1.5 rounded-lg text-xs font-medium border transition-colors ${
+                            customerType === t ? 'border-[var(--color-accent)] bg-[var(--color-accent-light)] text-[var(--color-accent)]' : 'border-[var(--color-border)] text-[var(--color-text-secondary)] hover:border-[var(--color-text-muted)]'
+                          }`}
+                        >
+                          {label}
+                        </button>
+                      ))}
+                    </div>
+                  )}
                 </div>
               )}
             </div>
@@ -429,7 +450,7 @@ export function OrderCreateView({ onClose }: Props) {
                 />
                 <input
                   type="text"
-                  placeholder="Cédula o NIT"
+                  placeholder={customerId ? 'Cédula o NIT' : customerType === 'b2b' ? 'NIT' : 'Cédula'}
                   value={billingIdNumber}
                   onChange={e => setBillingIdNumber(e.target.value)}
                   className="w-full border border-[var(--color-border)] rounded-lg px-3 py-2 text-sm focus:outline-none focus:border-[var(--color-accent)]"

@@ -29,7 +29,11 @@ const SIIGO_PAYMENT_CODE: Record<string, string> = {
   rappi:    '4', // Rappi
 }
 
-function exportSiigo(orders: Order[], label: string) {
+// Las empresas (customer.type b2b) se facturan manual con factura impresa — no van al archivo plano
+function exportSiigo(allOrders: Order[], label: string): { exported: number; excluded: number } {
+  const orders = allOrders.filter(o => o.customer?.type !== 'b2b')
+  const excluded = allOrders.length - orders.length
+  if (orders.length === 0) return { exported: 0, excluded }
   const headers = [
     'Tipo de comprobante', 'Consecutivo', 'Identificación tercero',
     'Sucursal', 'Código centro/subcentro de costos', 'Fecha de elaboración',
@@ -107,6 +111,7 @@ function exportSiigo(orders: Order[], label: string) {
   a.download = `siigo_FV_${label}.csv`
   a.click()
   URL.revokeObjectURL(url)
+  return { exported: orders.length, excluded }
 }
 
 export function OrdersView({ onNavigate, selectedOrderId, onSelectOrder }: Props) {
@@ -189,7 +194,16 @@ export function OrdersView({ onNavigate, selectedOrderId, onSelectOrder }: Props
         </div>
         <div className="flex items-center gap-2">
           <button
-            onClick={() => exportSiigo(filteredOrders, csvLabel)}
+            onClick={() => {
+              const { exported, excluded } = exportSiigo(filteredOrders, csvLabel)
+              if (exported === 0) {
+                setToast({ msg: excluded > 0 ? `Nada para exportar: los ${excluded} pedidos son de empresas (facturación manual)` : 'Nada para exportar', type: 'error' })
+              } else if (excluded > 0) {
+                setToast({ msg: `Exportados ${exported} pedidos — ${excluded} de empresas excluidos (facturación manual)`, type: 'success' })
+              } else {
+                setToast({ msg: `Exportados ${exported} pedidos`, type: 'success' })
+              }
+            }}
             disabled={filteredOrders.length === 0}
             className="flex items-center gap-1.5 border border-[var(--color-border)] bg-white text-[var(--color-text-secondary)] px-3 py-2 rounded-lg text-sm font-medium hover:bg-[var(--color-surface-warm)] transition-colors duration-200 disabled:opacity-40"
             title="Exportar para Siigo (carga masiva FV)"

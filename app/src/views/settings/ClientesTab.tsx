@@ -7,16 +7,14 @@ import type { Customer, CustomerType } from '../../lib/types'
 const CUSTOMER_TYPE_LABELS: Record<CustomerType, string> = {
   b2c: 'Particular',
   b2b: 'Empresa',
-  pos: 'POS',
 }
 
 const CUSTOMER_TYPE_COLORS: Record<CustomerType, { bg: string; text: string }> = {
   b2c: { bg: '#DBEAFE', text: '#1E40AF' },
   b2b: { bg: '#EDE9FE', text: '#5B21B6' },
-  pos: { bg: '#FEF3C7', text: '#92400E' },
 }
 
-const TYPE_VALUES: CustomerType[] = ['b2c', 'b2b', 'pos']
+const TYPE_VALUES: CustomerType[] = ['b2c', 'b2b']
 
 const ACTIVE_OPTIONS = [
   { value: 'all',      label: 'Todos' },
