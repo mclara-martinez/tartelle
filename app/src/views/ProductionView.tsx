@@ -3,12 +3,15 @@ import { usePastActiveOrders } from '../hooks/useOrders'
 import { useProducts } from '../hooks/useProducts'
 import { useProductionPlan } from '../hooks/useProductionPlan'
 import { useProductionChecks } from '../hooks/useProductionChecks'
+import { useProductionExtras } from '../hooks/useProductionExtras'
+import { useProductionCounts } from '../hooks/useProductionCounts'
 import { Toast } from '../components/Toast'
-import { today, tomorrow } from '../lib/utils'
+import { today, tomorrow, shiftDay } from '../lib/utils'
 import { SIZE_LABELS } from '../lib/constants'
 import { CheckCircle, ClipboardList as PageIcon, Plus, X, ShoppingBag, ChevronLeft, ChevronRight, Copy, Boxes, AlertTriangle } from 'lucide-react'
 import { format, parseISO, addDays, subDays } from 'date-fns'
 import { es } from 'date-fns/locale'
+import type { ProductSize } from '../lib/types'
 
 function formatDateLabel(dateStr: string): string {
   const t = today()
@@ -41,6 +44,30 @@ export function ProductionView() {
   } = useProductionPlan(targetDate)
   const { checksByProduct } = useProductionChecks(targetDate)
   const { reservedByProduct, overdueCount } = usePastActiveOrders(targetDate)
+
+  // Vitrina del día anterior: disponible + extras que se planearon para ese
+  // día. Lo que de ahí no se haya vendido sigue en la nevera sin dueño y debe
+  // volver a entrar como "Terminado disponible" antes de agregar extras nuevos.
+  const prevDate = useMemo(() => shiftDay(targetDate, -1), [targetDate])
+  const { extras: prevExtras } = useProductionExtras(prevDate)
+  const { counts: prevCounts } = useProductionCounts(prevDate)
+
+  const prevVitrina = useMemo(() => {
+    const map: Record<string, { flavor: string; size: ProductSize; extras: number; available: number }> = {}
+    for (const e of prevExtras) {
+      if (!e.product) continue
+      map[e.product_id] = map[e.product_id] ?? { flavor: e.product.flavor, size: e.product.size, extras: 0, available: 0 }
+      map[e.product_id].extras += e.quantity
+    }
+    for (const c of prevCounts) {
+      if (!c.product) continue
+      map[c.product_id] = map[c.product_id] ?? { flavor: c.product.flavor, size: c.product.size, extras: 0, available: 0 }
+      map[c.product_id].available += c.quantity
+    }
+    return Object.entries(map)
+      .map(([productId, v]) => ({ productId, ...v, total: v.extras + v.available }))
+      .sort((a, b) => a.flavor.localeCompare(b.flavor) || a.size.localeCompare(b.size))
+  }, [prevExtras, prevCounts])
 
   const retailProducts = useMemo(() =>
     products.filter(p => p.catalog === 'retail' || p.catalog === 'ambos'),
@@ -269,7 +296,7 @@ export function ProductionView() {
           </div>
           {selectedCountReserved > 0 && (
             <p className="text-xs text-amber-700">
-              Reservado hoy: {selectedCountReserved} (pedidos listos sin entregar) — réstalo del conteo de cocina
+              Reservado: {selectedCountReserved} (pedidos listos sin entregar, de cualquier fecha) — réstalo del conteo de cocina
             </p>
           )}
         </div>
@@ -281,6 +308,28 @@ export function ProductionView() {
           <ShoppingBag className="h-4 w-4 text-[var(--color-accent)]" strokeWidth={1.5} />
           <p className="text-sm font-semibold text-[var(--color-text-primary)]">Extras para venta inmediata</p>
         </div>
+
+        {prevVitrina.length > 0 && (
+          <div className="px-4 py-3 bg-[var(--color-surface-warm)] border-b border-[var(--color-border-light)] space-y-1.5">
+            <p className="text-xs font-semibold text-[var(--color-text-secondary)]">
+              Vitrina de {formatDateLabel(prevDate).toLowerCase()} — posible sobrante en nevera
+            </p>
+            {prevVitrina.map(v => (
+              <div key={v.productId} className="flex items-center justify-between gap-3">
+                <p className="text-xs text-[var(--color-text-secondary)] truncate min-w-0 capitalize">
+                  {v.flavor} · {SIZE_LABELS[v.size]}
+                </p>
+                <span className="text-xs text-[var(--color-text-muted)] tabular-nums flex-shrink-0">
+                  {v.total}
+                  {v.extras > 0 && v.available > 0 && ` (${v.available} disp. + ${v.extras} extra)`}
+                </span>
+              </div>
+            ))}
+            <p className="text-xs text-[var(--color-text-muted)] pt-1">
+              Lo que no se haya vendido sigue en la nevera: cuéntalo y regístralo en "Terminado disponible" antes de agregar extras nuevos.
+            </p>
+          </div>
+        )}
 
         {extras.length > 0 && (
           <div className="divide-y divide-[var(--color-border-light)]">
