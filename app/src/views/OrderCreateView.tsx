@@ -597,27 +597,14 @@ export function OrderCreateView({ onClose }: Props) {
               </div>
             </div>
 
-            {paymentMethod === 'transfer' && (
+            {(paymentMethod === 'transfer' || paymentMethod === 'bold') && (
               <div>
                 <PhotoUpload
                   orderId={tempOrderId}
                   type="receipt"
                   existingPath={paymentReceiptUrl}
                   onUpload={setPaymentReceiptUrl}
-                  label="Comprobante de pago"
-                  dropzone
-                />
-              </div>
-            )}
-
-            {/* Comprobante Bold */}
-            {paymentMethod === 'bold' && (
-              <div>
-                <PhotoUpload
-                  orderId={tempOrderId}
-                  type="receipt"
-                  existingPath={paymentReceiptUrl}
-                  onUpload={setPaymentReceiptUrl}
+                  onRemove={() => setPaymentReceiptUrl(null)}
                   label="Comprobante de pago"
                   dropzone
                 />

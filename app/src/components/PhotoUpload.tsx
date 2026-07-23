@@ -7,12 +7,14 @@ interface Props {
   type: 'dispatch' | 'receipt' | 'invoice'
   existingPath?: string | null
   onUpload: (path: string) => void
+  /** Called when the user removes the current photo with the X button. Without it the parent keeps the stale path. */
+  onRemove?: () => void
   label?: string
   /** Render as a large drop zone with a visible "+" on drag-over and global Ctrl+V paste. Used for the payment receipt. */
   dropzone?: boolean
 }
 
-export function PhotoUpload({ orderId, type, existingPath, onUpload, label = 'Foto', dropzone = false }: Props) {
+export function PhotoUpload({ orderId, type, existingPath, onUpload, onRemove, label = 'Foto', dropzone = false }: Props) {
   const inputRef = useRef<HTMLInputElement>(null)
   const [uploading, setUploading] = useState(false)
   const [previewUrl, setPreviewUrl] = useState<string | null>(null)
@@ -132,7 +134,7 @@ export function PhotoUpload({ orderId, type, existingPath, onUpload, label = 'Fo
       <div className="relative inline-block">
         <img src={previewUrl} alt={label} className="w-16 h-16 rounded-lg object-cover" />
         <button
-          onClick={() => { setDone(false); setPreviewUrl(null); setError(null) }}
+          onClick={() => { setDone(false); setPreviewUrl(null); setError(null); onRemove?.() }}
           className="absolute -top-1.5 -right-1.5 w-5 h-5 bg-red-500 text-white rounded-full flex items-center justify-center"
         >
           <X size={10} />
