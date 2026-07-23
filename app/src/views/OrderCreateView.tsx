@@ -38,6 +38,8 @@ export function OrderCreateView({ onClose }: Props) {
   const [deliveryType, setDeliveryType] = useState<DeliveryType>('pickup')
   const [deliveryFeeOverride, setDeliveryFeeOverride] = useState<number | null>(null)
   const [discountOverride, setDiscountOverride] = useState<number | null>(null)
+  const [discountMode, setDiscountMode] = useState<'cop' | 'pct'>('cop')
+  const [discountPct, setDiscountPct] = useState(0)
   const [deliveryAddress, setDeliveryAddress] = useState('')
   const [deliveryDate, setDeliveryDate] = useState<string>(tomorrow())
   const [notes, setNotes] = useState('')
@@ -103,7 +105,9 @@ export function OrderCreateView({ onClose }: Props) {
 
   const subtotal = cart.reduce((sum, item) => sum + item.product.base_price * item.quantity, 0)
   const deliveryFee = deliveryFeeOverride ?? (deliveryType === 'delivery' ? DELIVERY_FEE : 0)
-  const discount = discountOverride ?? Math.round(subtotal * customerDiscount / 100)
+  const discount = discountMode === 'pct'
+    ? Math.round(subtotal * discountPct / 100)
+    : (discountOverride ?? Math.round(subtotal * customerDiscount / 100))
   const total = subtotal + deliveryFee - discount
 
   function addToCart(product: Product) {
@@ -129,6 +133,7 @@ export function OrderCreateView({ onClose }: Props) {
     setCustomerPhone(c.phone ?? '')
     setCustomerDiscount(c.discount_pct)
     setDiscountOverride(null)
+    setDiscountMode('cop')
     setBillingName(c.razon_social || c.name || '')
     setBillingIdNumber(c.nit || c.cedula || '')
     setBillingEmail(c.email || '')
@@ -678,15 +683,41 @@ export function OrderCreateView({ onClose }: Props) {
             )}
             <div className="flex justify-between items-center text-sm">
               <span className="text-[var(--color-text-secondary)]">
-                Descuento{discountOverride === null && customerDiscount > 0 ? ` (${customerDiscount}%)` : ''}
+                Descuento
+                {discountMode === 'cop' && discountOverride === null && customerDiscount > 0 ? ` (${customerDiscount}%)` : ''}
+                {discountMode === 'pct' && discountPct > 0 ? ` (${formatCOP(discount)})` : ''}
               </span>
-              <div className="flex items-center gap-1">
-                <span className="text-[var(--color-text-muted)]">$</span>
+              <div className="flex items-center gap-1.5">
+                <div className="flex rounded-md border border-[var(--color-border)] overflow-hidden">
+                  {(['cop', 'pct'] as const).map(m => (
+                    <button
+                      key={m}
+                      onClick={() => {
+                        if (m === discountMode) return
+                        if (m === 'pct') setDiscountPct(subtotal > 0 ? Math.min(100, Math.round(discount / subtotal * 100)) : 0)
+                        else setDiscountOverride(discount)
+                        setDiscountMode(m)
+                      }}
+                      className={`px-2 py-1 text-xs font-medium transition-colors ${
+                        discountMode === m
+                          ? 'bg-[var(--color-accent)] text-white'
+                          : 'bg-white text-[var(--color-text-muted)] hover:text-[var(--color-text-primary)]'
+                      }`}
+                    >
+                      {m === 'cop' ? '$' : '%'}
+                    </button>
+                  ))}
+                </div>
                 <input
                   type="number"
                   min={0}
-                  value={discount}
-                  onChange={e => setDiscountOverride(Math.max(0, parseInt(e.target.value || '0', 10)))}
+                  max={discountMode === 'pct' ? 100 : undefined}
+                  value={discountMode === 'pct' ? discountPct : discount}
+                  onChange={e => {
+                    const v = Math.max(0, parseInt(e.target.value || '0', 10))
+                    if (discountMode === 'pct') setDiscountPct(Math.min(100, v))
+                    else setDiscountOverride(v)
+                  }}
                   className="w-24 border border-[var(--color-border)] rounded-md px-2 py-1 text-sm tabular-nums text-right focus:outline-none focus:border-[var(--color-accent)]"
                 />
               </div>

@@ -1,6 +1,6 @@
 import type { OrderChannel, OrderStatus, ProductSize, ProductCategory, ProductCatalog, TaxType, PaymentStatus, PaymentMethod, PaymentBank, AppRole } from './types'
 
-export const DELIVERY_FEE = 8000
+export const DELIVERY_FEE = 10000
 
 export const CHANNEL_LABELS: Record<OrderChannel, string> = {
   whatsapp:  'WhatsApp',

@@ -41,6 +41,8 @@ export function OrderDrawer({ orderId, onClose, onStatusChange }: Props) {
   const [editItems, setEditItems] = useState<EditItem[]>([])
   const [editDeliveryFee, setEditDeliveryFee] = useState(0)
   const [editDiscount, setEditDiscount] = useState(0)
+  const [editDiscountMode, setEditDiscountMode] = useState<'cop' | 'pct'>('cop')
+  const [editDiscountPct, setEditDiscountPct] = useState(0)
   const [editDeliveryAddress, setEditDeliveryAddress] = useState('')
   const [editDeliveryDate, setEditDeliveryDate] = useState('')
   const [editNotes, setEditNotes] = useState('')
@@ -97,6 +99,8 @@ export function OrderDrawer({ orderId, onClose, onStatusChange }: Props) {
     )
     setEditDeliveryFee(order.delivery_fee)
     setEditDiscount(order.discount)
+    setEditDiscountMode('cop')
+    setEditDiscountPct(0)
     setEditDeliveryAddress(order.delivery_address ?? '')
     setEditDeliveryDate(order.delivery_date)
     setEditNotes(order.notes ?? '')
@@ -129,7 +133,13 @@ export function OrderDrawer({ orderId, onClose, onStatusChange }: Props) {
   }
 
   const editSubtotal = editItems.reduce((sum, i) => sum + i.quantity * i.unit_price, 0)
-  const editTotal = editSubtotal + editDeliveryFee - editDiscount
+  // Base del % de descuento: subtotal editable si los ítems se pueden cambiar,
+  // el subtotal persistido si ya están bloqueados. Se guarda siempre en pesos.
+  const editBaseSubtotal = canEditItems ? editSubtotal : (order?.subtotal ?? 0)
+  const effectiveDiscount = editDiscountMode === 'pct'
+    ? Math.round(editBaseSubtotal * editDiscountPct / 100)
+    : editDiscount
+  const editTotal = editSubtotal + editDeliveryFee - effectiveDiscount
 
   const productMatches = productQuery.trim().length >= 2
     ? products
@@ -150,7 +160,7 @@ export function OrderDrawer({ orderId, onClose, onStatusChange }: Props) {
       setToast({ msg: 'La fecha de entrega no puede quedar vacía', type: 'error' })
       return
     }
-    const totalToSave = canEditItems ? editTotal : order.subtotal + editDeliveryFee - editDiscount
+    const totalToSave = canEditItems ? editTotal : order.subtotal + editDeliveryFee - effectiveDiscount
     if (totalToSave < 0) {
       setToast({ msg: 'El descuento no puede ser mayor que el total del pedido', type: 'error' })
       return
@@ -163,7 +173,7 @@ export function OrderDrawer({ orderId, onClose, onStatusChange }: Props) {
           editItems.map(i => ({ product_id: i.product.id, quantity: i.quantity, unit_price: i.unit_price })),
           {
             delivery_fee: editDeliveryFee,
-            discount: editDiscount,
+            discount: effectiveDiscount,
             notes: editNotes.trim() || null,
             delivery_address: editDeliveryAddress.trim() || null,
             delivery_date: editDeliveryDate,
@@ -171,10 +181,10 @@ export function OrderDrawer({ orderId, onClose, onStatusChange }: Props) {
         )
       } else {
         // Items locked: only persist fields, recompute total from existing subtotal.
-        const newTotal = order.subtotal + editDeliveryFee - editDiscount
+        const newTotal = order.subtotal + editDeliveryFee - effectiveDiscount
         await updateOrderFields(orderId, {
           delivery_fee: editDeliveryFee,
-          discount: editDiscount,
+          discount: effectiveDiscount,
           notes: editNotes.trim() || null,
           delivery_address: editDeliveryAddress.trim() || null,
           delivery_date: editDeliveryDate,
@@ -423,14 +433,40 @@ export function OrderDrawer({ orderId, onClose, onStatusChange }: Props) {
 
               {editing ? (
                 <div className="flex justify-between items-center text-sm">
-                  <span className="text-[var(--color-text-muted)]">Descuento</span>
-                  <div className="flex items-center gap-1">
-                    <span className="text-[var(--color-text-muted)]">$</span>
+                  <span className="text-[var(--color-text-muted)]">
+                    Descuento{editDiscountMode === 'pct' && editDiscountPct > 0 ? ` (${formatCOP(effectiveDiscount)})` : ''}
+                  </span>
+                  <div className="flex items-center gap-1.5">
+                    <div className="flex rounded-md border border-[var(--color-border)] overflow-hidden">
+                      {(['cop', 'pct'] as const).map(m => (
+                        <button
+                          key={m}
+                          onClick={() => {
+                            if (m === editDiscountMode) return
+                            if (m === 'pct') setEditDiscountPct(editBaseSubtotal > 0 ? Math.min(100, Math.round(effectiveDiscount / editBaseSubtotal * 100)) : 0)
+                            else setEditDiscount(effectiveDiscount)
+                            setEditDiscountMode(m)
+                          }}
+                          className={`px-2 py-1 text-xs font-medium transition-colors ${
+                            editDiscountMode === m
+                              ? 'bg-[var(--color-accent)] text-white'
+                              : 'bg-white text-[var(--color-text-muted)] hover:text-[var(--color-text-primary)]'
+                          }`}
+                        >
+                          {m === 'cop' ? '$' : '%'}
+                        </button>
+                      ))}
+                    </div>
                     <input
                       type="number"
                       min={0}
-                      value={editDiscount}
-                      onChange={e => setEditDiscount(Math.max(0, parseInt(e.target.value || '0', 10)))}
+                      max={editDiscountMode === 'pct' ? 100 : undefined}
+                      value={editDiscountMode === 'pct' ? editDiscountPct : editDiscount}
+                      onChange={e => {
+                        const v = Math.max(0, parseInt(e.target.value || '0', 10))
+                        if (editDiscountMode === 'pct') setEditDiscountPct(Math.min(100, v))
+                        else setEditDiscount(v)
+                      }}
                       className="w-24 border border-[var(--color-border)] rounded-md px-2 py-1 text-sm tabular-nums text-right focus:outline-none focus:border-[var(--color-accent)]"
                     />
                   </div>
@@ -446,7 +482,7 @@ export function OrderDrawer({ orderId, onClose, onStatusChange }: Props) {
               <div className="flex justify-between text-base font-semibold pt-2.5 border-t border-[var(--color-border)]">
                 <span>Total</span>
                 <span className="tabular-nums">
-                  {formatCOP(editing ? (canEditItems ? editTotal : order.subtotal + editDeliveryFee - editDiscount) : order.total)}
+                  {formatCOP(editing ? (canEditItems ? editTotal : order.subtotal + editDeliveryFee - effectiveDiscount) : order.total)}
                 </span>
               </div>
             </div>
