@@ -112,8 +112,12 @@ export function KitchenSalesMode() {
         } as Omit<Order, 'id' | 'created_at' | 'updated_at'>,
         cart.map(i => ({ product_id: i.product.id, quantity: i.quantity, unit_price: i.product.base_price }))
       )
+      // El pedido ya quedó creado: una falla del ajuste de inventario no debe
+      // reportarse como venta fallida (mismo criterio que updateOrderStatus).
       for (const i of cart) {
-        await adjustInventory(i.product.id, -i.quantity, 'sale', newOrder.id)
+        await adjustInventory(i.product.id, -i.quantity, 'sale', newOrder.id).catch(err => {
+          console.warn(`[inventory] venta sin ajuste para ${i.product.id}:`, err.message)
+        })
       }
       setToast({ msg: 'Pedido registrado ✓', type: 'success' })
       reset()

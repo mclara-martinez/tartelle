@@ -4,11 +4,12 @@ import type { Order } from '../lib/types'
 import { today, shiftDay } from '../lib/utils'
 import { adjustInventory } from './useInventory'
 
-// Pedidos activos con fecha de entrega anterior a `beforeDate` (ventana de 14
-// días para no arrastrar pedidos viejos mal cerrados). Dos lecturas:
-// - reservedByProduct: unidades en pedidos 'ready' sin despachar — están dentro
-//   del conteo físico de cocina pero comprometidas; se muestran como hint al
-//   digitar el conteo nocturno.
+// Pedidos activos desde 14 días antes de `beforeDate` (ventana para no
+// arrastrar pedidos viejos mal cerrados), sin tope superior: un pedido futuro
+// que cocina adelantó también ocupa nevera. Dos lecturas:
+// - reservedByProduct: unidades en pedidos 'ready' sin despachar de CUALQUIER
+//   fecha — están dentro del conteo físico de cocina pero comprometidas; se
+//   muestran como hint al digitar el conteo nocturno.
 // - overdueCount: pedidos sin producir (pending/confirmed/in_production) con
 //   fecha ya pasada — se alertan en el tab para que la operadora decida.
 export function usePastActiveOrders(beforeDate: string) {
@@ -21,7 +22,6 @@ export function usePastActiveOrders(beforeDate: string) {
       .from('orders')
       .select('id, status, delivery_date, items:order_items(product_id, quantity)')
       .gte('delivery_date', shiftDay(beforeDate, -14))
-      .lt('delivery_date', beforeDate)
       .in('status', ['pending', 'confirmed', 'in_production', 'ready'])
 
     const reserved: Record<string, number> = {}
@@ -137,11 +137,11 @@ export function useOrders(startDate?: string, endDate?: string) {
   return { orders, loading, error, refetch: fetchOrders }
 }
 
-// Ajustes automáticos de inventory_finished desactivados hasta la fase de
-// inventario: la tabla está vacía y sin mantenimiento, y el tab Producción
-// ahora trabaja con conteos nocturnos por fecha (production_counts). Mientras
-// esté en false, cambiar de estado un pedido no mueve stock.
-const INVENTORY_SYNC_ENABLED: boolean = false
+// Fase A de inventario (blanqueo 2026-07-22): los pedidos alimentan
+// inventory_finished — ready suma (producción inferida), dispatched resta,
+// cancelación post-despacho devuelve. Cocina aún NO alimenta; eso llega en
+// Fase B cuando el cálculo de producción esté validado.
+const INVENTORY_SYNC_ENABLED: boolean = true
 
 export async function updateOrderStatus(
   orderId: string,
